@@ -3,8 +3,8 @@
   "framework": null,
   "buildCommand": "npm run build",
   "functions": {
-    "api/index.ts": {
-      "includeFiles": "{server.ts,src/**,package.json}"
+    "api/index.js": {
+      "includeFiles": "dist/**"
     }
   },
   "rewrites": [
