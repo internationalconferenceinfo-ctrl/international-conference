@@ -1,0 +1,6 @@
+{
+  "name": "International Conference",
+  "description": "Discover, submit, and connect with academic, professional, medical, business, engineering, and technology conferences worldwide. Featuring AI-powered duplicate detection and quality scoring.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,248 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Plus Jakarta Sans", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  /* Primary Brand Palette based on #37494E */
+  --color-brand-50: #f2f5f6;
+  --color-brand-100: #e2e8ea;
+  --color-brand-200: #c5d2d5;
+  --color-brand-300: #9fb2b7;
+  --color-brand-400: #6b848b;
+  --color-brand-500: #485f65;
+  --color-brand-600: #37494e;
+  --color-brand-700: #2b3a3e;
+  --color-brand-800: #202b2e;
+  --color-brand-900: #161e20;
+  --color-brand-950: #0e1315;
+
+  /* Override blue palette to match brand #37494E so all existing blue-* utilities automatically render in #37494E */
+  --color-blue-50: #f2f5f6;
+  --color-blue-100: #e2e8ea;
+  --color-blue-200: #c5d2d5;
+  --color-blue-300: #9fb2b7;
+  --color-blue-400: #6b848b;
+  --color-blue-500: #485f65;
+  --color-blue-600: #37494e;
+  --color-blue-700: #2b3a3e;
+  --color-blue-800: #202b2e;
+  --color-blue-900: #161e20;
+  --color-blue-950: #0e1315;
+
+  /* Override indigo palette to match brand for single-theme consistency */
+  --color-indigo-50: #f2f5f6;
+  --color-indigo-100: #e2e8ea;
+  --color-indigo-200: #c5d2d5;
+  --color-indigo-300: #9fb2b7;
+  --color-indigo-400: #6b848b;
+  --color-indigo-500: #485f65;
+  --color-indigo-600: #37494e;
+  --color-indigo-700: #2b3a3e;
+  --color-indigo-800: #202b2e;
+  --color-indigo-900: #161e20;
+  --color-indigo-950: #0e1315;
+}
+
+html {
+  scroll-behavior: smooth;
+  overflow-x: hidden;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+img,
+video,
+svg {
+  max-width: 100%;
+}
+
+img,
+video {
+  height: auto;
+}
+
+input,
+select,
+textarea,
+button {
+  max-width: 100%;
+}
+
+/* Prevent long titles, email addresses and URLs from widening cards or dialogs. */
+p,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+td,
+th {
+  overflow-wrap: anywhere;
+}
+
+/* Dashboard tables remain usable on phones and tablets without page overflow. */
+.overflow-x-auto {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-inline: contain;
+}
+
+@media (max-width: 639px) {
+  body {
+    font-size: 14px;
+  }
+
+  table {
+    min-width: 680px;
+  }
+
+  [role="dialog"] {
+    max-width: calc(100vw - 1rem);
+    max-height: calc(100dvh - 1rem);
+  }
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: #f8fafc;
+  color: #0f172a;
+  overflow-x: hidden;
+  text-rendering: optimizeLegibility;
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c7cd;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a0a7ae;
+}
+
+/* Global interactive transitions - targeted properties prevent layout thrashing */
+button, a, input, select, textarea {
+  transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, opacity 0.15s ease-in-out, box-shadow 0.15s ease-in-out, transform 0.15s ease-in-out;
+}
+
+button:not(:disabled) {
+  cursor: pointer;
+}
+
+/* Form input focus styles with soft glow */
+input:focus, textarea:focus, select:focus {
+  outline: none !important;
+  border-color: #37494e !important;
+  box-shadow: 0 0 0 3px rgba(55, 73, 78, 0.15), 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+/* Table row hover highlight */
+tbody tr {
+  transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+tbody tr:hover {
+  background-color: rgba(241, 245, 249, 0.8) !important;
+}
+
+/* Custom interactive utility classes */
+.hover-card-lift {
+  transition: transform 0.35s cubic-bezier(0.34, 1.2, 0.64, 1), box-shadow 0.35s ease, border-color 0.35s ease;
+}
+.hover-card-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 14px 28px -6px rgba(15, 23, 42, 0.1), 0 6px 12px -4px rgba(15, 23, 42, 0.05);
+}
+
+.hover-img-zoom {
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.group:hover .hover-img-zoom,
+.hover-img-zoom:hover {
+  transform: scale(1.05);
+}
+
+.hover-icon-scale {
+  transition: transform 0.3s ease, color 0.3s ease;
+}
+.hover-icon-scale:hover,
+button:hover .hover-icon-scale,
+a:hover .hover-icon-scale {
+  transform: scale(1.1);
+}
+
+/* Navigation underline hover effect */
+.nav-link-underline {
+  position: relative;
+  transition: color 0.3s ease;
+}
+.nav-link-underline::after {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 2px;
+  bottom: -4px;
+  left: 0;
+  background-color: #37494e;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 2px;
+}
+.nav-link-underline:hover::after,
+.nav-link-underline.active::after {
+  width: 100%;
+}
+
+/* Sidebar item hover effect */
+.sidebar-item-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-left: 3px solid transparent;
+}
+.sidebar-item-hover:hover {
+  background-color: rgba(55, 73, 78, 0.08);
+  border-left-color: #37494e;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+@keyframes pulse-slow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 3s ease-in-out infinite;
+}
