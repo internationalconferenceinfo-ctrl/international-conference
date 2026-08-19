@@ -4,11 +4,7 @@
   "buildCommand": "npm run build",
   "functions": {
     "api/index.ts": {
-      "includeFiles": [
-        "server.ts",
-        "src/**",
-        "package.json"
-      ]
+      "includeFiles": "{server.ts,src/**,package.json}"
     }
   },
   "rewrites": [
