@@ -633,10 +633,25 @@ export default function PublicPortal({
     return ["All", ...Array.from(combined).map(String).sort((a: string, b: string) => a.localeCompare(b))];
   }, [approvedConferences, selectedCountry, adminCities, inactiveCities]);
 
-  // Countries list for Home "International Conference Countries" section
-  const allFilterCountries = useMemo(() => {
-    return activeCountriesList;
-  }, [activeCountriesList]);
+  // Countries shown on Home only when at least 1 approved/live conference exists
+      const allFilterCountries = useMemo(() => {
+        const countrySet = new Set<string>();
+
+        approvedConferences.forEach((conf) => {
+          const country = String(conf.country || "").trim();
+          if (!country) return;
+
+          const isInactive = inactiveCountries.some(
+            (item) => String(item || "").trim().toLowerCase() === country.toLowerCase()
+          );
+
+          if (!isInactive) {
+            countrySet.add(country);
+          }
+        });
+
+        return Array.from(countrySet).sort((a, b) => a.localeCompare(b));
+      }, [approvedConferences, inactiveCountries]);
 
   // Search states for country, city, and topic cards
   const [countrySearchQuery, setCountrySearchQuery] = useState("");
@@ -650,33 +665,49 @@ export default function PublicPortal({
     return allFilterCountries.filter((c) => c.toLowerCase().includes(q));
   }, [allFilterCountries, countrySearchQuery]);
 
-  // All cities list with city name & country name (Shows ONLY admin-added cities & conference cities)
-  const allFilterCities = useMemo(() => {
-    const cityMap = new Map<string, { cityName: string; countryName: string }>();
+  // Cities shown on Home only when at least 1 approved/live conference exists
+const allFilterCities = useMemo(() => {
+  const cityMap = new Map<
+    string,
+    { cityName: string; countryName: string }
+  >();
 
-    // 1. Admin added cities from adminCities
-    for (const item of adminCities) {
-      if (item.name && item.country) {
-        const key = `${item.name.toLowerCase()}|||${item.country.toLowerCase()}`;
-        if (!cityMap.has(key)) {
-          cityMap.set(key, { cityName: item.name, countryName: item.country });
-        }
-      }
+  for (const conf of approvedConferences) {
+    const cityName = String(conf.city || "").trim();
+    const countryName = String(conf.country || "").trim();
+
+    if (!cityName || !countryName) continue;
+
+    const cityInactive = inactiveCities.some(
+      (item) =>
+        String(item || "").trim().toLowerCase() ===
+        `${countryName}:::${cityName}`.toLowerCase()
+    );
+
+    const countryInactive = inactiveCountries.some(
+      (item) =>
+        String(item || "").trim().toLowerCase() ===
+        countryName.toLowerCase()
+    );
+
+    if (cityInactive || countryInactive) continue;
+
+    const key = `${cityName.toLowerCase()}|||${countryName.toLowerCase()}`;
+
+    if (!cityMap.has(key)) {
+      cityMap.set(key, {
+        cityName,
+        countryName,
+      });
     }
+  }
 
-    // 2. Extra cities from approvedConferences
-    for (const conf of approvedConferences) {
-      if (conf.city && conf.country) {
-        const key = `${conf.city.toLowerCase()}|||${conf.country.toLowerCase()}`;
-        if (!cityMap.has(key)) {
-          cityMap.set(key, { cityName: conf.city, countryName: conf.country });
-        }
-      }
-    }
-
-    const list = Array.from(cityMap.values());
-    return list.sort((a, b) => String(a.cityName || "").localeCompare(String(b.cityName || "")) || String(a.countryName || "").localeCompare(String(b.countryName || "")));
-  }, [approvedConferences, adminCities]);
+  return Array.from(cityMap.values()).sort(
+    (a, b) =>
+      a.cityName.localeCompare(b.cityName) ||
+      a.countryName.localeCompare(b.countryName)
+  );
+}, [approvedConferences, inactiveCities, inactiveCountries]);
 
   // Filtered cities list based on citySearchQuery
   const filteredCitiesList = useMemo(() => {
@@ -728,28 +759,38 @@ export default function PublicPortal({
     });
   }, [categories, inactiveTopics]);
 
-  // All categories / topics list matching event filter dropdown
-  const allFilterCategories = useMemo(() => {
-    const topicSet = new Set<string>();
-    activeCategories.forEach((cat) => {
-      const topicName = topicsMapping[cat.name] || cat.name;
+  // Topics shown on Home only when at least 1 approved/live conference exists
+const allFilterCategories = useMemo(() => {
+  const topicSet = new Set<string>();
+
+  approvedConferences.forEach((conf) => {
+    if (!conf.category) return;
+
+    const topicName = topicsMapping[conf.category] || conf.category;
+
+    const isInactive = inactiveTopics.some((item) => {
+      const inactiveValue = String(item || "").trim();
+
+      return (
+        inactiveValue === conf.category ||
+        inactiveValue === topicName ||
+        categories.some(
+          (cat) =>
+            cat.id === inactiveValue &&
+            (cat.name === conf.category || cat.name === topicName)
+        )
+      );
+    });
+
+    if (!isInactive) {
       topicSet.add(topicName);
-    });
-    approvedConferences.forEach((c) => {
-      if (c.category) {
-        const topicName = topicsMapping[c.category] || c.category;
-        const isInactive = inactiveTopics.some((it) =>
-          it === c.category ||
-          it === topicName ||
-          categories.some((cat) => cat.id === it && (cat.name === c.category || cat.name === topicName))
-        );
-        if (!isInactive) {
-          topicSet.add(topicName);
-        }
-      }
-    });
-    return Array.from(topicSet).filter(Boolean).map(String).sort((a, b) => a.localeCompare(b));
-  }, [activeCategories, approvedConferences, inactiveTopics, categories]);
+    }
+  });
+
+  return Array.from(topicSet)
+    .filter(Boolean)
+    .sort((a, b) => a.localeCompare(b));
+}, [approvedConferences, inactiveTopics, categories]);
 
   // Filtered topics list based on topicSearchQuery
   const filteredTopicsList = useMemo(() => {
@@ -768,15 +809,48 @@ export default function PublicPortal({
     return Boolean(org.isVerified || completedCount >= 101);
   };
 
-  // Active organizers list for Trusted Organizers section
-  const trustedOrganizersList = useMemo(() => {
-    const active = organizers.filter((o) => !o.isSuspended);
-    return active.sort((a, b) => {
-      const aTrusted = getIsOrganizerTrusted(a) ? 1 : 0;
-      const bTrusted = getIsOrganizerTrusted(b) ? 1 : 0;
-      return bTrusted - aTrusted;
+  // Home organizers: only organizers having at least 1 approved/live conference
+const trustedOrganizersList = useMemo(() => {
+  const activeWithConference = organizers.filter((org) => {
+    if (org.isSuspended) return false;
+
+    return approvedConferences.some((conf) => {
+      const sameOrganizerId = conf.organizerId === org.id;
+
+      const sameEmail =
+        Boolean(conf.contactEmail) &&
+        Boolean(org.email) &&
+        conf.contactEmail!.trim().toLowerCase() ===
+          org.email!.trim().toLowerCase();
+
+      return sameOrganizerId || sameEmail;
     });
-  }, [organizers, conferences]);
+  });
+
+  return activeWithConference.sort((a, b) => {
+    const aTrusted = getIsOrganizerTrusted(a) ? 1 : 0;
+    const bTrusted = getIsOrganizerTrusted(b) ? 1 : 0;
+
+    if (aTrusted !== bTrusted) {
+      return bTrusted - aTrusted;
+    }
+
+    return String(a.organizationName || "").localeCompare(
+      String(b.organizationName || "")
+    );
+  });
+}, [organizers, approvedConferences, conferences]);
+
+    // All active organizers - for full Organizers page
+    const allPublicOrganizersList = useMemo(() => {
+      return organizers
+        .filter((org) => !org.isSuspended)
+        .sort((a, b) =>
+          String(a.organizationName || "").localeCompare(
+            String(b.organizationName || "")
+          )
+        );
+    }, [organizers]);
 
   const organizersScrollRef = useRef<HTMLDivElement>(null);
 
@@ -1276,7 +1350,10 @@ export default function PublicPortal({
       {tab === "HOME" && (
         <>
           {/* Hero Carousel Banner Section */}
-      <section id="home" className="relative rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl min-h-[250px] sm:h-[285px] md:h-[320px] lg:h-[340px] py-5 sm:py-0 flex items-center">
+          <section
+  id="home"
+  className="relative rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl h-[360px] sm:h-[420px] md:h-[480px] lg:h-[520px] flex items-center bg-slate-900"
+>
         {/* Carousel Slide Images */}
         <div className="absolute inset-0 z-0">
           <AnimatePresence mode="wait">
@@ -1292,7 +1369,7 @@ export default function PublicPortal({
                 <img
                   src={activeBannersList[currentSlide % activeBannersList.length]?.image || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=800&q=80"}
                   alt={activeBannersList[currentSlide % activeBannersList.length]?.title || "Conference Banner"}
-                  className="w-full h-full object-contain"
+                  className="w-full h-full object-contain object-center"
                   referrerPolicy="no-referrer"
                 />
               </motion.div>
@@ -1300,20 +1377,20 @@ export default function PublicPortal({
               <div className="absolute inset-0 bg-gradient-to-br from-blue-700 to-indigo-900" />
             )}
           </AnimatePresence>
-          <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-900/70 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-r from-slate-950/70 via-slate-900/35 to-transparent" />
         </div>
 
-        {/* Hero Overlay Content */}
-        <div className="relative z-10 w-full px-4 sm:px-8 md:px-10 lg:px-12 text-white max-w-3xl space-y-2.5 sm:space-y-3.5">
+          {/* Hero Overlay Content */}
+        <div className="relative z-10 w-full h-full px-4 sm:px-8 md:px-10 lg:px-12 text-white flex flex-col items-center justify-center text-center space-y-4">
           <div className="space-y-2">
-            <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-extrabold font-display leading-tight tracking-tight line-clamp-2">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold font-display leading-tight tracking-tight line-clamp-2">
               {currentBannerContent?.title ? (
                 currentBannerContent.title
               ) : (
                 <>Discover <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">International</span> Conferences</>
               )}
             </h1>
-            <p className="text-slate-200 text-xs sm:text-sm md:text-base max-w-xl font-medium leading-relaxed line-clamp-2">
+            <p className="text-slate-100 text-base sm:text-lg md:text-xl max-w-3xl mx-auto font-medium leading-relaxed line-clamp-2">
               {currentBannerContent?.description ? (
                 currentBannerContent.description
               ) : (
@@ -1323,7 +1400,7 @@ export default function PublicPortal({
           </div>
 
           {/* Quick Action Buttons */}
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap justify-center items-center gap-3">
             <button
               onClick={() => {
                 if (onTabChange) {
@@ -1334,7 +1411,7 @@ export default function PublicPortal({
                   if (target) target.scrollIntoView({ behavior: "smooth" });
                 }, 50);
               }}
-              className="px-3.5 sm:px-5 py-2 sm:py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all border border-blue-500 hover:border-blue-600 shadow-lg shadow-blue-600/30 flex items-center gap-1.5 sm:gap-2 cursor-pointer text-[11px] sm:text-sm"
+              className="px-5 sm:px-6 py-2.5 sm:py-3 text-sm sm:text-base bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all border border-blue-500 hover:border-blue-600 shadow-lg shadow-blue-600/30 flex items-center gap-1.5 sm:gap-2 cursor-pointer text-[11px] sm:text-sm"
             >
               Explore Conferences <ArrowRight className="h-4 w-4" />
             </button>
@@ -1342,14 +1419,14 @@ export default function PublicPortal({
               onClick={() => {
                 if (onLoginClick) onLoginClick();
               }}
-              className="px-3.5 sm:px-5 py-2 sm:py-2.5 bg-white/10 hover:bg-white/20 text-white font-bold rounded-xl transition-all border border-white/30 hover:border-white/55 flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-sm cursor-pointer"
+              className="px-5 sm:px-6 py-2.5 sm:py-3 text-sm sm:text-base bg-white/10 hover:bg-white/20 text-white font-bold rounded-xl transition-all border border-white/30 hover:border-white/55 flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-sm cursor-pointer"
             >
               Submit a Conference
             </button>
           </div>
 
           {/* Search Box on Hero */}
-          <div className="bg-slate-900/60 backdrop-blur-md rounded-2xl p-1.5 sm:p-2 max-w-xl border border-white/10 shadow-lg mt-2 sm:mt-3">
+          <div className="w-full max-w-2xl mx-auto bg-slate-900/60 backdrop-blur-md rounded-2xl p-2 sm:p-2.5 border border-white/10 shadow-lg mt-2">
             <div className="flex flex-col sm:flex-row gap-2">
               <div className="flex-1 flex items-center px-3.5 gap-2.5 bg-white/5 rounded-xl border border-white/5">
                 <Search className="h-4 w-4 text-blue-300 shrink-0" />
@@ -1471,7 +1548,7 @@ export default function PublicPortal({
               value={countrySearchQuery}
               onChange={(e) => setCountrySearchQuery(e.target.value)}
               placeholder="Search Country..."
-              className="w-full pl-9 pr-8 py-2 text-xs border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-2xs"
+              className="w-full pl-9 pr-8 py-2.5 text-xs border-2 border-slate-300 rounded-xl bg-white shadow-sm transition-all duration-300 hover:border-blue-400 hover:shadow-md focus:outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-500/15 focus:shadow-md"
             />
             {countrySearchQuery && (
               <button
@@ -1533,8 +1610,7 @@ export default function PublicPortal({
               value={citySearchQuery}
               onChange={(e) => setCitySearchQuery(e.target.value)}
               placeholder="Search City..."
-              className="w-full pl-9 pr-8 py-2 text-xs border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all shadow-2xs"
-            />
+              className="w-full pl-9 pr-8 py-2.5 text-xs border-2 border-slate-300 rounded-xl bg-white shadow-sm transition-all duration-300 hover:border-emerald-400 hover:shadow-md focus:outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-500/15 focus:shadow-md"/>
             {citySearchQuery && (
               <button
                 onClick={() => setCitySearchQuery("")}
@@ -1611,8 +1687,7 @@ export default function PublicPortal({
               value={topicSearchQuery}
               onChange={(e) => setTopicSearchQuery(e.target.value)}
               placeholder="Search Topic..."
-              className="w-full pl-9 pr-8 py-2 text-xs border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-2xs"
-            />
+              className="w-full pl-9 pr-8 py-2.5 text-xs border-2 border-slate-300 rounded-xl bg-white shadow-sm transition-all duration-300 hover:border-indigo-400 hover:shadow-md focus:outline-none focus:border-indigo-600 focus:ring-4 focus:ring-indigo-500/15 focus:shadow-md"/>
             {topicSearchQuery && (
               <button
                 onClick={() => setTopicSearchQuery("")}
@@ -1688,7 +1763,17 @@ export default function PublicPortal({
           <div className="space-y-8">
             <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
               {trustedOrganizersList.slice(0, 8).map((org, oIdx) => {
-                const count = approvedConferences.filter((c) => c.organizerId === org.id).length;
+                const count = approvedConferences.filter((conf) => {
+                  const sameOrganizerId = conf.organizerId === org.id;
+
+                  const sameEmail =
+                    Boolean(conf.contactEmail) &&
+                    Boolean(org.email) &&
+                    conf.contactEmail!.trim().toLowerCase() ===
+                      org.email!.trim().toLowerCase();
+
+                  return sameOrganizerId || sameEmail;
+                }).length;
                 return (
                   <motion.div
                     key={org.id ? `${org.id}-${oIdx}` : `org-${oIdx}`}
@@ -1883,7 +1968,7 @@ export default function PublicPortal({
                   placeholder="Search titles, or use /INDIA..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl pl-8 pr-7 py-2 text-slate-700 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  className="w-full text-xs bg-white border-2 border-slate-300 rounded-xl pl-8 pr-7 py-2.5 text-slate-700 shadow-sm transition-all duration-300 hover:border-blue-400 hover:shadow-md focus:border-blue-600 focus:ring-4 focus:ring-blue-500/15 focus:shadow-md focus:outline-none"
                 />
                 <Search className="h-3.5 w-3.5 text-slate-400 absolute left-2.5 top-2.5" />
                 {searchTerm && (
@@ -1925,11 +2010,15 @@ export default function PublicPortal({
                     className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 text-slate-700 focus:ring-2 focus:ring-blue-500 focus:outline-none cursor-pointer"
                   >
                     <option value="All">All Topics</option>
-                    {allFilterCategories.map((topicName, idx) => (
-                      <option key={`${topicName}-${idx}`} value={topicName}>
-                        {topicName}
-                      </option>
-                    ))}
+                    {activeCategories.map((cat, idx) => {
+                      const topicName = topicsMapping[cat.name] || cat.name;
+
+                      return (
+                        <option key={`${cat.id || topicName}-${idx}`} value={topicName}>
+                          {topicName}
+                        </option>
+                      );
+                    })}
                   </select>
                 </div>
 
@@ -2791,13 +2880,15 @@ export default function PublicPortal({
                 >
                   <div>
                     {/* Logo */}
-                    <div className="flex items-center gap-2 sm:gap-3">
-                      <img 
-                        src={partner.logo} 
-                        alt={`${partner.name} Logo`} 
-                        referrerPolicy="no-referrer"
-                        className="w-10 h-10 sm:w-12 sm:h-12 object-contain rounded-xl border border-slate-100 shadow-2xs shrink-0" 
-                      />
+                    <div className="w-full flex justify-start mb-4">
+                      <div className="w-30 h-20 sm:w-30 sm:h-20 bg-white border border-slate-100 rounded-2xl shadow-sm flex items-center justify-center overflow-hidden">
+                        <img 
+                          src={partner.logo} 
+                          alt={`${partner.name} Logo`} 
+                          referrerPolicy="no-referrer"
+                          className="w-full h-full object-contain p-2"
+                        />
+                      </div>
                     </div>
 
                     {/* Name */}
@@ -2933,14 +3024,16 @@ export default function PublicPortal({
                 >
                   <div>
                     {/* Logo */}
-                    <div className="flex items-center gap-2 sm:gap-3">
-                      <img 
-                        src={assoc.logo} 
-                        alt={`${assoc.name} Logo`} 
-                        referrerPolicy="no-referrer"
-                        className="w-10 h-10 sm:w-12 sm:h-12 object-contain rounded-xl border border-slate-100 shadow-2xs shrink-0" 
-                      />
-                    </div>
+                      <div className="w-full flex justify-start mb-4">
+                        <div className="w-30 h-20 sm:w-30 sm:h-20 bg-white border border-slate-100 rounded-2xl shadow-sm flex items-center justify-center overflow-hidden">
+                          <img 
+                            src={assoc.logo} 
+                            alt={`${assoc.name} Logo`} 
+                            referrerPolicy="no-referrer"
+                            className="w-full h-full object-contain p-2"
+                          />
+                        </div>
+                      </div>
 
                     {/* Name */}
                     <div className="space-y-1 mt-2.5 sm:mt-4">
@@ -3052,7 +3145,7 @@ export default function PublicPortal({
               <div className="flex items-center gap-2 bg-slate-50 border border-slate-150 px-4 py-2 rounded-2xl shrink-0">
                 <ShieldCheck className="h-5 w-5 text-blue-600" />
                 <span className="text-xs font-bold text-slate-700">
-                  {trustedOrganizersList.length} Verified Institutions
+                  {allPublicOrganizersList.length} Verified Organizer
                 </span>
               </div>
             </div>
@@ -3062,14 +3155,14 @@ export default function PublicPortal({
             </p>
           </div>
 
-          {trustedOrganizersList.length === 0 ? (
+          {allPublicOrganizersList.length === 0 ? (
             <div className="bg-white border border-slate-100 rounded-3xl p-12 text-center text-slate-400 space-y-3">
               <Users className="h-12 w-12 text-slate-300 mx-auto" />
               <p className="text-sm font-semibold">No verified organizers listed at this moment.</p>
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-              {trustedOrganizersList.map((org, oIdx) => {
+              {allPublicOrganizersList.map((org, oIdx) => {
                 const publishedCount = approvedConferences.filter((c) => c.organizerId === org.id).length;
                 return (
                   <div
@@ -3441,16 +3534,15 @@ export default function PublicPortal({
               }}
               className="flex items-center gap-3 cursor-pointer group"
             >
-              <div className="w-10 h-10 bg-white/10 text-white border border-white/20 rounded-xl flex items-center justify-center font-bold text-base shadow-md shrink-0 group-hover:scale-105 transition-transform">
-                <Globe className="h-5 w-5 text-white" />
-              </div>
-              <div>
-                <h3 className="font-display font-bold text-white text-base flex items-center gap-1.5 leading-none">
-                  <span>International Conference</span>
-                </h3>
-                <p className="text-[10px] text-slate-300 font-medium mt-1">Discover • Submit • Connect</p>
+              <div className="w-[180px] h-12 sm:w-[200px] sm:h-14 flex items-center justify-start shrink-0 group-hover:scale-105 transition-transform">
+                <img
+                  src="/company-logo.png"
+                  alt="International Conference Logo"
+                  className="w-full h-full object-contain"
+                />
               </div>
             </div>
+            <br></br>
             <p className="text-xs text-slate-300 leading-relaxed font-medium">
               Global directory for peer-reviewed academic conferences, research symposiums, and professional summits taking place worldwide.
             </p>

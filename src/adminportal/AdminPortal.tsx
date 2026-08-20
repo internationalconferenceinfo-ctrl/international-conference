@@ -1073,18 +1073,22 @@ export default function AdminPortal({
             <Menu className="h-5 w-5" />
           </button>
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-white/10 border border-white/20 flex items-center justify-center text-white font-bold shrink-0 shadow-inner">
-              <Globe className="h-4.5 w-4.5 text-blue-300" />
+            <div className="w-[80px] h-10 sm:w-[140px] sm:h-10 flex items-center justify-start shrink-0">
+              <img
+                src="/company-logo.png"
+                alt="International Conference Logo"
+                className="w-full h-full object-contain"
+              />
             </div>
             <div>
               <h1 className="text-xs sm:text-sm md:text-base font-extrabold tracking-wide text-white leading-tight font-display">
-                International Conference Admin Dashboard
+                Admin Dashboard
               </h1>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4">
           <button 
             onClick={() => setActiveMenu("ADMIN_PROFILE")}
             className="flex items-center gap-2.5 p-1.5 rounded-xl hover:bg-white/10 transition-all cursor-pointer text-left"
@@ -1101,10 +1105,24 @@ export default function AdminPortal({
                 {adminProfile.name?.charAt(0) || "A"}
               </div>
             )}
+
             <div className="hidden sm:block text-left">
-              <p className="text-xs font-bold text-white leading-none">{adminProfile.name || "Super Admin"}</p>
-              <p className="text-[10px] text-slate-300 leading-none mt-1">{adminProfile.email || "Not configured"}</p>
+              <p className="text-xs font-bold text-white leading-none">
+                {adminProfile.name || "Super Admin"}
+              </p>
+              <p className="text-[10px] text-slate-300 leading-none mt-1">
+                {adminProfile.email || "Not configured"}
+              </p>
             </div>
+          </button>
+
+          {/* Mobile Logout Button */}
+          <button
+            onClick={handleLogoutClick}
+            className="p-2 bg-rose-500/20 hover:bg-rose-500 text-rose-200 hover:text-white rounded-xl transition-all cursor-pointer border border-rose-500/30"
+            title="Log Out"
+          >
+            <LogOut className="h-4 w-4" />
           </button>
         </div>
       </header>

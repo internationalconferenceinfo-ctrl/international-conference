@@ -314,9 +314,15 @@ export default function OrganizerPortal({
     const pending = orgConferences.filter((c) => isPendingStatus(c.status) && !isConferenceCompleted(c)).length;
     const rejected = orgConferences.filter((c) => (c.status === ConferenceStatus.Rejected || String(c.status).toLowerCase().trim() === "rejected") && !isConferenceCompleted(c)).length;
     const draft = orgConferences.filter((c) => (c.status === ConferenceStatus.Draft || String(c.status).toLowerCase().trim() === "draft") && !isConferenceCompleted(c)).length;
-    const views = orgConferences.reduce((acc, c) => acc + (c.views || 0), 0);
-    const clicks = orgConferences.reduce((acc, c) => acc + (c.registrationClicks || 0), 0);
-    return { total, completed, approved, pending, rejected, draft, views, clicks };
+    
+    return {
+        total,
+        completed,
+        approved,
+        pending,
+        rejected,
+        draft,
+      };
   }, [orgConferences]);
 
   const toggleGroup = (group: "conference" | "profile") => {
@@ -658,8 +664,12 @@ export default function OrganizerPortal({
             <Menu className="h-5 w-5" />
           </button>
           <div className="flex items-center gap-2.5">
-            <div className="p-1.5 bg-blue-500/20 rounded-lg border border-blue-400/30">
-              <Building2 className="h-4.5 w-4.5 text-blue-300" />
+            <div className="w-[80px] h-10 sm:w-[140px] sm:h-10 flex items-center justify-start shrink-0">
+              <img
+                src="/company-logo.png"
+                alt="International Conference Logo"
+                className="w-full h-full object-contain"
+              />
             </div>
             <div>
               <h1 className="text-xs sm:text-sm md:text-base font-extrabold tracking-wide text-white leading-tight font-display">
@@ -989,29 +999,6 @@ export default function OrganizerPortal({
                       </div>
                     </div>
                     <p className="text-xs font-bold text-slate-500 mt-2">Rejected Conferences</p>
-                  </div>
-                </div>
-
-                {/* Secondary Engagement Metrics */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
-                    <div>
-                      <span className="text-2xl font-black text-[#37494E]">{stats.views}</span>
-                      <p className="text-xs font-bold text-slate-500 mt-1">Total Page Views</p>
-                    </div>
-                    <div className="p-3 bg-purple-50 text-purple-600 rounded-xl">
-                      <Eye className="h-6 w-6" />
-                    </div>
-                  </div>
-
-                  <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
-                    <div>
-                      <span className="text-2xl font-black text-[#37494E]">{stats.clicks}</span>
-                      <p className="text-xs font-bold text-slate-500 mt-1">Registration Clicks</p>
-                    </div>
-                    <div className="p-3 bg-sky-50 text-sky-600 rounded-xl">
-                      <ExternalLink className="h-6 w-6" />
-                    </div>
                   </div>
                 </div>
 
@@ -1482,7 +1469,6 @@ export default function OrganizerPortal({
                                 <th className="p-3.5 pl-6 rounded-l-lg">Conference</th>
                                 <th className="p-3.5">Category</th>
                                 <th className="p-3.5">Location</th>
-                                <th className="p-3.5">Views</th>
                                 <th className="p-3.5 pr-6 text-right rounded-r-lg">Actions</th>
                               </tr>
                             </thead>
@@ -1515,7 +1501,6 @@ export default function OrganizerPortal({
                                   </td>
                                   <td className="p-4">{conf.category}</td>
                                   <td className="p-4">{conf.city}, {conf.country}</td>
-                                  <td className="p-4 font-bold text-slate-900">{conf.views || 0}</td>
                                   <td className="p-4 pr-6 text-right">
                                     <div className="flex items-center justify-end gap-1.5">
                                       <button

@@ -2517,17 +2517,13 @@ const DEFAULT_CITIES: Array<{ name: string; country: string }> = [
     logAudit("Deleted All Categories", "Permanently deleted all topics", "Super Admin", "ADMIN");
   };
 
-  const handleRegisterClick = (confId: string) => {
-    setConferences((prev) =>
-      prev.map((c) => (c.id === confId ? { ...c, registrationClicks: (c.registrationClicks || 0) + 1 } : c))
-    );
-  };
+  const handleRegisterClick = (_confId: string) => {
+  // Profile visit / registration click tracking disabled.
+};
 
-  const handleSelectConference = (conf: Conference) => {
-    setConferences((prev) =>
-      prev.map((c) => (c.id === conf.id ? { ...c, views: (c.views || 0) + 1 } : c))
-    );
-  };
+  const handleSelectConference = (_conf: Conference) => {
+  // View tracking removed.
+    };
 
   const handleClearNotifications = () => {
     if (!authUser?.organizerId) return;
@@ -2870,14 +2866,12 @@ const DEFAULT_CITIES: Array<{ name: string; country: string }> = [
             window.scrollTo({ top: 0, behavior: "smooth" });
           }}
         >
-          <div className="w-10 h-10 bg-[#37494E] rounded-xl flex items-center justify-center text-white font-bold text-base shadow-md shrink-0 group-hover:scale-105 transition-transform">
-            <Globe className="h-5 w-5 text-white" />
-          </div>
-          <div>
-            <h1 className="font-display font-bold text-gray-900 text-sm md:text-base flex items-center gap-1.5 leading-none">
-              <span>International Conference</span>
-            </h1>
-            <p className="text-[9px] text-gray-400 font-medium hidden sm:block mt-0.5">Discover • Submit • Connect</p>
+          <div className="w-[180px] h-12 sm:w-[200px] sm:h-14 flex items-center justify-start shrink-0 group-hover:scale-105 transition-transform">
+            <img
+              src="/company-logo.png"
+              alt="International Conference Logo"
+              className="w-full h-full object-contain"
+            />
           </div>
         </div>
 
@@ -3186,7 +3180,6 @@ const DEFAULT_CITIES: Array<{ name: string; country: string }> = [
               <div className="space-y-3">
                 <button
                   onClick={() => {
-                    handleRegisterClick(selectedConference.id);
                     setSelectedOrganizerId(selectedConference.organizerId);
                     window.scrollTo({ top: 0, behavior: "smooth" });
                   }}
@@ -3276,18 +3269,6 @@ const DEFAULT_CITIES: Array<{ name: string; country: string }> = [
                   </div>
                 )}
               </div>
-
-              {/* Engagement Stats */}
-              <div className="border-t border-slate-200 pt-4 grid grid-cols-2 gap-2 text-center">
-                <div className="bg-white border border-slate-200/80 p-2.5 rounded-xl">
-                  <span className="text-[10px] text-slate-400 font-bold uppercase block">Profile Visits</span>
-                  <span className="text-slate-900 font-extrabold text-sm">{selectedConference.registrationClicks || 0}</span>
-                </div>
-                <div className="bg-white border border-slate-200/80 p-2.5 rounded-xl">
-                  <span className="text-[10px] text-slate-400 font-bold uppercase block">Page Views</span>
-                  <span className="text-slate-900 font-extrabold text-sm">{selectedConference.views || 0}</span>
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -3313,17 +3294,18 @@ const DEFAULT_CITIES: Array<{ name: string; country: string }> = [
                     rel="noopener noreferrer"
                     className="p-3 bg-white hover:bg-blue-50/50 rounded-xl border border-slate-200/80 hover:border-blue-300 transition-all cursor-pointer flex flex-col gap-2.5 text-left shadow-2xs hover:shadow-sm group h-full justify-between"
                   >
-                    <img
-                      src={sc.bannerImage || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=800&q=80"}
-                      alt=""
-                      className="h-28 w-full object-contain rounded-lg bg-slate-100 border border-slate-100 shrink-0"
-                      referrerPolicy="no-referrer"
-                    />
-                    <div className="space-y-1.5 flex-1 flex flex-col justify-between">
-                      <span className="font-bold text-slate-800 text-xs line-clamp-2 group-hover:text-blue-600 transition-colors leading-snug">
+                    <div className="space-y-2 flex-1 flex flex-col">
+                      <span className="font-bold text-slate-800 text-sm group-hover:text-blue-600 transition-colors leading-snug">
                         {sc.title}
                       </span>
-                      <span className="text-[11px] text-slate-500 block font-medium truncate pt-1">
+
+                      {sc.description && (
+                        <p className="text-xs text-slate-600 leading-relaxed line-clamp-3">
+                          {sc.description}
+                        </p>
+                      )}
+
+                      <span className="text-[11px] text-slate-500 block font-medium pt-1 mt-auto">
                         📍 {sc.city}, {sc.country}
                       </span>
                     </div>
