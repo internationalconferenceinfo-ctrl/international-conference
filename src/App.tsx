@@ -203,7 +203,6 @@ const DEFAULT_CITIES: Array<{ name: string; country: string }> = [
   const [citiesList, setCitiesList] = useState<Array<{ name: string; country: string }>>(DEFAULT_CITIES);
   const [inactiveCountries, setInactiveCountries] = useState<string[]>([]);
   const [inactiveCities, setInactiveCities] = useState<string[]>([]);
-  const [inactiveTopics, setInactiveTopics] = useState<string[]>([]);
 
   const isSupabaseLoaded = useRef(false);
   const pendingFullSyncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -280,7 +279,6 @@ const DEFAULT_CITIES: Array<{ name: string; country: string }> = [
         cityData,
         inactCountryData,
         inactCityData,
-        inactTopicData,
         auditData,
         notifData
       ] = await Promise.all([
@@ -295,7 +293,6 @@ const DEFAULT_CITIES: Array<{ name: string; country: string }> = [
         fetchFromSupabase<Array<{ name: string; country: string }>>("cities"),
         fetchFromSupabase<string[]>("inactive_countries"),
         fetchFromSupabase<string[]>("inactive_cities"),
-        fetchFromSupabase<string[]>("inactive_topics"),
         needsAdminData ? fetchFromSupabase<AuditLog[]>("audit_logs") : Promise.resolve([]),
         needsPrivateNotifications ? fetchFromSupabase<Notification[]>("notifications") : Promise.resolve([]),
       ]);
@@ -389,9 +386,6 @@ const DEFAULT_CITIES: Array<{ name: string; country: string }> = [
         setInactiveCities((prev) => (JSON.stringify(prev) !== JSON.stringify(inactCityData) ? inactCityData : prev));
       }
 
-      if (inactTopicData !== null && Array.isArray(inactTopicData)) {
-        setInactiveTopics((prev) => (JSON.stringify(prev) !== JSON.stringify(inactTopicData) ? inactTopicData : prev));
-      }
 
       if (auditData !== null && Array.isArray(auditData)) {
         setAuditLogs((prev) => (JSON.stringify(prev) !== JSON.stringify(auditData) ? auditData : prev));
@@ -2406,116 +2400,437 @@ const DEFAULT_CITIES: Array<{ name: string; country: string }> = [
     logAudit("Deleted Organizer", `Fully purged organizer ID ${orgId} and their conferences`, "Super Admin", "ADMIN");
   };
 
-  const handleAddCategory = async (cat: Partial<Category>) => {
-    if (!cat.name?.trim()) return;
-    const nameTrimmed = toUpperCaseName(cat.name);
+const handleAddCategory = async (cat: Partial<Category>) => {
+  if (!cat.name?.trim()) return;
 
-    const existing = categories.find((c) => c.name.trim().toUpperCase() === nameTrimmed);
-    const id = cat.id || `cat-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
-    const newCat: Category = {
-      id: existing?.id || id,
-      name: nameTrimmed,
-      slug: existing?.slug || cat.slug || nameTrimmed.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
-      description: cat.description?.trim() || existing?.description || "",
-    };
+  const nameTrimmed = toUpperCaseName(
+    cat.name.trim()
+  );
 
-    await saveRecordToSupabase("categories", newCat);
-    await saveRecordToSupabase("topics", newCat);
+  const existing = categories.find(
+    (c) =>
+      c.name.trim().toUpperCase() ===
+      nameTrimmed
+  );
 
-    const freshCats = await fetchFromSupabase<Category[]>("categories", true);
-    if (freshCats && Array.isArray(freshCats)) {
-      setCategories(freshCats);
-    } else {
-      setCategories((prev) => existing
-        ? prev.map((item) => item.id === existing.id ? newCat : item)
-        : [...prev, newCat]);
-    }
-    triggerBroadcastSync();
-    logAudit("Added Category", `Created system category '${nameTrimmed}'`, "Super Admin", "ADMIN");
+  const id =
+    existing?.id ||
+    cat.id ||
+    `cat-${Date.now()}-${Math.random()
+      .toString(36)
+      .substring(2, 7)}`;
+
+  const topic: Category = {
+    id,
+    name: nameTrimmed,
+    slug:
+      existing?.slug ||
+      cat.slug ||
+      nameTrimmed
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, ""),
   };
 
-  const handleAddBulkCategories = async (catsList: Partial<Category>[]) => {
-    if (!catsList || catsList.length === 0) return;
-    const workingCategories = [...categories];
-    const upserts = new Map<string, Category>();
+  const result =
+    await saveRecordToSupabase(
+      "categories",
+      topic
+    );
+
+  if (!result.success) {
+    console.error(
+      "Topic save failed:",
+      result.error
+    );
+    return;
+  }
+
+  const freshCats =
+    await fetchFromSupabase<Category[]>(
+      "categories",
+      true
+    );
+
+  if (
+    freshCats &&
+    Array.isArray(freshCats)
+  ) {
+    setCategories(
+      deduplicateCategories(freshCats)
+    );
+  } else {
+    setCategories((prev) => {
+      const withoutSameName =
+        prev.filter(
+          (item) =>
+            item.name
+              .trim()
+              .toUpperCase() !==
+            nameTrimmed
+        );
+
+      return [
+        ...withoutSameName,
+        topic,
+      ];
+    });
+  }
+
+  triggerBroadcastSync();
+
+  logAudit(
+    existing
+      ? "Updated Category"
+      : "Added Category",
+    existing
+      ? `Replaced existing topic '${nameTrimmed}'`
+      : `Created system topic '${nameTrimmed}'`,
+    "Super Admin",
+    "ADMIN"
+  );
+};
+const handleAddBulkCategories = async (
+  catsList: Partial<Category>[]
+) => {
+  if (!catsList || catsList.length === 0) return;
+
+  try {
+    const workingMap = new Map<
+      string,
+      Category
+    >();
+
+    // Existing topics first
+    categories.forEach((cat) => {
+      const normalized =
+        String(cat.name || "")
+          .trim()
+          .toUpperCase();
+
+      if (!normalized) return;
+
+      workingMap.set(normalized, {
+        id: cat.id,
+        name: toUpperCaseName(cat.name),
+        slug:
+          cat.slug ||
+          normalized
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-+|-+$/g, ""),
+      });
+    });
+
+    let addedCount = 0;
+    let replacedCount = 0;
 
     catsList.forEach((cat) => {
       if (!cat.name?.trim()) return;
-      const nameTrimmed = toUpperCaseName(cat.name);
-      const existingIndex = workingCategories.findIndex((item) => item.name.trim().toUpperCase() === nameTrimmed);
-      const existing = existingIndex >= 0 ? workingCategories[existingIndex] : undefined;
-      const id = cat.id || `cat-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
-      const replacement: Category = {
-        id: existing?.id || id,
+
+      const nameTrimmed =
+        toUpperCaseName(cat.name.trim());
+
+      const normalizedName =
+        nameTrimmed.toUpperCase();
+
+      const existing =
+        workingMap.get(normalizedName);
+
+      const id =
+        existing?.id ||
+        cat.id ||
+        `cat-${Date.now()}-${Math.random()
+          .toString(36)
+          .substring(2, 7)}`;
+
+      const topic: Category = {
+        id,
         name: nameTrimmed,
-        slug: existing?.slug || cat.slug || nameTrimmed.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
-        description: cat.description?.trim() || existing?.description || "",
+        slug:
+          existing?.slug ||
+          cat.slug ||
+          nameTrimmed
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-+|-+$/g, ""),
       };
-      if (existingIndex >= 0) workingCategories[existingIndex] = replacement;
-      else workingCategories.push(replacement);
-      upserts.set(replacement.id, replacement);
+
+      if (existing) {
+        replacedCount++;
+      } else {
+        addedCount++;
+      }
+
+      // Same name always replaces previous entry
+      workingMap.set(
+        normalizedName,
+        topic
+      );
     });
 
-    if (upserts.size === 0) return;
+    const finalTopics =
+      Array.from(
+        workingMap.values()
+      );
 
-    for (const cat of upserts.values()) {
-      await saveRecordToSupabase("categories", cat);
-      await saveRecordToSupabase("topics", cat);
+    if (finalTopics.length === 0) {
+      return;
     }
 
-    const freshCats = await fetchFromSupabase<Category[]>("categories", true);
-    if (freshCats && Array.isArray(freshCats)) {
-      setCategories(freshCats);
+    for (const topic of finalTopics) {
+      const result =
+        await saveRecordToSupabase(
+          "categories",
+          topic
+        );
+
+      if (!result.success) {
+        console.error(
+          `Topic save failed for "${topic.name}":`,
+          result.error
+        );
+      }
+    }
+
+    const freshCats =
+      await fetchFromSupabase<Category[]>(
+        "categories",
+        true
+      );
+
+    if (
+      freshCats &&
+      Array.isArray(freshCats)
+    ) {
+      setCategories(
+        deduplicateCategories(freshCats)
+      );
     } else {
-      setCategories(workingCategories);
+      setCategories(
+        deduplicateCategories(
+          finalTopics
+        )
+      );
     }
+
     triggerBroadcastSync();
-    logAudit("Bulk Upserted Categories", `Added or replaced ${upserts.size} topics`, "Super Admin", "ADMIN");
-  };
 
-  const handleEditCategory = async (catId: string, updated: Partial<Category>) => {
-    const existing = categories.find((c) => c.id === catId);
-    if (!existing) return;
+    logAudit(
+      "Bulk Upserted Categories",
+      `${addedCount} new topic(s), ${replacedCount} duplicate topic(s) replaced`,
+      "Super Admin",
+      "ADMIN"
+    );
+  } catch (error) {
+    console.error(
+      "Bulk topic upload failed:",
+      error
+    );
+  }
+};
 
-    const merged = { ...existing, ...updated };
-    await saveRecordToSupabase("categories", merged);
-    await saveRecordToSupabase("topics", merged);
+const handleEditCategory = async (
+  catId: string,
+  updated: Partial<Category>
+) => {
+  try {
+    const existing =
+      categories.find(
+        (c) => c.id === catId
+      );
 
-    const freshCats = await fetchFromSupabase<Category[]>("categories", true);
-    if (freshCats && Array.isArray(freshCats)) {
-      setCategories(freshCats);
+    if (!existing) {
+      console.error(
+        "Topic not found for update:",
+        catId
+      );
+      return;
     }
-    triggerBroadcastSync();
-    logAudit("Edited Category", `Updated category details for ID ${catId}`, "Super Admin", "ADMIN");
-  };
 
-  const handleDeleteCategory = async (catId: string) => {
-    await deleteRecordFromSupabase("categories", catId);
-    await deleteRecordFromSupabase("topics", catId);
-    await deleteFromSupabase("categories", catId);
-    await deleteFromSupabase("topics", catId);
+    const nameTrimmed =
+      updated.name?.trim()
+        ? toUpperCaseName(
+            updated.name.trim()
+          )
+        : existing.name;
 
-    const freshCats = await fetchFromSupabase<Category[]>("categories", true);
-    if (freshCats && Array.isArray(freshCats)) {
-      setCategories(freshCats);
+    const merged: Category = {
+      id: existing.id,
+      name: nameTrimmed,
+      slug:
+        updated.slug ||
+        existing.slug ||
+        nameTrimmed
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-+|-+$/g, ""),
+    };
+
+    const result =
+      await saveRecordToSupabase(
+        "categories",
+        merged
+      );
+
+    if (!result.success) {
+      console.error(
+        "Topic update failed:",
+        result.error
+      );
+      return;
+    }
+
+    const freshCats =
+      await fetchFromSupabase<Category[]>(
+        "categories",
+        true
+      );
+
+    if (
+      freshCats &&
+      Array.isArray(freshCats)
+    ) {
+      setCategories(
+        deduplicateCategories(
+          freshCats
+        )
+      );
     } else {
-      setCategories((prev) => prev.filter((c) => c.id !== catId));
+      setCategories((prev) =>
+        prev.map((item) =>
+          item.id === catId
+            ? merged
+            : item
+        )
+      );
     }
+
     triggerBroadcastSync();
-    logAudit("Deleted Category", `Purged category ID ${catId}`, "Super Admin", "ADMIN");
+
+    logAudit(
+      "Updated Category",
+      `Updated topic '${merged.name}'`,
+      "Super Admin",
+      "ADMIN"
+    );
+  } catch (error) {
+    console.error(
+      "Topic update failed:",
+      error
+    );
+  }
+};
+
+    const handleDeleteCategory = async (catId: string) => {
+    try {
+      const result = await deleteRecordFromSupabase(
+        "categories",
+        catId
+      );
+
+      if (!result.success) {
+        console.error(
+          "Topic deletion failed:",
+          result.error
+        );
+        return;
+      }
+
+      // Remove deleted topic from screen immediately
+      setCategories((prev) =>
+        prev.filter((c) => c.id !== catId)
+      );
+
+      // Get latest topics from database
+      const freshCats =
+        await fetchFromSupabase<Category[]>(
+          "categories",
+          true
+        );
+
+      if (freshCats && Array.isArray(freshCats)) {
+        setCategories(
+          deduplicateCategories(freshCats)
+        );
+      }
+
+      triggerBroadcastSync();
+
+      logAudit(
+        "Deleted Category",
+        `Permanently deleted topic ID ${catId}`,
+        "Super Admin",
+        "ADMIN"
+      );
+    } catch (error) {
+      console.error(
+        "Topic deletion failed:",
+        error
+      );
+    }
   };
 
-  const handleDeleteAllCategories = async () => {
-    // Bulk deletion is explicit: generic array saves never infer deletions.
-    const ids = categories.map((category) => category.id).filter(Boolean);
-    await Promise.all(ids.flatMap((id) => [
-      deleteRecordFromSupabase("categories", id),
-      deleteRecordFromSupabase("topics", id),
-    ]));
-    setCategories([]);
+ const handleDeleteAllCategories = async () => {
+  try {
+    const ids = categories
+      .map((category) => category.id)
+      .filter(Boolean);
+
+    if (ids.length === 0) {
+      setCategories([]);
+      return;
+    }
+
+    const results = await Promise.all(
+      ids.map((id) =>
+        deleteRecordFromSupabase(
+          "categories",
+          id
+        )
+      )
+    );
+
+    const failed = results.filter(
+      (result) => !result.success
+    );
+
+    if (failed.length > 0) {
+      console.error(
+        "Some topics could not be deleted:",
+        failed
+      );
+    }
+
+    const freshCats =
+      await fetchFromSupabase<Category[]>(
+        "categories",
+        true
+      );
+
+    if (freshCats && Array.isArray(freshCats)) {
+      setCategories(
+        deduplicateCategories(freshCats)
+      );
+    } else {
+      setCategories([]);
+    }
+
     triggerBroadcastSync();
-    logAudit("Deleted All Categories", "Permanently deleted all topics", "Super Admin", "ADMIN");
-  };
+
+    logAudit(
+      "Deleted All Categories",
+      `Permanently deleted ${ids.length - failed.length} topic(s)`,
+      "Super Admin",
+      "ADMIN"
+    );
+  } catch (error) {
+    console.error(
+      "Delete all topics failed:",
+      error
+    );
+  }
+};
 
   const handleRegisterClick = (_confId: string) => {
   // Profile visit / registration click tracking disabled.
@@ -3800,7 +4115,6 @@ const DEFAULT_CITIES: Array<{ name: string; country: string }> = [
           citiesList={citiesList}
           inactiveCountries={inactiveCountries}
           inactiveCities={inactiveCities}
-          inactiveTopics={inactiveTopics}
         />
       );
     }
@@ -3830,7 +4144,6 @@ const DEFAULT_CITIES: Array<{ name: string; country: string }> = [
           citiesList={citiesList}
           inactiveCountries={inactiveCountries}
           inactiveCities={inactiveCities}
-          inactiveTopics={inactiveTopics}
         />
       );
     }
@@ -3869,7 +4182,6 @@ const DEFAULT_CITIES: Array<{ name: string; country: string }> = [
           citiesList={citiesList}
           inactiveCountries={inactiveCountries}
           inactiveCities={inactiveCities}
-          inactiveTopics={inactiveTopics}
         />
         {renderAuthModal()}
       </div>
@@ -3924,8 +4236,7 @@ const DEFAULT_CITIES: Array<{ name: string; country: string }> = [
           onUpdateInactiveCountries={setInactiveCountries}
           inactiveCities={inactiveCities}
           onUpdateInactiveCities={setInactiveCities}
-          inactiveTopics={inactiveTopics}
-          onUpdateInactiveTopics={setInactiveTopics}
+          
           notifications={notifications.filter((n) => n.organizerId === "ADMIN" || !n.organizerId)}
           onMarkNotificationRead={handleMarkNotificationRead}
           onMarkAllNotificationsRead={() => handleMarkAllNotificationsRead("ADMIN")}

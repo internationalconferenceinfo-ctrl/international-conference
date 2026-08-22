@@ -722,42 +722,124 @@ export async function saveToSupabase(key: string, data: any): Promise<boolean> {
   // Primary source of truth: Upsert directly into dedicated relational table
   try {
     if (Array.isArray(data)) {
-      if (data.length > 0) {
-        const sanitized = sanitizeForTable(snakeTable, data);
-        const adminWrite = await tryAdminServerUpsert(snakeTable, sanitized);
-        if (adminWrite.handled) return adminWrite.success;
-        let currentPayload = [...sanitized];
-        let attempts = 0;
-        while (attempts < 10) {
-          attempts++;
-          const res = await client.from(snakeTable).upsert(currentPayload);
-          if (!res.error) {
-            success = true;
-            break;
-          }
-          console.warn(`[Supabase Relational Save Notice] Table ${snakeTable} (attempt ${attempts}):`, res.error);
-          const match = res.error.message?.match(/Could not find the '([^']+)' column/i);
-          if (match && match[1]) {
-            const badCol = match[1];
-            currentPayload = currentPayload.map((item: any) => {
-              const cleaned: any = { ...item };
-              delete cleaned[badCol];
-              return cleaned;
-            });
-            continue;
-          }
+  if (data.length > 0) {
+    const sanitized = sanitizeForTable(
+      snakeTable,
+      data
+    );
+
+    // Save large arrays in smaller batches.
+    // This is especially important for cities imported from Excel.
+    const BATCH_SIZE = 200;
+
+    success = true;
+
+    for (
+      let start = 0;
+      start < sanitized.length;
+      start += BATCH_SIZE
+    ) {
+      const batch = sanitized.slice(
+        start,
+        start + BATCH_SIZE
+      );
+
+      let batchSuccess = false;
+
+      // First try secured Admin API for this batch
+      const adminWrite =
+        await tryAdminServerUpsert(
+          snakeTable,
+          batch
+        );
+
+      if (adminWrite.handled) {
+        if (!adminWrite.success) {
+          console.error(
+            `[Database Batch Save Error] Table ${snakeTable}, rows ${start + 1}-${Math.min(
+              start + batch.length,
+              sanitized.length
+            )}:`,
+            adminWrite.error
+          );
+
+          success = false;
           break;
         }
-        
-        // Array saves are upserts only. Deletion must always be explicit through
-        // deleteFromSupabase/deleteRecordFromSupabase so a filtered client list
-        // can never erase unrelated database rows.
+
+        batchSuccess = true;
       } else {
-        // Empty arrays are intentionally a no-op. Use an explicit delete operation
-        // when records must be removed.
-        success = true;
+        // Fallback directly to Supabase
+        let currentPayload = [...batch];
+        let attempts = 0;
+
+        while (attempts < 10) {
+          attempts++;
+
+          const res = await client
+            .from(snakeTable)
+            .upsert(currentPayload);
+
+          if (!res.error) {
+            batchSuccess = true;
+            break;
+          }
+
+          console.warn(
+            `[Supabase Batch Save Notice] Table ${snakeTable} batch ${start + 1}-${Math.min(
+              start + batch.length,
+              sanitized.length
+            )}, attempt ${attempts}:`,
+            res.error
+          );
+
+          const match =
+            res.error.message?.match(
+              /Could not find the '([^']+)' column/i
+            );
+
+          if (match && match[1]) {
+            const badCol = match[1];
+
+            currentPayload =
+              currentPayload.map(
+                (item: any) => {
+                  const cleaned = {
+                    ...item
+                  };
+
+                  delete cleaned[
+                    badCol
+                  ];
+
+                  return cleaned;
+                }
+              );
+
+            continue;
+          }
+
+          break;
+        }
       }
-    } else if (typeof data === "object" && data !== null) {
+
+      if (!batchSuccess) {
+        success = false;
+        break;
+      }
+
+      console.log(
+        `[Database Batch Saved] ${snakeTable}: ${Math.min(
+          start + batch.length,
+          sanitized.length
+        )}/${sanitized.length}`
+      );
+    }
+  } else {
+    success = true;
+  }
+}
+    else if (typeof data === "object" && data !== null) {
       if (snakeTable === "contact_info") {
         const payload = {
           id: data.id || "primary",

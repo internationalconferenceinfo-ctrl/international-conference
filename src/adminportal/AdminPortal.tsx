@@ -65,10 +65,22 @@ interface AdminPortalProps {
   onVerifyOrganizer: (orgId: string) => void;
   onToggleSuspendOrganizer: (orgId: string) => Promise<{ success: boolean; isActive: boolean; error?: string }>;
   onDeleteOrganizer: (orgId: string) => void;
-  onAddCategory: (cat: Partial<Category>) => void;
-  onAddBulkCategories?: (cats: Partial<Category>[]) => void;
-  onEditCategory: (catId: string, updated: Partial<Category>) => void;
-  onDeleteCategory: (catId: string) => void;
+ onAddCategory: (
+  cat: Partial<Category>
+) => Promise<void> | void;
+
+onAddBulkCategories?: (
+  cats: Partial<Category>[]
+) => Promise<void> | void;
+
+onEditCategory: (
+  catId: string,
+  updated: Partial<Category>
+) => Promise<void> | void;
+
+onDeleteCategory: (
+  catId: string
+) => Promise<void> | void;
   onDeleteAllCategories?: () => Promise<void> | void;
   authUser: any;
   onNavigatePublic?: (tabId: string) => void;
@@ -82,8 +94,7 @@ interface AdminPortalProps {
   onUpdateInactiveCountries?: (inactive: string[]) => void;
   inactiveCities?: string[];
   onUpdateInactiveCities?: (inactive: string[]) => void;
-  inactiveTopics?: string[];
-  onUpdateInactiveTopics?: (inactive: string[]) => void;
+  
   notifications?: Notification[];
   onMarkNotificationRead?: (notifId: string) => void;
   onMarkAllNotificationsRead?: () => void;
@@ -221,8 +232,7 @@ export default function AdminPortal({
   onUpdateInactiveCountries,
   inactiveCities: inactiveCitiesProp,
   onUpdateInactiveCities,
-  inactiveTopics: inactiveTopicsProp,
-  onUpdateInactiveTopics,
+  
   notifications = [],
   onMarkNotificationRead,
   onMarkAllNotificationsRead,
@@ -281,15 +291,6 @@ export default function AdminPortal({
       onUpdateInactiveCities(next);
     }
     await saveToSupabase("inactive_cities", next);
-  };
-
-  const inactiveTopics = inactiveTopicsProp || [];
-  const setInactiveTopics = async (val: string[] | ((prev: string[]) => string[])) => {
-    const next = typeof val === "function" ? val(inactiveTopics) : val;
-    if (onUpdateInactiveTopics) {
-      onUpdateInactiveTopics(next);
-    }
-    await saveToSupabase("inactive_topics", next);
   };
 
   const [userFeedbacks, setUserFeedbacks] = useState<UserFeedback[]>(userFeedbacksProp || []);
@@ -430,235 +431,759 @@ export default function AdminPortal({
   }, [subscriberEmailsProp]);
 
   // Excel Bulk Upload and Demo File Download Handlers for Location Management
-  const downloadDemoExcel = async () => {
-    const XLSX = await import("xlsx");
-    // Sample Data showing Country in Column A and Cities (comma-separated or single) in Column B
-    const sampleData = [
-      { Country: "United States", City: "New York, Los Angeles, Chicago, Houston, Phoenix, Philadelphia, San Antonio, San Diego, Dallas" },
-      { Country: "India", City: "Mumbai, Delhi, Bangalore, Hyderabad, Chennai, Kolkata, Pune, Ahmedabad, Jaipur, Surat" },
-      { Country: "United Kingdom", City: "London, Manchester, Birmingham, Edinburgh, Glasgow, Liverpool, Bristol, Leeds, Sheffield" },
-      { Country: "Japan", City: "Tokyo, Osaka, Yokohama, Nagoya, Sapporo, Kobe, Kyoto, Fukuoka" },
-      { Country: "Germany", City: "Berlin, Munich, Frankfurt, Hamburg, Cologne, Stuttgart, Düsseldorf" },
-      { Country: "France", City: "Paris, Marseille, Lyon, Toulouse, Nice, Nantes, Strasbourg" },
-      { Country: "Australia", City: "Sydney, Melbourne, Brisbane, Perth, Adelaide, Canberra, Gold Coast" }
-    ];
-
-    const instructionsData = [
-      {
-        "Bulk Upload Format Guide": "Write Country in Column A ('United States') and list all cities in Column B separated by commas (e.g. 'New York, Los Angeles, Chicago, Houston, Phoenix...')."
-      },
-      {
-        "Bulk Upload Format Guide": "You can list 1 city or 100+ cities in a single cell separated by commas, semicolons, or pipes."
-      },
-      {
-        "Bulk Upload Format Guide": "Note: The uploader automatically trims whitespace, formats city names, and prevents duplicate entries."
-      }
-    ];
-
-    const wsLocations = XLSX.utils.json_to_sheet(sampleData);
-    const wsInstructions = XLSX.utils.json_to_sheet(instructionsData);
-
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, wsLocations, "Locations Demo");
-    XLSX.utils.book_append_sheet(workbook, wsInstructions, "Instructions");
-
-    XLSX.writeFile(workbook, "Location_Bulk_Upload_Demo.xlsx");
-    showToast("Downloaded demo Excel file!");
-  };
-
-  const handleExcelFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = async (evt) => {
-      try {
+        const downloadDemoExcel = async () => {
         const XLSX = await import("xlsx");
-        const bstr = evt.target?.result;
-        const wb = XLSX.read(bstr, { type: "binary" });
-        const wsName = wb.SheetNames[0];
-        const ws = wb.Sheets[wsName];
-        const data = XLSX.utils.sheet_to_json(ws, { defval: "" }) as Record<string, any>[];
 
-        if (!data || data.length === 0) {
-          showToast("Excel file is empty or could not be read.");
-          return;
-        }
+        const sampleData = [
+          {
+            Country: "INDIA",
+            City: "DELHI, MUMBAI, PUNE, CHENNAI, HYDERABAD"
+          },
+          {
+            Country: "UNITED STATES",
+            City: "NEW YORK, CHICAGO, BOSTON, DALLAS, MIAMI"
+          },
+          {
+            Country: "UNITED KINGDOM",
+            City: "LONDON, MANCHESTER, BIRMINGHAM, LEEDS"
+          },
+          {
+            Country: "JAPAN",
+            City: "TOKYO, OSAKA, KYOTO, YOKOHAMA"
+          }
+        ];
 
-        let addedCountriesCount = 0;
-        let replacedCountriesCount = 0;
-        let addedCitiesCount = 0;
-        let replacedCitiesCount = 0;
+        const multipleRowsExample = [
+          {
+            Country: "INDIA",
+            City: "DELHI"
+          },
+          {
+            Country: "",
+            City: "MUMBAI"
+          },
+          {
+            Country: "",
+            City: "PUNE"
+          },
+          {
+            Country: "JAPAN",
+            City: "TOKYO"
+          },
+          {
+            Country: "",
+            City: "OSAKA"
+          }
+        ];
 
-        let currentCountries = [...countriesList];
-        let currentCities = [...citiesList];
+        const multipleColumnsExample = [
+          {
+            Country: "INDIA",
+            City1: "DELHI",
+            City2: "MUMBAI",
+            City3: "PUNE",
+            City4: "CHENNAI"
+          },
+          {
+            Country: "USA",
+            City1: "NEW YORK",
+            City2: "CHICAGO",
+            City3: "BOSTON",
+            City4: "DALLAS"
+          }
+        ];
 
-        data.forEach((row) => {
-          const keys = Object.keys(row);
-          if (keys.length === 0) return;
+        const instructions = [
+          {
+            Instructions:
+              "SUPPORTED FORMAT 1: Country in Column A and multiple cities separated by commas in Column B."
+          },
+          {
+            Instructions:
+              "SUPPORTED FORMAT 2: Write Country once, then put additional cities on following rows with blank Country cells."
+          },
+          {
+            Instructions:
+              "SUPPORTED FORMAT 3: Country + City1 + City2 + City3 + City4 etc."
+          },
+          {
+            Instructions:
+              "Cities may be separated by comma (,), semicolon (;), pipe (|), or line breaks."
+          },
+          {
+            Instructions:
+              "100+ countries and 100+ cities per country are supported."
+          },
+          {
+            Instructions:
+              "Duplicate countries and duplicate cities are ignored automatically."
+          },
+          {
+            Instructions:
+              "Recommended headers: Country and City."
+          }
+        ];
 
-          const countryKey = keys.find(k => k.trim().toLowerCase().includes("country")) || keys[0];
-          const cityKey = keys.find(k => k.trim().toLowerCase().includes("city")) || keys[1];
+        const workbook =
+          XLSX.utils.book_new();
 
-          const countryVal = String(row[countryKey] || "").trim().toUpperCase();
-          const rawCityVal = String(row[cityKey] || "").trim();
+        const mainSheet =
+          XLSX.utils.json_to_sheet(
+            sampleData
+          );
 
-          if (countryVal) {
-            // Find existing matching country or add new
-            const countryIndex = currentCountries.findIndex(c => c.trim().toUpperCase() === countryVal);
-            let targetCountry = countryVal;
-            if (countryIndex === -1) {
-              currentCountries.push(countryVal);
-              addedCountriesCount++;
-            } else {
-              const previousCountry = currentCountries[countryIndex];
-              currentCountries[countryIndex] = countryVal;
-              currentCities = currentCities.map((city) =>
-                city.country.trim().toUpperCase() === countryVal
-                  ? { ...city, country: countryVal }
-                  : city
+        const rowSheet =
+          XLSX.utils.json_to_sheet(
+            multipleRowsExample
+          );
+
+        const columnSheet =
+          XLSX.utils.json_to_sheet(
+            multipleColumnsExample
+          );
+
+        const instructionSheet =
+          XLSX.utils.json_to_sheet(
+            instructions
+          );
+
+        XLSX.utils.book_append_sheet(
+          workbook,
+          mainSheet,
+          "Recommended Format"
+        );
+
+        XLSX.utils.book_append_sheet(
+          workbook,
+          rowSheet,
+          "Multiple Rows Format"
+        );
+
+        XLSX.utils.book_append_sheet(
+          workbook,
+          columnSheet,
+          "Multiple City Columns"
+        );
+
+        XLSX.utils.book_append_sheet(
+          workbook,
+          instructionSheet,
+          "Instructions"
+        );
+
+        XLSX.writeFile(
+          workbook,
+          "Location_Bulk_Upload_Demo.xlsx"
+        );
+
+        showToast(
+          "Location Excel demo downloaded!"
+        );
+      };
+
+      const handleExcelFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+
+      if (!file) return;
+
+      const reader = new FileReader();
+
+      reader.onload = async (evt) => {
+        try {
+          const XLSX = await import("xlsx");
+
+          const buffer = evt.target?.result;
+
+          if (!buffer) {
+            showToast("Unable to read Excel file.");
+            return;
+          }
+
+          const workbook = XLSX.read(buffer, {
+            type: "array"
+          });
+
+          if (!workbook.SheetNames.length) {
+            showToast("Excel file contains no sheets.");
+            return;
+          }
+
+          const sheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[sheetName];
+
+          if (!worksheet) {
+            showToast("Unable to read the first Excel sheet.");
+            return;
+          }
+
+          const rows = XLSX.utils.sheet_to_json<Record<string, any>>(
+            worksheet,
+            {
+              defval: "",
+              raw: false
+            }
+          );
+
+          if (!rows || rows.length === 0) {
+            showToast(
+              "Excel file is empty or no usable rows were found."
+            );
+            return;
+          }
+
+          // Existing data maps
+          const countryMap = new Map<string, string>();
+
+          countriesList.forEach((country) => {
+            const name =
+              typeof country === "string"
+                ? country.trim()
+                : String(
+                    (country as any)?.name ||
+                      (country as any)?.id ||
+                      ""
+                  ).trim();
+
+            if (name) {
+              countryMap.set(
+                name.toUpperCase(),
+                name.toUpperCase()
               );
-              if (previousCountry !== countryVal) replacedCountriesCount++;
             }
+          });
 
-            if (rawCityVal) {
-              // Split cities by comma, semicolon, pipe, or newline (allows 100 cities in 1 cell!)
-              const cityNames = rawCityVal
-                .split(/[,;|\n]+/)
-                .map(c => c.trim().toUpperCase())
-                .filter(c => c.length > 0);
+          const cityMap = new Map<
+            string,
+            { name: string; country: string }
+          >();
 
-              cityNames.forEach((cityName) => {
-                const existingCityIndex = currentCities.findIndex(
-                  ct => ct.name.trim().toUpperCase() === cityName && ct.country.trim().toUpperCase() === targetCountry
-                );
-                if (existingCityIndex === -1) {
-                  currentCities.push({ name: cityName, country: targetCountry! });
-                  addedCitiesCount++;
-                } else {
-                  const previousCity = currentCities[existingCityIndex];
-                  currentCities[existingCityIndex] = { ...previousCity, name: cityName, country: targetCountry };
-                  replacedCitiesCount++;
+          citiesList.forEach((city) => {
+            const cityName = String(
+              city?.name || ""
+            )
+              .trim()
+              .toUpperCase();
+
+            const countryName = String(
+              city?.country || ""
+            )
+              .trim()
+              .toUpperCase();
+
+            if (cityName && countryName) {
+              cityMap.set(
+                `${countryName}:::${cityName}`,
+                {
+                  name: cityName,
+                  country: countryName
                 }
-              });
+              );
             }
-          }
-        });
+          });
 
-        setCountriesList(currentCountries);
-        setCitiesList(currentCities);
+          const originalCountryCount = countryMap.size;
+          const originalCityCount = cityMap.size;
 
-        showToast(`Bulk upload complete: ${addedCountriesCount} countries and ${addedCitiesCount} cities added; ${replacedCountriesCount} countries and ${replacedCitiesCount} cities replaced.`);
-      } catch (err) {
-        console.error(err);
-        showToast("Error parsing Excel file. Please ensure it's a valid .xlsx, .xls, or .csv file.");
-      }
-    };
-    reader.readAsBinaryString(file);
-    e.target.value = "";
-  };
+          let currentCountry = "";
 
-  // Excel Bulk Upload and Demo File Download Handlers for Topic & Discipline Management
-  const downloadDemoTopicsExcel = async () => {
-    const XLSX = await import("xlsx");
-    const sampleTopicData = [
-      { "Topic Name": "Artificial Intelligence & Machine Learning", "Description": "Covering deep learning, neural networks, computer vision, and AI ethics." },
-      { "Topic Name": "Computer Science & Engineering", "Description": "Algorithms, software engineering, systems architecture, and computing." },
-      { "Topic Name": "Data Science & Big Analytics", "Description": "Data mining, predictive analytics, statistical modelling, and cloud data." },
-      { "Topic Name": "Cybersecurity & Network Defense", "Description": "Information security, cryptography, network safety, and threat intelligence." },
-      { "Topic Name": "Quantum Computing & Cryptography", "Description": "Quantum algorithms, quantum hardware, and post-quantum encryption." },
-      { "Topic Name": "Robotics & Automation Systems", "Description": "Autonomous robotics, mechatronics, industrial automation, and control systems." },
-      { "Topic Name": "Biomedical Engineering & Health Tech", "Description": "Bioinformatics, medical devices, health informatics, and clinical tech." },
-      { "Topic Name": "Renewable Energy & Sustainability", "Description": "Clean tech, solar/wind energy, environmental engineering, and green power." }
-    ];
+          let skippedRows = 0;
 
-    const instructionsData = [
-      {
-        "Bulk Upload Format Guide": "Write Topic Name in Column A (e.g. 'Artificial Intelligence & Machine Learning')."
-      },
-      {
-        "Bulk Upload Format Guide": "Optionally write Description in Column B."
-      },
-      {
-        "Bulk Upload Format Guide": "You can also list multiple topics in Column A separated by commas or newlines."
-      }
-    ];
+          // Helper: split multiple cities inside one Excel cell
+          const splitCities = (value: any): string[] => {
+            const raw = String(value ?? "").trim();
 
-    const wsTopics = XLSX.utils.json_to_sheet(sampleTopicData);
-    const wsInstructions = XLSX.utils.json_to_sheet(instructionsData);
+            if (!raw) return [];
 
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, wsTopics, "Topics Demo");
-    XLSX.utils.book_append_sheet(workbook, wsInstructions, "Instructions");
+            return raw
+              .split(/[,;|\n\r]+/)
+              .map((city) =>
+                city.trim().toUpperCase()
+              )
+              .filter(Boolean);
+          };
 
-    XLSX.writeFile(workbook, "Topic_Discipline_Bulk_Upload_Demo.xlsx");
-    showToast("Downloaded demo Excel file for topics!");
-  };
+          rows.forEach((row) => {
+            const keys = Object.keys(row);
 
-  const handleTopicsExcelFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+            if (keys.length === 0) {
+              skippedRows++;
+              return;
+            }
 
-    const reader = new FileReader();
-    reader.onload = async (evt) => {
-      try {
-        const XLSX = await import("xlsx");
-        const bstr = evt.target?.result;
-        const wb = XLSX.read(bstr, { type: "binary" });
-        const wsName = wb.SheetNames[0];
-        const ws = wb.Sheets[wsName];
-        const data = XLSX.utils.sheet_to_json(ws, { defval: "" }) as Record<string, any>[];
+            // Detect Country column
+            const countryKey = keys.find((key) => {
+              const normalized = key
+                .trim()
+                .toLowerCase();
 
-        if (!data || data.length === 0) {
-          showToast("Excel file is empty or could not be read.");
-          return;
-        }
-
-        const bulkItems: Partial<Category>[] = [];
-        data.forEach((row) => {
-          const keys = Object.keys(row);
-          if (keys.length === 0) return;
-
-          const nameKey = keys.find(k => k.trim().toLowerCase().includes("topic") || k.trim().toLowerCase().includes("category") || k.trim().toLowerCase().includes("name")) || keys[0];
-          const descKey = keys.find(k => k.trim().toLowerCase().includes("desc")) || keys[1];
-
-          const rawNameVal = String(row[nameKey] || "").trim();
-          const descVal = descKey ? String(row[descKey] || "").trim() : "";
-
-          if (rawNameVal) {
-            const topicNames = rawNameVal.includes("\n")
-              ? rawNameVal.split("\n").map(t => t.trim()).filter(Boolean)
-              : [rawNameVal];
-
-            topicNames.forEach(tName => {
-              if (tName) {
-                bulkItems.push({
-                  name: tName,
-                  slug: tName.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
-                  description: descVal || undefined
-                });
-              }
+              return (
+                normalized === "country" ||
+                normalized.includes("country name") ||
+                normalized.includes("country")
+              );
             });
-          }
-        });
 
-        if (bulkItems.length > 0) {
-          if (onAddBulkCategories) {
-            onAddBulkCategories(bulkItems);
-          } else {
-            bulkItems.forEach(item => onAddCategory(item));
-          }
+            // Supports City, Cities, City 1, City 2, City1, City2...
+            const cityKeys = keys.filter((key) => {
+              const normalized = key
+                .trim()
+                .toLowerCase();
+
+              return (
+                normalized === "city" ||
+                normalized === "cities" ||
+                normalized.includes("city") ||
+                normalized.includes("cities")
+              );
+            });
+
+            // If headers are simply Column A / Column B
+            const fallbackCountryKey =
+              countryKey || keys[0];
+
+            let fallbackCityKeys = cityKeys;
+
+            if (
+              fallbackCityKeys.length === 0 &&
+              keys.length > 1
+            ) {
+              fallbackCityKeys = keys.slice(1);
+            }
+
+            const countryCell = String(
+              row[fallbackCountryKey] || ""
+            ).trim();
+
+            // If Country exists on this row, remember it.
+            // If Country cell is blank, continue using previous country.
+            if (countryCell) {
+              currentCountry =
+                countryCell.toUpperCase();
+
+              countryMap.set(
+                currentCountry,
+                currentCountry
+              );
+            }
+
+            // Cannot add cities if no country has ever been found
+            if (!currentCountry) {
+              skippedRows++;
+              return;
+            }
+
+            const citiesFromRow: string[] = [];
+
+            fallbackCityKeys.forEach((key) => {
+              citiesFromRow.push(
+                ...splitCities(row[key])
+              );
+            });
+
+            // Remove duplicates inside same Excel row
+            const uniqueRowCities = Array.from(
+              new Set(citiesFromRow)
+            );
+
+            uniqueRowCities.forEach((cityName) => {
+              if (!cityName) return;
+
+              const cityKey =
+                `${currentCountry}:::${cityName}`;
+
+              cityMap.set(cityKey, {
+                name: cityName,
+                country: currentCountry
+              });
+            });
+          });
+
+          const finalCountries =
+            Array.from(countryMap.values()).sort(
+              (a, b) =>
+                a.localeCompare(b, undefined, {
+                  sensitivity: "base"
+                })
+            );
+
+          const finalCities =
+            Array.from(cityMap.values()).sort(
+              (a, b) => {
+                const countryCompare =
+                  a.country.localeCompare(
+                    b.country,
+                    undefined,
+                    {
+                      sensitivity: "base"
+                    }
+                  );
+
+                if (countryCompare !== 0) {
+                  return countryCompare;
+                }
+
+                return a.name.localeCompare(
+                  b.name,
+                  undefined,
+                  {
+                    sensitivity: "base"
+                  }
+                );
+              }
+            );
+
+          const addedCountries =
+            finalCountries.length -
+            originalCountryCount;
+
+          const addedCities =
+            finalCities.length -
+            originalCityCount;
+
+          // Save once only after entire file is processed
+          await setCountriesList(
+            finalCountries
+          );
+
+          await setCitiesList(
+            finalCities
+          );
+
+          triggerBroadcastSync();
+
+          showToast(
+            `Excel upload complete: ${addedCountries} new countries and ${addedCities} new cities added.${skippedRows > 0 ? ` ${skippedRows} blank/invalid rows skipped.` : ""}`
+          );
+        } catch (error) {
+          console.error(
+            "Location Excel upload failed:",
+            error
+          );
+
+          showToast(
+            "Excel upload failed. Please check the file format and try again."
+          );
         }
+      };
 
-        showToast(`Bulk upload complete! Processed ${bulkItems.length} topic(s).`);
-      } catch (err) {
-        console.error(err);
-        showToast("Error parsing Excel file. Please ensure it's a valid .xlsx, .xls, or .csv file.");
-      }
+      reader.onerror = () => {
+        showToast(
+          "Unable to read the selected Excel file."
+        );
+      };
+
+      reader.readAsArrayBuffer(file);
+
+      // Allows uploading same file again if needed
+      e.target.value = "";
     };
-    reader.readAsBinaryString(file);
-    e.target.value = "";
-  };
+
+     
+
+        // Excel Bulk Upload and Demo File Download Handlers for Topic & Discipline Management
+      const downloadDemoTopicsExcel = async () => {
+        const XLSX = await import("xlsx");
+
+        const sampleTopicData = [
+          {
+            "Topic Name": "Artificial Intelligence & Machine Learning"
+          },
+          {
+            "Topic Name": "Computer Science & Engineering"
+          },
+          {
+            "Topic Name": "Data Science & Analytics"
+          },
+          {
+            "Topic Name": "Cybersecurity & Network Defense"
+          },
+          {
+            "Topic Name": "Quantum Computing"
+          },
+          {
+            "Topic Name": "Robotics & Automation"
+          },
+          {
+            "Topic Name": "Renewable Energy & Sustainability"
+          }
+        ];
+
+        const instructionsData = [
+          {
+            Instructions:
+              "Use only one column named Topic Name."
+          },
+          {
+            Instructions:
+              "One topic per row is recommended."
+          },
+          {
+            Instructions:
+              "Multiple topics may also be written in one cell separated by comma, semicolon, pipe, or line break."
+          },
+          {
+            Instructions:
+              "If the same topic already exists, the uploaded topic replaces/updates the existing topic instead of creating a duplicate."
+          },
+          {
+            Instructions:
+              "Duplicate matching is case-insensitive. Example: Data Science and DATA SCIENCE are treated as the same topic."
+          },
+          {
+            Instructions:
+              "Blank rows are ignored automatically."
+          }
+        ];
+
+        const workbook =
+          XLSX.utils.book_new();
+
+        const topicSheet =
+          XLSX.utils.json_to_sheet(
+            sampleTopicData
+          );
+
+        const instructionSheet =
+          XLSX.utils.json_to_sheet(
+            instructionsData
+          );
+
+        XLSX.utils.book_append_sheet(
+          workbook,
+          topicSheet,
+          "Topics"
+        );
+
+        XLSX.utils.book_append_sheet(
+          workbook,
+          instructionSheet,
+          "Instructions"
+        );
+
+        XLSX.writeFile(
+          workbook,
+          "Topic_Upload_Demo.xlsx"
+        );
+
+        showToast(
+          "Topic demo Excel downloaded successfully!"
+        );
+      };
+
+          const handleTopicsExcelFileUpload = (
+            e: React.ChangeEvent<HTMLInputElement>
+          ) => {
+            const file = e.target.files?.[0];
+
+            if (!file) return;
+
+            const reader = new FileReader();
+
+            reader.onload = async (evt) => {
+              try {
+                const XLSX = await import("xlsx");
+
+                const buffer = evt.target?.result;
+
+                if (!buffer) {
+                  showToast("Unable to read Excel file.");
+                  return;
+                }
+
+                const workbook = XLSX.read(buffer, {
+                  type: "array"
+                });
+
+                if (!workbook.SheetNames.length) {
+                  showToast("Excel file contains no sheets.");
+                  return;
+                }
+
+                const sheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[sheetName];
+
+                if (!worksheet) {
+                  showToast("Unable to read Excel sheet.");
+                  return;
+                }
+
+                const rows =
+                  XLSX.utils.sheet_to_json<Record<string, any>>(
+                    worksheet,
+                    {
+                      defval: "",
+                      raw: false
+                    }
+                  );
+
+                if (!rows.length) {
+                  showToast(
+                    "Excel file is empty or no usable rows were found."
+                  );
+                  return;
+                }
+
+                // Existing topics indexed by normalized name
+                const topicMap = new Map<
+                  string,
+                  Partial<Category>
+                >();
+
+                categories.forEach((cat) => {
+                  const normalizedName = String(
+                    cat.name || ""
+                  )
+                    .trim()
+                    .toLowerCase();
+
+                  if (!normalizedName) return;
+
+                  topicMap.set(normalizedName, {
+                    ...cat
+                  });
+                });
+
+                const originalCount = topicMap.size;
+
+                let processedCount = 0;
+                let replacedCount = 0;
+                let skippedCount = 0;
+
+                const existingTopicNames = new Set(
+                  categories
+                    .map((cat) =>
+                      String(cat.name || "")
+                        .trim()
+                        .toLowerCase()
+                    )
+                    .filter(Boolean)
+                );
+
+                rows.forEach((row) => {
+                  const keys = Object.keys(row);
+
+                  if (!keys.length) {
+                    skippedCount++;
+                    return;
+                  }
+
+                  const nameKey =
+                    keys.find((key) => {
+                      const normalized =
+                        key.trim().toLowerCase();
+
+                      return (
+                        normalized.includes("topic") ||
+                        normalized.includes("category") ||
+                        normalized === "name" ||
+                        normalized.includes("discipline")
+                      );
+                    }) || keys[0];
+
+                  const rawNameValue = String(
+                    row[nameKey] || ""
+                  ).trim();
+
+                  if (!rawNameValue) {
+                    skippedCount++;
+                    return;
+                  }
+
+                  // Support comma, semicolon, pipe and line-break separated topics
+                  const topicNames = rawNameValue
+                    .split(/[,;|\n\r]+/)
+                    .map((name) => name.trim())
+                    .filter(Boolean);
+
+                  topicNames.forEach((topicName) => {
+                    const normalizedName =
+                      topicName.toLowerCase();
+
+                    const existing =
+                      topicMap.get(normalizedName);
+
+                    const slug = topicName
+                      .toLowerCase()
+                      .replace(/[^a-z0-9]+/g, "-")
+                      .replace(/^-+|-+$/g, "");
+
+                    if (existing) {
+                      // Replace/update duplicate instead of creating another row
+                      topicMap.set(normalizedName, {
+                              ...existing,
+                              name: topicName,
+                              slug
+                            });
+
+                    } else {
+                     topicMap.set(normalizedName, {
+                      id: slug || `topic-${Date.now()}-${Math.random()
+                        .toString(36)
+                        .slice(2, 8)}`,
+                      name: topicName,
+                      slug
+                    });
+                    }
+
+                    if (existingTopicNames.has(normalizedName)) {
+                      replacedCount++;
+                    }
+                  });
+                });
+
+                const finalTopics =
+                  Array.from(topicMap.values());
+
+                const addedCount =
+                  finalTopics.length - originalCount;
+
+                if (!finalTopics.length) {
+                  showToast(
+                    "No valid topics were found in the Excel file."
+                  );
+                  return;
+                }
+
+              
+
+               // Save through App.tsx topic handler
+              if (onAddBulkCategories) {
+                await onAddBulkCategories(
+                  finalTopics
+                );
+              } else {
+                for (const item of finalTopics) {
+                  await onAddCategory(item);
+                }
+              }
+
+                triggerBroadcastSync();
+
+                showToast(
+                  `Excel upload complete: ${addedCount} new topic(s), ${replacedCount} duplicate topic(s) replaced.${skippedCount > 0 ? ` ${skippedCount} blank/invalid row(s) skipped.` : ""}`
+                );
+              } catch (error) {
+                console.error(
+                  "Topic Excel upload failed:",
+                  error
+                );
+
+                showToast(
+                  "Error parsing Excel file. Please check the file format."
+                );
+              }
+            };
+
+            reader.onerror = () => {
+              showToast(
+                "Unable to read the selected Excel file."
+              );
+            };
+
+            reader.readAsArrayBuffer(file);
+
+            e.target.value = "";
+          };
 
   const isPendingStatus = (status?: string) => {
     if (!status) return false;
@@ -744,22 +1269,8 @@ export default function AdminPortal({
   // Editing state modals
   const [editingPartner, setEditingPartner] = useState<MediaPartner | null>(null);
   const [editingAssociate, setEditingAssociate] = useState<Associate | null>(null);
-  const [editingBanner, setEditingBanner] = useState<Banner | null>(null);
-  const [editingCountryIdx, setEditingCountryIdx] = useState<number | null>(null);
-  const [editCountryName, setEditCountryName] = useState("");
-  
-  const [editingCityIdx, setEditingCityIdx] = useState<number | null>(null);
-  const [editCityName, setEditCityName] = useState("");
-  const [editCityCountry, setEditCityCountry] = useState("");
 
-  const [editingTopicId, setEditingTopicId] = useState<string | null>(null);
-  const [editTopicName, setEditTopicName] = useState("");
-  const [editTopicDesc, setEditTopicDesc] = useState("");
-
-  const [showBulkTopicModal, setShowBulkTopicModal] = useState(false);
-  const [bulkTopicText, setBulkTopicText] = useState("");
   const [topicSearchQuery, setTopicSearchQuery] = useState("");
-  const [topicStatusFilter, setTopicStatusFilter] = useState<"ALL" | "ACTIVE" | "INACTIVE">("ALL");
 
   const [showAddCountryForm, setShowAddCountryForm] = useState(false);
   const [showAddCityForm, setShowAddCityForm] = useState(false);
@@ -812,8 +1323,6 @@ export default function AdminPortal({
   const [newBannerDescText, setNewBannerDescText] = useState("");
   const [showAddBannerForm, setShowAddBannerForm] = useState(false);
   const [newBannerOrder, setNewBannerOrder] = useState<number | "">("");
-  const [newBannerStatus, setNewBannerStatus] = useState<"Active" | "Inactive">("Active");
-  const [bannerStatusFilter, setBannerStatusFilter] = useState<"All" | "Active" | "Inactive">("All");
 
   const [showAddBannerContentForm, setShowAddBannerContentForm] = useState(false);
   const [newContentTitle, setNewContentTitle] = useState("");
@@ -828,7 +1337,6 @@ export default function AdminPortal({
   const [newCityCountry, setNewCityCountry] = useState(countriesList[0] || "United States");
 
   const [newTopicName, setNewTopicName] = useState("");
-  const [newTopicDesc, setNewTopicDesc] = useState("");
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -3263,110 +3771,227 @@ export default function AdminPortal({
                     <span>Banner Management</span>
                   </h3>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    Add hero banners, set display order Place (1, 2, 3...), edit title & description, and control active/inactive visibility on the website.
+                    Add up to 5 homepage banners and control their display position.
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-xs font-bold px-3 py-1 bg-slate-100 text-slate-700 rounded-full border border-slate-200">
-                    Total: {banners.length}
-                  </span>
-                  <span className="text-xs font-bold px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full border border-emerald-200">
-                    Active: {banners.filter((b) => b.status === "Active" || !b.status).length}
-                  </span>
-                  <span className="text-xs font-bold px-3 py-1 bg-slate-100 text-slate-500 rounded-full border border-slate-200">
-                    Inactive: {banners.filter((b) => b.status === "Inactive" || b.status === "Deactivated").length}
+                    Total: {banners.length} / 5
                   </span>
                   <button
-                    onClick={() => setShowAddBannerForm(!showAddBannerForm)}
-                    className="px-4 py-2 bg-[#37494E] hover:bg-[#2c3b3f] text-white font-bold text-xs rounded-xl transition-all cursor-pointer shadow-xs flex items-center gap-1.5 ml-2"
+                    type="button"
+                    disabled={banners.length >= 5}
+                    onClick={() => {
+                      if (banners.length >= 5) return;
+                      setShowAddBannerForm(!showAddBannerForm);
+                    }}
+                    className={`px-4 py-2 font-bold text-xs rounded-xl transition-all shadow-xs flex items-center gap-1.5 ml-2 ${
+                      banners.length >= 5
+                        ? "bg-slate-300 text-slate-500 cursor-not-allowed"
+                        : "bg-[#37494E] hover:bg-[#2c3b3f] text-white cursor-pointer"
+                    }`}
                   >
                     <Plus className="h-4 w-4" />
-                    <span>{showAddBannerForm ? "Close Form" : "Add Banner"}</span>
+                    <span>
+                      {banners.length >= 5
+                        ? "Maximum 5 Banners"
+                        : showAddBannerForm
+                          ? "Close Form"
+                          : "Add Banner"}
+                    </span>
                   </button>
+
+                  {banners.length >= 5 && (
+                    <p className="w-full text-[11px] font-medium text-amber-600 text-right">
+                      Maximum 5 banners allowed. Delete an existing banner to add a new one.
+                    </p>
+                  )}
                 </div>
               </div>
 
               {/* Add Banner Form (toggled via button or activeMenu === 'ADD_BANNER') */}
-              {(showAddBannerForm || activeMenu === "ADD_BANNER") && (
+              {banners.length < 5 && (showAddBannerForm || activeMenu === "ADD_BANNER") && (
                 <form
                   onSubmit={async (e) => {
                     e.preventDefault();
+
+                    if (banners.length >= 5) {
+                      showToast("Maximum 5 banners allowed. Delete one banner first.");
+                      return;
+                    }
+
+                    if (!newBannerImage.trim()) {
+                      showToast("Please upload or select a banner image.");
+                      return;
+                    }
+
                     if (!newBannerTitleText.trim()) {
                       showToast("Please enter a banner title.");
                       return;
                     }
+
                     if (!newBannerDescText.trim()) {
                       showToast("Please enter a banner description.");
                       return;
                     }
+
                     if (newBannerTitleText.trim().length > 50) {
                       showToast("Banner title must be 50 characters or fewer.");
                       return;
                     }
+
                     if (newBannerDescText.trim().length > 100) {
                       showToast("Banner description must be 100 characters or fewer.");
                       return;
                     }
 
-                    const bannerId = `banner-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
-                    let bannerImg = newBannerImage.trim() || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1200&q=80";
+                    const bannerId = `banner-${Date.now()}-${Math.random()
+                      .toString(36)
+                      .substring(2, 7)}`;
+
+                    let bannerImg = newBannerImage.trim();
                     let uploadedStoragePath = "";
 
+                    // Upload base64 image to Supabase Storage
                     if (bannerImg.startsWith("data:")) {
-                      const uploadRes = await uploadBannerImageToSupabase(bannerImg, bannerId);
-                      if (uploadRes && uploadRes.publicUrl) {
-                        bannerImg = uploadRes.publicUrl;
-                        uploadedStoragePath = uploadRes.storagePath;
+                      const uploadRes = await uploadBannerImageToSupabase(
+                        bannerImg,
+                        bannerId
+                      );
+
+                      if (!uploadRes || !uploadRes.publicUrl) {
+                        showToast("Failed to upload banner image.");
+                        return;
                       }
+
+                      bannerImg = uploadRes.publicUrl;
+                      uploadedStoragePath = uploadRes.storagePath;
                     }
 
-                    const assignedPlace = newBannerOrder !== "" ? Number(newBannerOrder) : banners.length + 1;
-                    const newB: Banner = {
+                    // User-selected position
+                    let selectedPlace =
+                      newBannerOrder !== ""
+                        ? Number(newBannerOrder)
+                        : banners.length + 1;
+
+                    // Safety: position must stay between 1 and 5
+                    selectedPlace = Math.max(1, Math.min(5, selectedPlace));
+
+                    // Existing banners sorted by current position
+                    const sortedExisting = [...banners].sort(
+                      (a, b) =>
+                        (Number(a.place ?? a.order) || 999) -
+                        (Number(b.place ?? b.order) || 999)
+                    );
+
+                    // OPTION B:
+                    // Insert new banner into selected position and shift everything after it.
+                    const shiftedExisting: Banner[] = sortedExisting.map((banner) => {
+                      const currentPlace =
+                        Number(banner.place ?? banner.order) || 1;
+
+                      if (currentPlace >= selectedPlace) {
+                        const shiftedPlace = currentPlace + 1;
+
+                        return {
+                          ...banner,
+                          place: shiftedPlace,
+                          order: shiftedPlace,
+                          status: "Active",
+                          active: true
+                        };
+                      }
+
+                      return {
+                        ...banner,
+                        status: "Active",
+                        active: true
+                      };
+                    });
+
+                    // Safety — nothing can go above Place 5
+                    if (
+                      shiftedExisting.some(
+                        (banner) => Number(banner.place ?? banner.order) > 5
+                      )
+                    ) {
+                      if (uploadedStoragePath) {
+                        await deleteBannerImageFromSupabase(uploadedStoragePath);
+                      }
+
+                      showToast(
+                        "Cannot insert banner at this position because all 5 banner places are already occupied."
+                      );
+                      return;
+                    }
+
+                    const newBanner: Banner = {
                       id: bannerId,
                       image: bannerImg,
                       image_url: bannerImg,
                       title: newBannerTitleText.trim(),
                       description: newBannerDescText.trim(),
                       content: newBannerDescText.trim(),
-                      order: assignedPlace,
-                      place: assignedPlace,
-                      status: newBannerStatus,
-                      active: newBannerStatus === "Active"
+                      order: selectedPlace,
+                      place: selectedPlace,
+
+                      // Always active automatically
+                      status: "Active",
+                      active: true,
+
+                      createdAt: new Date().toISOString(),
+                      created_at: new Date().toISOString()
                     };
 
-                    const updated = [newB, ...banners];
-                    const deduplicated = Array.from(new Map(updated.map((b) => [b.id, b])).values());
-                    
-                    const saveOk = await saveToSupabase("banners", deduplicated);
-                    if (!saveOk) {
+                    // Final ordered banner list
+                    const finalBanners = [
+                      ...shiftedExisting,
+                      newBanner
+                    ].sort(
+                      (a, b) =>
+                        (Number(a.place ?? a.order) || 999) -
+                        (Number(b.place ?? b.order) || 999)
+                    );
+
+                    // Save every banner because positions may have changed
+                    const saveSucceeded = await saveToSupabase(
+                      "banners",
+                      finalBanners
+                    );
+
+                    if (!saveSucceeded) {
                       if (uploadedStoragePath) {
                         await deleteBannerImageFromSupabase(uploadedStoragePath);
                       }
-                      showToast("Failed to save banner to Supabase database. Please try again.");
+
+                      showToast(
+                        "Failed to save banner to database. Please try again."
+                      );
                       return;
                     }
 
-                    onUpdateBanners(deduplicated);
-                    safeSetLocalStorage("gch_banners", deduplicated);
+                    // Update Admin + App state
+                    onUpdateBanners(finalBanners);
+
+                    safeSetLocalStorage(
+                      "gch_banners",
+                      finalBanners
+                    );
+
                     triggerBroadcastSync();
 
-                    try {
-                      const fresh = await fetchFromSupabase<Banner[]>("banners");
-                      if (fresh && Array.isArray(fresh) && fresh.length > 0) {
-                        onUpdateBanners(fresh);
-                        safeSetLocalStorage("gch_banners", fresh);
-                      }
-                    } catch (err) {}
-
-                    // Reset form fields
+                    // Reset form
                     setNewBannerImage("");
                     setNewBannerTitleText("");
                     setNewBannerDescText("");
                     setNewBannerOrder("");
-                    setNewBannerStatus("Active");
                     setShowAddBannerForm(false);
-                    showToast("New banner added and saved to Supabase successfully!");
-                    if (activeMenu === "ADD_BANNER") setActiveMenu("MANAGE_BANNERS");
+
+                    showToast("Banner added successfully!");
+
+                    if (activeMenu === "ADD_BANNER") {
+                      setActiveMenu("MANAGE_BANNERS");
+                    }
                   }}
                   className="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-4 text-xs animate-fadeIn shadow-inner"
                 >
@@ -3445,34 +4070,35 @@ export default function AdminPortal({
 
                     {/* Position / Order Place */}
                     <div className="space-y-1.5">
-                      <label className="font-bold text-slate-700 block">Display Position / Place *</label>
-                      <select
-                        value={newBannerOrder !== "" ? newBannerOrder : banners.length + 1}
-                        onChange={(e) => setNewBannerOrder(Number(e.target.value))}
-                        className="w-full bg-white border border-slate-200 rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none font-bold text-slate-800"
-                      >
-                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((placeNum) => (
-                          <option key={placeNum} value={placeNum}>
-                            Place {placeNum} {placeNum === 1 ? "(First Slide on Homepage)" : ""}
-                          </option>
-                        ))}
-                      </select>
-                      <p className="text-[10px] text-slate-400">Determines the display order (Place 1 appears first, Place 2 second, etc.)</p>
-                    </div>
+                        <label className="font-bold text-slate-700 block">
+                          Display Position / Place *
+                        </label>
 
-                    {/* Banner Status */}
-                    <div className="space-y-1.5">
-                      <label className="font-bold text-slate-700 block">Initial Status *</label>
-                      <select
-                        value={newBannerStatus}
-                        onChange={(e) => setNewBannerStatus(e.target.value as "Active" | "Inactive")}
-                        className="w-full bg-white border border-slate-200 rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none font-bold text-slate-800"
-                      >
-                        <option value="Active">Active (Visible on User Portal)</option>
-                        <option value="Inactive">Inactive (Hidden from Website)</option>
-                      </select>
-                      <p className="text-[10px] text-slate-400">Only Active banners will appear in the Hero Banner section.</p>
-                    </div>
+                        <select
+                          value={
+                            newBannerOrder !== ""
+                              ? newBannerOrder
+                              : Math.min(banners.length + 1, 5)
+                          }
+                          onChange={(e) =>
+                            setNewBannerOrder(Number(e.target.value))
+                          }
+                          className="w-full bg-white border border-slate-200 rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none font-bold text-slate-800"
+                        >
+                          {[1, 2, 3, 4, 5].map((placeNum) => (
+                            <option key={placeNum} value={placeNum}>
+                              Place {placeNum}
+                              {placeNum === 1
+                                ? " (First Slide on Homepage)"
+                                : ""}
+                            </option>
+                          ))}
+                        </select>
+
+                        <p className="text-[10px] text-slate-400">
+                          Selecting an occupied position automatically shifts the existing banners down.
+                        </p>
+                      </div>
                   </div>
 
                   {/* Live Banner Slide Card Preview */}
@@ -3486,7 +4112,7 @@ export default function AdminPortal({
                         <img
                           src={newBannerImage}
                           alt="Banner Preview"
-                          className="w-full h-full object-contain opacity-80"
+                          className="w-full h-full object-contain object-center"
                           onError={(e) => {
                             (e.target as HTMLElement).style.display = "none";
                           }}
@@ -3530,194 +4156,6 @@ export default function AdminPortal({
                     </button>
                   </div>
                 </form>
-              )}
-
-              {/* Edit Banner Modal */}
-              {editingBanner && (
-                <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
-                  <div className="bg-white rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl border border-slate-200 text-xs">
-                    <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                      <h4 className="font-bold text-base text-[#37494E] flex items-center gap-2">
-                        <Edit3 className="h-4 w-4 text-blue-600" />
-                        <span>Edit Banner Details</span>
-                      </h4>
-                      <button
-                        onClick={() => setEditingBanner(null)}
-                        className="text-slate-400 hover:text-slate-600 p-1 rounded-lg cursor-pointer text-sm"
-                      >
-                        ✕
-                      </button>
-                    </div>
-
-                    <div className="space-y-3.5">
-                      <ImageUploaderField
-                        label="Banner Image"
-                        value={editingBanner.image || ""}
-                        onChange={(val) => setEditingBanner({ ...editingBanner, image: val })}
-                        placeholder="Paste image URL (https://...)"
-                        aspectHint="Landscape banner (1200x500px recommended)"
-                        maxWidth={1000}
-                        maxHeight={500}
-                        quality={0.75}
-                      />
-
-                      {/* Image Preview */}
-                      {editingBanner.image && (
-                        <div className="h-32 w-full rounded-xl overflow-hidden border border-slate-200 bg-slate-100 relative">
-                          <img
-                            src={editingBanner.image}
-                            alt="Preview"
-                            className="w-full h-full object-contain"
-                          />
-                        </div>
-                      )}
-
-                      {/* Title Tagline */}
-                      <div className="space-y-1.5">
-                        <label className="font-bold text-slate-700 block">Banner Title *</label>
-                        <input
-                          type="text"
-                          value={editingBanner.title || ""}
-                          onChange={(e) => setEditingBanner({ ...editingBanner, title: e.target.value })}
-                          maxLength={50}
-                          className="w-full bg-white border border-slate-200 rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none font-semibold text-slate-800"
-                          placeholder="Banner title"
-                        />
-                        <p className="text-[10px] text-right text-slate-400">{(editingBanner.title || "").length}/50 characters</p>
-                      </div>
-
-                      {/* Banner Description */}
-                      <div className="space-y-1.5">
-                        <label className="font-bold text-slate-700 block">Banner Description *</label>
-                        <textarea
-                          rows={3}
-                          value={editingBanner.description || (editingBanner as any).content || ""}
-                          onChange={(e) => setEditingBanner({ ...editingBanner, description: e.target.value, content: e.target.value })}
-                          maxLength={100}
-                          className="w-full bg-white border border-slate-200 rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                          placeholder="Banner description text for hero section"
-                        />
-                        <p className="text-[10px] text-right text-slate-400">{(editingBanner.description || (editingBanner as any).content || "").length}/100 characters</p>
-                      </div>
-
-                      {/* Position Place & Status */}
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1.5">
-                          <label className="font-bold text-slate-700 block">Display Position / Place</label>
-                          <select
-                            value={editingBanner.order ?? (editingBanner as any).place ?? 1}
-                            onChange={(e) => setEditingBanner({ ...editingBanner, order: Number(e.target.value), place: Number(e.target.value) })}
-                            className="w-full bg-white border border-slate-200 rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none font-bold text-slate-800"
-                          >
-                            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
-                              <option key={num} value={num}>Place {num}</option>
-                            ))}
-                          </select>
-                        </div>
-
-                        <div className="space-y-1.5">
-                          <label className="font-bold text-slate-700 block">Status</label>
-                          <select
-                            value={editingBanner.status === "Inactive" || editingBanner.status === "Deactivated" ? "Inactive" : "Active"}
-                            onChange={(e) => setEditingBanner({ ...editingBanner, status: e.target.value as Banner["status"] })}
-                            className="w-full bg-white border border-slate-200 rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none font-bold text-slate-800"
-                          >
-                            <option value="Active">Active (Visible)</option>
-                            <option value="Inactive">Inactive (Hidden)</option>
-                          </select>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
-                      <button
-                        type="button"
-                        onClick={() => setEditingBanner(null)}
-                        className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl cursor-pointer"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          if (!editingBanner) return;
-                          const desc = (editingBanner.description || (editingBanner as any).content || "").trim();
-                          const title = (editingBanner.title || "").trim();
-                          if (!title) {
-                            showToast("Please enter a banner title.");
-                            return;
-                          }
-                          if (!desc) {
-                            showToast("Please enter a banner description.");
-                            return;
-                          }
-                          if (title.length > 50) {
-                            showToast("Banner title must be 50 characters or fewer.");
-                            return;
-                          }
-                          if (desc.length > 100) {
-                            showToast("Banner description must be 100 characters or fewer.");
-                            return;
-                          }
-                          let img = editingBanner.image || (editingBanner as any).image_url || "";
-                          let uploadedStoragePath = "";
-
-                          if (img.startsWith("data:")) {
-                            const uploadRes = await uploadBannerImageToSupabase(img, String(editingBanner.id));
-                            if (uploadRes && uploadRes.publicUrl) {
-                              img = uploadRes.publicUrl;
-                              uploadedStoragePath = uploadRes.storagePath;
-                            }
-                          }
-
-                          const ord = Number(editingBanner.order) || Number((editingBanner as any).place) || 1;
-                          const normalizedEdit: Banner = {
-                            ...editingBanner,
-                            id: String(editingBanner.id),
-                            title,
-                            description: desc,
-                            content: desc,
-                            image: img,
-                            image_url: img,
-                            order: ord,
-                            place: ord,
-                            status: editingBanner.status || "Active",
-                            active: (editingBanner.status || "Active") === "Active"
-                          };
-                          const updated = banners.map((b) => (String(b.id) === String(editingBanner.id) ? normalizedEdit : b));
-                          const deduplicated = Array.from(new Map(updated.map((b) => [b.id, b])).values());
-                          
-                          const saveOk = await saveToSupabase("banners", deduplicated);
-                          if (!saveOk) {
-                            if (uploadedStoragePath) {
-                              await deleteBannerImageFromSupabase(uploadedStoragePath);
-                            }
-                            showToast("Failed to update banner in Supabase.");
-                            return;
-                          }
-
-                          onUpdateBanners(deduplicated);
-                          safeSetLocalStorage("gch_banners", deduplicated);
-                          triggerBroadcastSync();
-
-                          try {
-                            const fresh = await fetchFromSupabase<Banner[]>("banners");
-                            if (fresh && Array.isArray(fresh) && fresh.length > 0) {
-                              onUpdateBanners(fresh);
-                              safeSetLocalStorage("gch_banners", fresh);
-                            }
-                          } catch (e) {}
-
-                          setEditingBanner(null);
-                          showToast("Banner updated successfully!");
-                        }}
-                        className="px-5 py-2 bg-[#37494E] hover:bg-[#2c3b3f] text-white font-bold rounded-xl cursor-pointer shadow-xs"
-                      >
-                        Save Changes
-                      </button>
-                    </div>
-                  </div>
-                </div>
               )}
 
               {/* Edit Associate Modal */}
@@ -3982,46 +4420,6 @@ export default function AdminPortal({
                 </div>
               )}
 
-              {/* Status Filter Tabs */}
-              <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setBannerStatusFilter("All")}
-                    className={`px-3.5 py-1.5 font-bold text-xs rounded-xl cursor-pointer transition-all ${
-                      bannerStatusFilter === "All"
-                        ? "bg-[#37494E] text-white shadow-xs"
-                        : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                    }`}
-                  >
-                    All ({banners.length})
-                  </button>
-                  <button
-                    onClick={() => setBannerStatusFilter("Active")}
-                    className={`px-3.5 py-1.5 font-bold text-xs rounded-xl cursor-pointer transition-all ${
-                      bannerStatusFilter === "Active"
-                        ? "bg-emerald-600 text-white shadow-xs"
-                        : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                    }`}
-                  >
-                    Active ({banners.filter((b) => b.status === "Active" || !b.status).length})
-                  </button>
-                  <button
-                    onClick={() => setBannerStatusFilter("Inactive")}
-                    className={`px-3.5 py-1.5 font-bold text-xs rounded-xl cursor-pointer transition-all ${
-                      bannerStatusFilter === "Inactive"
-                        ? "bg-slate-700 text-white shadow-xs"
-                        : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                    }`}
-                  >
-                    Inactive ({banners.filter((b) => b.status === "Inactive" || b.status === "Deactivated").length})
-                  </button>
-                </div>
-
-                <span className="text-[11px] font-medium text-slate-400 hidden sm:inline">
-                  Sorted by Place (Display Order)
-                </span>
-              </div>
-
               {/* Banners Cards Display (Sorted by Place Number) */}
               {banners.length === 0 ? (
                 <div className="text-center py-12 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
@@ -4032,46 +4430,37 @@ export default function AdminPortal({
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                   {[...banners]
-                    .filter((b) => {
-                      if (bannerStatusFilter === "Active") return b.status === "Active" || !b.status;
-                      if (bannerStatusFilter === "Inactive") return b.status === "Inactive" || b.status === "Deactivated";
-                      return true;
-                    })
-                    .sort((a, b) => (Number(a.order) || 999) - (Number(b.order) || 999))
+                    .sort(
+                      (a, b) =>
+                        (Number(a.place ?? a.order) || 999) -
+                        (Number(b.place ?? b.order) || 999)
+                    )
                     .map((b) => {
-                      const isInactive = b.status === "Deactivated" || b.status === "Inactive";
+
                       return (
                         <div
                           key={b.id}
-                          className={`bg-white rounded-2xl border transition-all duration-200 overflow-hidden flex flex-col justify-between shadow-xs hover:shadow-md ${
-                            isInactive ? "border-slate-200 bg-slate-50/80 opacity-80" : "border-slate-200"
-                          }`}
+                          className="bg-white rounded-2xl border border-slate-200 transition-all duration-200 overflow-hidden flex flex-col justify-between shadow-xs hover:shadow-md"
                         >
                           <div>
                             {/* Banner Image & Top Badges */}
                             <div className="relative h-44 w-full bg-slate-100 overflow-hidden">
                               <img
-                                src={b.image || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=800&q=80"}
-                                alt={b.title || "Banner"}
-                                className={`w-full h-full object-contain transition-transform duration-300 ${isInactive ? "grayscale opacity-75" : ""}`}
-                              />
+                                  src={
+                                    b.image ||
+                                    b.image_url ||
+                                    "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=800&q=80"
+                                  }
+                                  alt={b.title || "Banner"}
+                                  className="w-full h-full object-contain object-center"
+                                />
+                              
                               <div className="absolute top-3 left-3 flex items-center gap-2">
                                 <span className="px-2.5 py-1 bg-black/75 backdrop-blur-md text-white font-extrabold text-[11px] rounded-lg border border-white/20 shadow-xs flex items-center gap-1">
-                                  <span>Place {b.order ?? 1}</span>
+                                  <span>Place {b.place ?? b.order ?? 1}</span>
                                 </span>
-                              </div>
-                              <div className="absolute top-3 right-3">
-                                <span
-                                  className={`px-2.5 py-1 font-extrabold text-[10px] rounded-full shadow-xs border ${
-                                    !isInactive
-                                      ? "bg-emerald-500 text-white border-emerald-400"
-                                      : "bg-slate-700 text-slate-200 border-slate-600"
-                                  }`}
-                                >
-                                  {!isInactive ? "Active" : "Inactive"}
-                                </span>
-                              </div>
-                            </div>
+                              </div>  
+                          </div>
 
                             {/* Banner Info */}
                             <div className="p-4 space-y-2">
@@ -4085,114 +4474,109 @@ export default function AdminPortal({
                                   </p>
                                 )}
                               </div>
-
-                              <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1 border-t border-slate-100">
-                                <span className="flex items-center gap-1 font-medium">
-                                  {!isInactive ? (
-                                    <span className="text-emerald-600 font-bold">✓ Active on User Portal</span>
-                                  ) : (
-                                    <span className="text-slate-400">Hidden from User Portal</span>
-                                  )}
-                                </span>
-
-                                {/* Quick Place re-order dropdown directly on card */}
-                                <div className="flex items-center gap-1">
-                                  <span className="text-[10px] font-bold text-slate-500">Place:</span>
-                                  <select
-                                    value={b.order ?? 1}
-                                    onChange={async (e) => {
-                                      const newPlace = Number(e.target.value);
-                                      const updated = banners.map((item) =>
-                                        item.id === b.id ? { ...item, order: newPlace } : item
-                                      );
-                                      const deduplicated = Array.from(new Map(updated.map((item) => [item.id, item])).values());
-                                      onUpdateBanners(deduplicated);
-                                      safeSetLocalStorage("gch_banners", deduplicated);
-                                      await saveToSupabase("banners", deduplicated);
-                                      triggerBroadcastSync();
-                                      showToast(`Set to Place ${newPlace}`);
-                                    }}
-                                    className="bg-slate-100 border border-slate-200 text-slate-800 font-bold text-[11px] rounded-lg px-1.5 py-0.5 focus:outline-none cursor-pointer"
-                                  >
-                                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
-                                      <option key={num} value={num}>{num}</option>
-                                    ))}
-                                  </select>
-                                </div>
-                              </div>
                             </div>
                           </div>
 
-                          {/* Actions Section - Edit, Toggle Active/Inactive, Delete */}
-                          <div className="p-3.5 border-t border-slate-100 bg-slate-50/60 flex items-center justify-between gap-1.5">
-                            <button
-                              onClick={() => setEditingBanner(b)}
-                              className="px-2.5 py-1.5 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all cursor-pointer flex items-center gap-1 shadow-2xs"
-                              title="Edit Banner"
-                            >
-                              <Edit3 className="h-3.5 w-3.5 text-blue-600" />
-                              <span>Edit</span>
-                            </button>
+                          {/* Actions Section - Delete Only */}
+                          <div className="p-3.5 border-t border-slate-100 bg-slate-50/60 flex items-center justify-end">
 
                             <button
-                              onClick={async () => {
-                                const newStatus = isInactive ? "Active" : "Inactive";
-                                const updated: Banner[] = banners.map((item) => {
-                                  if (item.id === b.id) {
-                                    return { ...item, status: newStatus as Banner["status"] };
+                                onClick={async () => {
+                                  if (
+                                    !confirm(
+                                      `Are you sure you want to permanently delete banner "${b.title || "Untitled banner"}"?`
+                                    )
+                                  ) {
+                                    return;
                                   }
-                                  return item;
-                                });
-                                const deduplicated = Array.from(new Map(updated.map((item) => [item.id, item])).values());
-                                onUpdateBanners(deduplicated);
-                                safeSetLocalStorage("gch_banners", deduplicated);
-                                await saveToSupabase("banners", deduplicated);
-                                triggerBroadcastSync();
-                                showToast(newStatus === "Active" ? "Banner activated!" : "Banner set to inactive.");
-                              }}
-                              className={`px-2.5 py-1.5 font-bold text-xs rounded-xl transition-all cursor-pointer flex items-center gap-1 ${
-                                !isInactive
-                                  ? "bg-amber-100 hover:bg-amber-200 text-amber-800 border border-amber-200"
-                                  : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs"
-                              }`}
-                              title={!isInactive ? "Deactivate Banner" : "Activate Banner"}
-                            >
-                              {!isInactive ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                              <span>{!isInactive ? "Deactivate" : "Activate"}</span>
-                            </button>
 
-                            <button
-                              onClick={async () => {
-                                if (confirm(`Are you sure you want to permanently delete banner "${b.title || "Untitled banner"}"?`)) {
                                   const targetId = String(b.id);
+
+                                  const deleteOk = await deleteFromSupabase(
+                                    "banners",
+                                    targetId
+                                  );
+
+                                  if (!deleteOk) {
+                                    showToast("Failed to delete banner from database.");
+                                    return;
+                                  }
+
                                   const bannerImg = b.image || (b as any).image_url;
+
                                   if (bannerImg) {
                                     const info = extractStoragePathFromUrl(bannerImg);
+
                                     if (info) {
                                       try {
                                         const client = getSupabaseClient();
-                                        if (client) await client.storage.from(info.bucket).remove([info.path]);
-                                      } catch (e) {}
+
+                                        if (client) {
+                                          await client.storage
+                                            .from(info.bucket)
+                                            .remove([info.path]);
+                                        }
+                                      } catch (error) {
+                                        console.warn(
+                                          "Banner image storage deletion failed:",
+                                          error
+                                        );
+                                      }
                                     }
                                   }
-                                  const updated = banners.filter((item) => String(item.id) !== targetId);
-                                  const deduplicated = Array.from(new Map(updated.map((item) => [item.id, item])).values());
-                                  onUpdateBanners(deduplicated);
-                                  safeSetLocalStorage("gch_banners", deduplicated);
-                                  await deleteFromSupabase("banners", targetId);
-                                  await saveToSupabase("banners", deduplicated);
+
+                                  const remaining = banners
+                                    .filter(
+                                      (item) => String(item.id) !== targetId
+                                    )
+                                    .sort(
+                                      (a, b) =>
+                                        (Number(a.place ?? a.order) || 999) -
+                                        (Number(b.place ?? b.order) || 999)
+                                    );
+
+                                  const reordered: Banner[] = remaining.map(
+                                    (banner, index) => ({
+                                      ...banner,
+                                      place: index + 1,
+                                      order: index + 1,
+                                      status: "Active",
+                                      active: true
+                                    })
+                                  );
+
+                                  if (reordered.length > 0) {
+                                    const reorderSaved = await saveToSupabase(
+                                      "banners",
+                                      reordered
+                                    );
+
+                                    if (!reorderSaved) {
+                                      console.warn(
+                                        "Banner deleted, but remaining banner positions could not be updated."
+                                      );
+                                    }
+                                  }
+
+                                  onUpdateBanners(reordered);
+
+                                  safeSetLocalStorage(
+                                    "gch_banners",
+                                    reordered
+                                  );
+
                                   triggerBroadcastSync();
-                                  showToast("Banner deleted.");
-                                }
-                              }}
-                              className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold text-xs rounded-xl transition-colors cursor-pointer flex items-center gap-1"
-                              title="Delete Banner"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                              <span>Delete</span>
-                            </button>
+
+                                  showToast("Banner deleted permanently.");
+                                }}
+                                className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold text-xs rounded-xl transition-colors cursor-pointer flex items-center gap-1"
+                                title="Delete Banner"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                                <span>Delete</span>
+                              </button>
                           </div>
-                        </div>
+                        </div>  
                       );
                     })}
                 </div>
@@ -4208,7 +4592,7 @@ export default function AdminPortal({
                 <div>
                   <h3 className="text-lg font-bold text-[#37494E]">Location Management</h3>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    Manage countries and cities. Expand any country to view, add, edit, or deactivate cities under it.
+                    Add and permanently delete countries and cities. Deleting a country also permanently deletes all cities under it.
                   </p>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
@@ -4245,7 +4629,6 @@ export default function AdminPortal({
 
                   <button
                     onClick={() => {
-                      setEditingCountryIdx(null);
                       setNewCountryName("");
                       setShowAddCountryForm(!showAddCountryForm);
                       setShowAddCityForm(false);
@@ -4418,39 +4801,110 @@ export default function AdminPortal({
 
               {/* Location Bulk Actions */}
               <div className="flex flex-wrap items-center justify-end gap-2 bg-slate-50 p-3 rounded-xl border border-slate-200">
-                <button
-                  onClick={() => {
-                    setInactiveCountries([]);
-                    setInactiveCities([]);
-                    showToast("All countries and cities activated!");
-                  }}
-                  className="px-3 py-1.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold text-xs rounded-xl transition-colors cursor-pointer whitespace-nowrap"
-                >
-                  Activate All
-                </button>
-                <button
-                  onClick={() => {
-                    setInactiveCountries([...countriesList]);
-                    setInactiveCities(citiesList.map((city) => `${city.country}:::${city.name}`));
-                    showToast("All countries and cities deactivated!");
-                  }}
-                  className="px-3 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-800 font-bold text-xs rounded-xl transition-colors cursor-pointer whitespace-nowrap"
-                >
-                  Deactivate All
-                </button>
+
                 {(countriesList.length > 0 || citiesList.length > 0) && (
                   <button
                     onClick={async () => {
-                      if (!confirm(`Are you sure you want to permanently delete all ${countriesList.length} countries and ${citiesList.length} cities?`)) {
-                        showToast("Delete action cancelled.");
-                        return;
-                      }
-                      await setCountriesList([]);
-                      await setCitiesList([]);
-                      await setInactiveCountries([]);
-                      await setInactiveCities([]);
-                      showToast("All countries and cities deleted successfully.");
-                    }}
+                        if (
+                          !confirm(
+                            `Are you sure you want to permanently delete all ${countriesList.length} countries and ${citiesList.length} cities?`
+                          )
+                        ) {
+                          showToast("Delete action cancelled.");
+                          return;
+                        }
+
+                        const client = getSupabaseClient();
+
+                        if (!client) {
+                          showToast("Database connection unavailable.");
+                          return;
+                        }
+
+                        try {
+                          // 1. Delete all cities first
+                          const { error: citiesError } = await client
+                            .from("cities")
+                            .delete()
+                            .not("id", "is", null);
+
+                          if (citiesError) {
+                            console.error("Delete all cities failed:", citiesError);
+                            showToast("Failed to delete all cities.");
+                            return;
+                          }
+
+                          // 2. Delete all countries
+                          const { error: countriesError } = await client
+                            .from("countries")
+                            .delete()
+                            .not("id", "is", null);
+
+                          if (countriesError) {
+                            console.error("Delete all countries failed:", countriesError);
+                            showToast("Failed to delete all countries.");
+                            return;
+                          }
+
+                          // 3. Clear inactive country records
+                          const { error: inactiveCountriesError } = await client
+                            .from("inactive_countries")
+                            .delete()
+                            .not("id", "is", null);
+
+                          if (inactiveCountriesError) {
+                            console.error(
+                              "Delete inactive countries failed:",
+                              inactiveCountriesError
+                            );
+                          }
+
+                          // 4. Clear inactive city records
+                          const { error: inactiveCitiesError } = await client
+                            .from("inactive_cities")
+                            .delete()
+                            .not("id", "is", null);
+
+                          if (inactiveCitiesError) {
+                            console.error(
+                              "Delete inactive cities failed:",
+                              inactiveCitiesError
+                            );
+                          }
+
+                          // 5. Database deletion finished.
+                          // Now clear frontend state.
+                          setCountriesList([]);
+                          setCitiesList([]);
+
+                          if (onUpdateCountries) {
+                            onUpdateCountries([]);
+                          }
+
+                          if (onUpdateCities) {
+                            onUpdateCities([]);
+                          }
+
+                          if (onUpdateInactiveCountries) {
+                            onUpdateInactiveCountries([]);
+                          }
+
+                          if (onUpdateInactiveCities) {
+                            onUpdateInactiveCities([]);
+                          }
+
+                          triggerBroadcastSync();
+
+                          showToast(
+                            "All countries and cities deleted successfully."
+                          );
+                        } catch (error) {
+                          console.error("Delete all locations failed:", error);
+                          showToast(
+                            "Failed to delete all countries and cities. Please try again."
+                          );
+                       }
+                      }}
                     className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl transition-colors cursor-pointer whitespace-nowrap inline-flex items-center gap-1.5"
                     title="Permanently delete all countries and cities"
                   >
@@ -4465,7 +4919,6 @@ export default function AdminPortal({
                   .map((c) => (typeof c === "string" ? c : String((c as any)?.name || (c as any)?.id || "")))
                   .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }))
                   .map((countryName, cIdx) => {
-                    const isDeactivated = inactiveCountries.includes(countryName);
                     const isExpanded = openGroups[`country_${cIdx}`] ?? true;
                     const associatedCities = citiesList
                       .filter((ct) => ct.country === countryName)
@@ -4473,283 +4926,295 @@ export default function AdminPortal({
 
                     return (
                       <div
-                        key={countryName || `cnt-${cIdx}`}
-                        className={`border rounded-2xl transition-all ${
-                          !isDeactivated
-                            ? "bg-white border-slate-200 hover:border-slate-300 shadow-2xs"
-                            : "bg-slate-100/70 border-slate-300 opacity-75"
-                        }`}
+                          key={countryName || `cnt-${cIdx}`}
+                          className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-200"
+>
+{/* Country Card Top Bar */}
+<div className="px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white">
+
+  {/* Country Name */}
+  <div
+    className="flex items-center gap-3 cursor-pointer min-w-0"
+    onClick={() => toggleGroup(`country_${cIdx}`)}
+  >
+    <button
+      type="button"
+      className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-500 transition-colors shrink-0"
+    >
+      {isExpanded ? (
+        <ChevronDown className="h-4 w-4" />
+      ) : (
+        <ChevronRight className="h-4 w-4" />
+      )}
+    </button>
+
+    <div className="min-w-0">
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="font-extrabold text-sm text-[#37494E] truncate">
+          {countryName}
+        </span>
+
+        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100">
+          {associatedCities.length}{" "}
+          {associatedCities.length === 1 ? "City" : "Cities"}
+        </span>
+      </div>
+
+      <p className="text-[10px] text-slate-400 mt-0.5">
+        Manage cities under {countryName}
+      </p>
+    </div>
+  </div>
+
+  {/* Country Actions */}
+  <div className="flex items-center gap-2 shrink-0">
+
+    {/* Add City */}
+    <button
+      onClick={() => {
+        setNewCityCountry(countryName);
+        setShowAddCityForm(true);
+        setShowAddCountryForm(false);
+      }}
+      className="h-9 px-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
+    >
+      <Plus className="h-3.5 w-3.5" />
+      <span>Add City</span>
+    </button>
+
+    {/* Delete Country */}
+    <button
+                        onClick={async () => {
+                        if (
+                          !confirm(
+                            `Are you sure you want to permanently delete country "${countryName}" and all its associated cities?`
+                          )
+                        ) {
+                          showToast("Delete action cancelled.");
+                          return;
+                        }
+
+                        const client = getSupabaseClient();
+
+                        if (!client) {
+                          showToast("Database connection unavailable.");
+                          return;
+                        }
+
+                        try {
+                          // 1. Delete all cities under this country
+                          const { error: cityDeleteError } = await client
+                            .from("cities")
+                            .delete()
+                            .ilike("country", countryName);
+
+                          if (cityDeleteError) {
+                            console.error(
+                              "Failed to delete cities for country:",
+                              cityDeleteError
+                            );
+
+                            showToast(
+                              "Failed to delete cities under this country."
+                            );
+
+                            return;
+                          }
+
+                          // 2. Delete the country itself
+                          const { error: countryDeleteError } = await client
+                            .from("countries")
+                            .delete()
+                            .ilike("name", countryName);
+
+                          if (countryDeleteError) {
+                            console.error(
+                              "Failed to delete country:",
+                              countryDeleteError
+                            );
+
+                            showToast(
+                              "Failed to delete country from database."
+                            );
+
+                            return;
+                          }
+
+                          // 3. Update frontend country list
+                          const updatedCountries = countriesList.filter(
+                            (country) =>
+                              String(country).trim().toLowerCase() !==
+                              String(countryName).trim().toLowerCase()
+                          );
+
+                          // 4. Remove all cities under this country from frontend
+                          const updatedCities = citiesList.filter(
+                            (city) =>
+                              String(city.country).trim().toLowerCase() !==
+                              String(countryName).trim().toLowerCase()
+                          );
+
+                          await setCountriesList(updatedCountries);
+                          await setCitiesList(updatedCities);
+
+                          if (onUpdateCountries) {
+                            onUpdateCountries(updatedCountries);
+                          }
+
+                          if (onUpdateCities) {
+                            onUpdateCities(updatedCities);
+                          }
+
+                          triggerBroadcastSync();
+
+                          showToast(
+                            `Country "${countryName}" and all its cities deleted permanently.`
+                          );
+                        } catch (error) {
+                          console.error(
+                            "Country delete error:",
+                            error
+                          );
+
+                          showToast(
+                            "Failed to delete country. Please try again."
+                          );
+                        }
+                      }}
+                        className="h-9 px-3.5 bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold text-xs rounded-xl transition-all cursor-pointer flex items-center gap-1.5 border border-rose-100"
                       >
-                        {/* Country Card Top Bar */}
-                        <div className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                          <div className="flex items-center gap-3 cursor-pointer" onClick={() => toggleGroup(`country_${cIdx}`)}>
-                            <button
-                              type="button"
-                              className="p-1 rounded-lg hover:bg-slate-100 text-slate-500 transition-colors"
-                            >
-                              {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                            </button>
-
-                            {editingCountryIdx === cIdx ? (
-                              <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                                <input
-                                  type="text"
-                                  value={editCountryName}
-                                  onChange={(e) => setEditCountryName(e.target.value)}
-                                  className="border border-slate-300 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-800"
-                                />
-                                <button
-                                  onClick={() => {
-                                    if (!editCountryName.trim()) return;
-                                    const oldName = countryName;
-                                    const newName = editCountryName.trim().toUpperCase();
-                                    if (countriesList.some((c) => c !== oldName && c.trim().toUpperCase() === newName)) {
-                                      showToast(`Country "${newName}" already exists!`);
-                                      return;
-                                    }
-                                    const updatedCountries = countriesList.map((c) => (c === oldName ? newName : c));
-                                    const updatedCities = citiesList.map((ct) =>
-                                      ct.country === oldName ? { ...ct, country: newName } : ct
-                                    );
-                                    setCountriesList(updatedCountries);
-                                    setCitiesList(updatedCities);
-                                    setEditingCountryIdx(null);
-                                    showToast(`Updated country to "${newName}"`);
-                                  }}
-                                className="px-2.5 py-1 bg-emerald-600 text-white font-bold rounded-lg text-xs"
-                              >
-                                Save
-                              </button>
-                              <button
-                                onClick={() => setEditingCountryIdx(null)}
-                                className="px-2.5 py-1 bg-slate-200 text-slate-700 font-bold rounded-lg text-xs"
-                              >
-                                Cancel
-                              </button>
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-2.5">
-                              <span className="font-extrabold text-sm text-[#37494E]">{countryName}</span>
-                              <span
-                                className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
-                                  !isDeactivated ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-slate-200 text-slate-600 border-slate-300"
-                                }`}
-                              >
-                                {!isDeactivated ? "Active" : "Deactivated"}
-                              </span>
-                              <span className="text-[11px] font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
-                                {associatedCities.length} {associatedCities.length === 1 ? "City" : "Cities"}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Country Actions */}
-                        <div className="flex items-center gap-2 text-xs flex-wrap">
-                          {/* Add City Button */}
-                          <button
-                            onClick={() => {
-                              setNewCityCountry(countryName);
-                              setShowAddCityForm(true);
-                              setShowAddCountryForm(false);
-                            }}
-                            className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-xs rounded-lg transition-colors cursor-pointer flex items-center gap-1"
-                          >
-                            <Plus className="h-3.5 w-3.5" />
-                            <span>Add City</span>
-                          </button>
-
-                          {/* Edit Country */}
-                          <button
-                            onClick={() => {
-                              setEditingCountryIdx(cIdx);
-                              setEditCountryName(countryName);
-                            }}
-                            className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-lg transition-colors cursor-pointer flex items-center gap-1"
-                          >
-                            <Edit2 className="h-3.5 w-3.5" />
-                            <span>Edit</span>
-                          </button>
-
-                          {/* Deactivate Country */}
-                          <button
-                            onClick={() => {
-                              if (isDeactivated) {
-                                setInactiveCountries(inactiveCountries.filter((c) => c !== countryName));
-                                showToast(`Country "${countryName}" activated!`);
-                              } else {
-                                setInactiveCountries([...inactiveCountries, countryName]);
-                                showToast(`Country "${countryName}" deactivated!`);
-                              }
-                            }}
-                            className={`px-2.5 py-1 font-bold text-xs rounded-lg transition-colors cursor-pointer flex items-center gap-1 ${
-                              !isDeactivated ? "bg-amber-100 hover:bg-amber-200 text-amber-800" : "bg-emerald-100 hover:bg-emerald-200 text-emerald-800"
-                            }`}
-                          >
-                            {!isDeactivated ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                            <span>{!isDeactivated ? "Deactivate" : "Activate"}</span>
-                          </button>
-
-                          {/* Delete Country (Cascades to cities) */}
-                          <button
-                            onClick={() => {
-                              if (!confirm(`Are you sure you want to permanently delete country "${countryName}" and all its associated cities?`)) {
-                                showToast("Delete action cancelled.");
-                                return;
-                              }
-                              const updatedCountries = countriesList.filter((c) => c !== countryName);
-                              const updatedCities = citiesList.filter((ct) => ct.country !== countryName);
-                              setCountriesList(updatedCountries);
-                              setCitiesList(updatedCities);
-                              deleteFromSupabase("countries", countryName);
-                              deleteFromSupabase("countries", countryName.toLowerCase());
-                              const client = getSupabaseClient();
-                              if (client) {
-                                client.from('countries').delete().or(`id.ilike.${countryName},name.ilike.${countryName}`).then(() => {});
-                                client.from('cities').delete().or(`country.ilike.${countryName}`).then(() => {});
-                              }
-                              showToast(`Deleted country "${countryName}" and all associated cities.`);
-                            }}
-                            className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold text-xs rounded-lg transition-colors cursor-pointer flex items-center gap-1"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                            <span>Delete</span>
-                          </button>
-                        </div>
+                        <Trash2 className="h-3.5 w-3.5" />
+                        <span>Delete</span>
+                      </button>
+                      </div>
                       </div>
 
                       {/* Associated Cities List (Expanded) */}
                       {isExpanded && (
-                        <div className="px-4 pb-4 pt-1 border-t border-slate-100 bg-slate-50/50 rounded-b-2xl">
+                        <div className="px-4 py-4 border-t border-slate-100 bg-slate-50/70">
                           {associatedCities.length === 0 ? (
-                            <p className="text-xs text-slate-400 italic py-2 pl-2">
-                              No cities added under {countryName} yet. Click "+ Add City" above to add one.
-                            </p>
-                          ) : (
+  <div className="border border-dashed border-slate-300 rounded-xl bg-white px-4 py-7 text-center">
+
+    <div className="w-10 h-10 mx-auto rounded-full bg-blue-50 flex items-center justify-center mb-2">
+      <MapPin className="h-5 w-5 text-blue-500" />
+    </div>
+
+    <p className="text-sm font-bold text-slate-700">
+      No cities added yet
+    </p>
+
+    <p className="text-xs text-slate-400 mt-1">
+      Add your first city under {countryName}.
+    </p>
+
+    <button
+      onClick={() => {
+        setNewCityCountry(countryName);
+        setShowAddCityForm(true);
+        setShowAddCountryForm(false);
+      }}
+      className="mt-3 inline-flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer"
+    >
+      <Plus className="h-3.5 w-3.5" />
+      Add City
+    </button>
+  </div>
+) : (
                             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 mt-2">
                               {associatedCities.map((ct, ctIdx) => {
-                                const globalIdx = citiesList.findIndex(
-                                  (item) => item.name === ct.name && item.country === ct.country
-                                );
                                 const cityKey = `${ct.country}:::${ct.name}`;
-                                const isCityDeactivated = inactiveCities.includes(cityKey);
 
                                 return (
                                   <div
                                     key={cityKey || `city-${ctIdx}`}
-                                    className={`p-2.5 border rounded-xl flex items-center justify-between text-xs shadow-2xs transition-all ${
-                                      !isCityDeactivated
-                                        ? "bg-white border-slate-200 hover:border-slate-300"
-                                        : "bg-slate-100 border-slate-300 opacity-70"
-                                    }`}
-                                  >
-                                    {editingCityIdx === globalIdx ? (
-                                      <div className="flex items-center gap-1.5 w-full">
-                                        <input
-                                          type="text"
-                                          value={editCityName}
-                                          onChange={(e) => setEditCityName(e.target.value)}
-                                          className="flex-1 border border-slate-300 rounded px-2 py-1 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-blue-500"
-                                        />
-                                        <button
-                                          onClick={() => {
-                                            if (!editCityName.trim()) return;
-                                            const newName = editCityName.trim().toUpperCase();
-                                            const oldKey = `${ct.country}:::${ct.name}`;
-                                            const newKey = `${ct.country}:::${newName}`;
+                                    className="group p-3 bg-white border border-slate-200 rounded-xl flex items-center justify-between gap-3 shadow-sm hover:border-blue-200 hover:shadow-md transition-all duration-200">
+                                    <>
+                                        <div className="flex items-center gap-2.5 min-w-0">
 
-                                            const updated = citiesList.map((item, i) =>
-                                              i === globalIdx ? { ...item, name: newName } : item
-                                            );
-                                            setCitiesList(updated);
+  <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
+    <MapPin className="h-4 w-4 text-blue-500" />
+  </div>
 
-                                            if (inactiveCities.includes(oldKey)) {
-                                              setInactiveCities(inactiveCities.map((k) => (k === oldKey ? newKey : k)));
-                                            }
+  <div className="min-w-0">
+    <p className="font-bold text-xs text-slate-800 truncate">
+      {ct.name}
+    </p>
 
-                                            setEditingCityIdx(null);
-                                            showToast(`City updated to "${newName}"`);
-                                          }}
-                                          className="px-2.5 py-1 bg-emerald-600 text-white text-[10px] font-bold rounded-lg cursor-pointer"
-                                        >
-                                          Save
-                                        </button>
-                                        <button
-                                          onClick={() => setEditingCityIdx(null)}
-                                          className="px-2.5 py-1 bg-slate-200 text-slate-700 text-[10px] font-bold rounded-lg cursor-pointer"
-                                        >
-                                          Cancel
-                                        </button>
-                                      </div>
-                                    ) : (
-                                      <>
-                                        <div className="flex items-center gap-2 min-w-0">
-                                          <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                                          <span className="font-bold text-slate-800 truncate">{ct.name}</span>
-                                          <span
-                                            className={`px-1.5 py-0.2 rounded text-[9px] font-bold border shrink-0 ${
-                                              !isCityDeactivated
-                                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                                                : "bg-slate-200 text-slate-600 border-slate-300"
-                                            }`}
-                                          >
-                                            {!isCityDeactivated ? "Active" : "Inactive"}
-                                          </span>
-                                        </div>
+    <p className="text-[10px] text-slate-400 truncate">
+      {countryName}
+    </p>
+  </div>
+
+</div>
 
                                         <div className="flex items-center gap-1 shrink-0">
                                           <button
-                                            onClick={() => {
-                                              setEditingCityIdx(globalIdx);
-                                              setEditCityName(ct.name);
-                                            }}
-                                            className="p-1 hover:bg-slate-100 text-slate-600 rounded transition-colors cursor-pointer"
-                                            title="Edit city"
-                                          >
-                                            <Edit2 className="h-3.5 w-3.5" />
-                                          </button>
-                                          <button
-                                            onClick={() => {
-                                              if (isCityDeactivated) {
-                                                setInactiveCities(inactiveCities.filter((k) => k !== cityKey));
-                                                showToast(`City "${ct.name}" activated!`);
-                                              } else {
-                                                setInactiveCities([...inactiveCities, cityKey]);
-                                                showToast(`City "${ct.name}" deactivated!`);
-                                              }
-                                            }}
-                                            className={`p-1 rounded transition-colors cursor-pointer ${
-                                              !isCityDeactivated ? "hover:bg-amber-100 text-amber-700" : "hover:bg-emerald-100 text-emerald-700"
-                                            }`}
-                                            title={!isCityDeactivated ? "Deactivate city" : "Activate city"}
-                                          >
-                                            {!isCityDeactivated ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                                          </button>
-                                          <button
-                                            onClick={() => {
-                                              if (!confirm(`Are you sure you want to permanently delete city "${ct.name}"?`)) {
+                                            onClick={async () => {
+                                              if (
+                                                !confirm(
+                                                  `Are you sure you want to permanently delete city "${ct.name}" from "${ct.country}"?`
+                                                )
+                                              ) {
                                                 showToast("Delete action cancelled.");
                                                 return;
                                               }
-                                              const updated = citiesList.filter((_, i) => i !== globalIdx);
-                                              setCitiesList(updated);
-                                              setInactiveCities(inactiveCities.filter((k) => k !== cityKey));
-                                              deleteFromSupabase("cities", cityKey);
-                                              deleteFromSupabase("cities", ct.name);
+
                                               const client = getSupabaseClient();
-                                              if (client) {
-                                                client.from('cities').delete().or(`id.eq.${cityKey},id.ilike.${ct.name},and(name.ilike.${ct.name},country.ilike.${ct.country})`).then(() => {});
+
+                                              if (!client) {
+                                                showToast("Database connection unavailable.");
+                                                return;
                                               }
-                                              showToast(`Deleted city "${ct.name}"`);
+
+                                              try {
+                                                const { error } = await client
+                                                  .from("cities")
+                                                  .delete()
+                                                  .ilike("name", ct.name)
+                                                  .ilike("country", ct.country);
+
+                                                if (error) {
+                                                  console.error("City deletion failed:", error);
+                                                  showToast("Failed to delete city from database.");
+                                                  return;
+                                                }
+
+                                                const updatedCities = citiesList.filter(
+                                                  (item) =>
+                                                    !(
+                                                      String(item.name).trim().toLowerCase() ===
+                                                        String(ct.name).trim().toLowerCase() &&
+                                                      String(item.country).trim().toLowerCase() ===
+                                                        String(ct.country).trim().toLowerCase()
+                                                    )
+                                                );
+
+                                                await setCitiesList(updatedCities);
+
+                                                if (onUpdateCities) {
+                                                  onUpdateCities(updatedCities);
+                                                }
+
+                                                triggerBroadcastSync();
+
+                                                showToast(
+                                                  `City "${ct.name}" deleted permanently.`
+                                                );
+                                              } catch (error) {
+                                                console.error("City delete error:", error);
+
+                                                showToast(
+                                                  "Failed to delete city. Please try again."
+                                                );
+                                              }
                                             }}
-                                            className="p-1 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded transition-colors cursor-pointer"
+                                            className="w-8 h-8 flex items-center justify-center bg-slate-50 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded-lg transition-all cursor-pointer opacity-70 group-hover:opacity-100"
                                             title="Delete city"
                                           >
                                             <Trash2 className="h-3.5 w-3.5" />
                                           </button>
                                         </div>
                                       </>
-                                    )}
                                   </div>
                                 );
                               })}
@@ -4810,9 +5275,7 @@ export default function AdminPortal({
                   <button
                     onClick={() => {
                       setNewTopicName("");
-                      setNewTopicDesc("");
                       setShowAddTopicForm(!showAddTopicForm);
-                      setShowBulkTopicModal(false);
                     }}
                     className="px-4 py-2 bg-[#37494E] hover:bg-[#2c3b3f] text-white font-bold text-xs rounded-xl transition-all cursor-pointer shadow-xs flex items-center gap-1.5"
                   >
@@ -4820,16 +5283,6 @@ export default function AdminPortal({
                     <span>Add Single Topic</span>
                   </button>
 
-                  <button
-                    onClick={() => {
-                      setShowBulkTopicModal(!showBulkTopicModal);
-                      setShowAddTopicForm(false);
-                    }}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition-all cursor-pointer shadow-xs flex items-center gap-1.5"
-                  >
-                    <Upload className="h-4 w-4" />
-                    <span>Text Bulk Upload</span>
-                  </button>
                 </div>
               </div>
 
@@ -4839,133 +5292,109 @@ export default function AdminPortal({
                 <div className="space-y-1">
                   <p className="font-bold text-emerald-950">Topic Excel Bulk Upload Format Guide:</p>
                   <p className="text-emerald-800 leading-relaxed">
-                    Write <span className="font-bold">Topic Name</span> in Column A (e.g. <code className="bg-emerald-100 px-1 py-0.5 rounded font-mono">Artificial Intelligence & Machine Learning</code>) and optional <span className="font-bold">Description</span> in Column B. You can also list multiple topics in a single cell separated by newlines or commas. Click <span className="font-bold">"Demo Excel"</span> above to download a pre-formatted Excel template!
+                    Write <span className="font-bold">Topic Name</span> in Column A
+                    (e.g.{" "}
+                    <code className="bg-emerald-100 px-1 py-0.5 rounded font-mono">
+                      Artificial Intelligence & Machine Learning
+                    </code>
+                    ). Use one topic per row. Duplicate topic names are automatically
+                    replaced instead of creating another copy. Click{" "}
+                    <span className="font-bold">"Demo Excel"</span> above to download
+                    the sample template.
                   </p>
                 </div>
               </div>
-
-              {/* Stats Overview Bar */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {/* Topic Stats */}
+              <div className="grid grid-cols-1 gap-4">
                 <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex items-center justify-between">
                   <div>
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Topics</p>
-                    <p className="text-2xl font-black text-slate-800 mt-0.5">{categories.length}</p>
+                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                      Total Topics
+                    </p>
+
+                    <p className="text-2xl font-black text-slate-800 mt-0.5">
+                      {categories.length}
+                    </p>
                   </div>
-                  <div className="h-10 w-10 bg-slate-200/70 text-slate-700 rounded-xl flex items-center justify-center font-bold text-sm">
+
+                  <div className="h-10 min-w-10 px-3 bg-slate-200/70 text-slate-700 rounded-xl flex items-center justify-center font-bold text-sm">
                     {categories.length}
                   </div>
                 </div>
-
-                <div className="bg-emerald-50/80 p-4 rounded-xl border border-emerald-200 flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-semibold text-emerald-700 uppercase tracking-wider">Active Topics</p>
-                    <p className="text-2xl font-black text-emerald-800 mt-0.5">
-                      {categories.filter((c) => !inactiveTopics.includes(c.id)).length}
-                    </p>
-                  </div>
-                  <div className="h-10 w-10 bg-emerald-200/80 text-emerald-800 rounded-xl flex items-center justify-center font-bold text-xs">
-                    LIVE
-                  </div>
-                </div>
-
-                <div className="bg-amber-50/80 p-4 rounded-xl border border-amber-200 flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-semibold text-amber-700 uppercase tracking-wider">Deactivated Topics</p>
-                    <p className="text-2xl font-black text-amber-800 mt-0.5">
-                      {categories.filter((c) => inactiveTopics.includes(c.id)).length}
-                    </p>
-                  </div>
-                  <div className="h-10 w-10 bg-amber-200/80 text-amber-800 rounded-xl flex items-center justify-center font-bold text-xs">
-                    OFF
-                  </div>
-                </div>
               </div>
-
-              {/* Bulk Topic Upload Panel */}
-              {showBulkTopicModal && (
-                <div className="bg-blue-50/60 p-5 rounded-2xl border border-blue-200 space-y-4 text-xs animate-fadeIn">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-bold text-sm text-blue-900 flex items-center gap-2">
-                      <Upload className="h-4 w-4 text-blue-600" />
-                      <span>Bulk Upload Topics / Categories (Text Area)</span>
-                    </h4>
-                    <button
-                      onClick={() => setShowBulkTopicModal(false)}
-                      className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
-
-                  <p className="text-slate-600 text-xs">
-                    Paste multiple topic names below (one topic per line).
-                  </p>
-
-                  <textarea
-                    rows={5}
-                    value={bulkTopicText}
-                    onChange={(e) => setBulkTopicText(e.target.value)}
-                    placeholder={"Artificial Intelligence & ML\nComputer Science & Engineering\nData Science & Analytics\nCybersecurity & Network Defense\nQuantum Computing"}
-                    className="w-full bg-white border border-blue-200 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 focus:outline-none font-mono text-xs"
-                  />
-
-                  <div className="flex justify-end gap-2 pt-2 border-t border-blue-100">
-                    <button
-                      type="button"
-                      onClick={() => setShowBulkTopicModal(false)}
-                      className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl cursor-pointer"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (!bulkTopicText.trim()) return;
-                        const lines = bulkTopicText.split("\n").map((l) => l.trim()).filter(Boolean);
-                        const bulkItems: Partial<Category>[] = lines.map((line) => ({
-                          name: line,
-                          slug: line.toLowerCase().replace(/[^a-z0-9]+/g, "-")
-                        }));
-
-                        if (bulkItems.length > 0) {
-                          if (onAddBulkCategories) {
-                            onAddBulkCategories(bulkItems);
-                          } else {
-                            bulkItems.forEach((item) => onAddCategory(item));
-                          }
-                          showToast(`Successfully bulk uploaded ${bulkItems.length} new topic(s)!`);
-                        } else {
-                          showToast("No new topics added.");
-                        }
-                        setBulkTopicText("");
-                        setShowBulkTopicModal(false);
-                      }}
-                      className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl cursor-pointer shadow-xs flex items-center gap-1.5"
-                    >
-                      <Upload className="h-3.5 w-3.5" />
-                      <span>Upload Topics</span>
-                    </button>
-                  </div>
-                </div>
-              )}
 
               {/* Add New Topic Single Form */}
               {(activeMenu === "ADD_TOPICS" || showAddTopicForm) && (
                 <form
                   onSubmit={(e) => {
-                    e.preventDefault();
-                    const trimmedName = newTopicName.trim();
-                    if (!trimmedName) return;
+                  e.preventDefault();
+
+                  const trimmedName =
+                    newTopicName.trim();
+
+                  if (!trimmedName) {
+                    showToast(
+                      "Please enter a topic name."
+                    );
+                    return;
+                  }
+
+                  const normalizedName =
+                    trimmedName.toLowerCase();
+
+                  const slug = trimmedName
+                    .toLowerCase()
+                    .replace(/[^a-z0-9]+/g, "-")
+                    .replace(/^-+|-+$/g, "");
+
+                  const existingTopic =
+                    categories.find(
+                      (cat) =>
+                        String(cat.name || "")
+                          .trim()
+                          .toLowerCase() ===
+                        normalizedName
+                    );
+
+                  if (existingTopic) {
+                    // Same topic already exists:
+                    // replace/update existing record
+                    onEditCategory(
+                      existingTopic.id,
+                      {
+                        name: trimmedName,
+                        slug
+                      }
+                    );
+
+                    showToast(
+                      `Topic "${trimmedName}" already existed and was replaced.`
+                    );
+                  } else {
+                    // New topic
                     onAddCategory({
                       name: trimmedName,
-                      slug: trimmedName.toLowerCase().replace(/[^a-z0-9]+/g, "-")
+                      slug
                     });
-                    setNewTopicName("");
-                    setNewTopicDesc("");
-                    setShowAddTopicForm(false);
-                    showToast(`Topic "${trimmedName}" created successfully!`);
-                    if (activeMenu === "ADD_TOPICS") setActiveMenu("MANAGE_TOPICS");
-                  }}
+
+                    showToast(
+                      `Topic "${trimmedName}" created successfully!`
+                    );
+                  }
+
+                  setNewTopicName("");
+                  setShowAddTopicForm(false);
+
+                  triggerBroadcastSync();
+
+                  if (
+                    activeMenu === "ADD_TOPICS"
+                  ) {
+                    setActiveMenu(
+                      "MANAGE_TOPICS"
+                    );
+                  }
+                }}
                   className="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-4 text-xs animate-fadeIn"
                 >
                   <h4 className="font-bold text-sm text-[#37494E] flex items-center gap-2">
@@ -5014,36 +5443,8 @@ export default function AdminPortal({
                 </div>
 
                 <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-                  <select
-                    value={topicStatusFilter}
-                    onChange={(e) => setTopicStatusFilter(e.target.value as any)}
-                    className="text-xs bg-white border border-slate-200 rounded-xl px-3 py-1.5 font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                  >
-                    <option value="ALL">All Statuses</option>
-                    <option value="ACTIVE">Active Only</option>
-                    <option value="INACTIVE">Deactivated Only</option>
-                  </select>
+                  
 
-                  <button
-                    onClick={() => {
-                      setInactiveTopics([]);
-                      showToast("All topics activated!");
-                    }}
-                    className="px-3 py-1.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold text-xs rounded-xl transition-colors cursor-pointer whitespace-nowrap"
-                  >
-                    Activate All
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      const allIds = categories.map((c) => c.id);
-                      setInactiveTopics(allIds);
-                      showToast("All topics deactivated!");
-                    }}
-                    className="px-3 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-800 font-bold text-xs rounded-xl transition-colors cursor-pointer whitespace-nowrap"
-                  >
-                    Deactivate All
-                  </button>
 
                   {categories.length > 0 && (
                     <button
@@ -5054,7 +5455,7 @@ export default function AdminPortal({
                           return;
                         }
                         await onDeleteAllCategories?.();
-                        await setInactiveTopics([]);
+                        triggerBroadcastSync();
                         showToast(`All ${deleteCount} topic(s) deleted successfully.`);
                       }}
                       className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl transition-colors cursor-pointer whitespace-nowrap inline-flex items-center gap-1.5"
@@ -5068,26 +5469,35 @@ export default function AdminPortal({
 
               {/* Topic List View Table */}
               {(() => {
-                const filtered = categories.filter((cat) => {
-                  const isDeactivated = inactiveTopics.includes(cat.id);
-                  if (topicStatusFilter === "ACTIVE" && isDeactivated) return false;
-                  if (topicStatusFilter === "INACTIVE" && !isDeactivated) return false;
-                  if (topicSearchQuery.trim()) {
-                    const q = topicSearchQuery.toLowerCase().trim();
-                    const nameMatch = cat.name.toLowerCase().includes(q);
-                    const descMatch = (cat.description || "").toLowerCase().includes(q);
-                    if (!nameMatch && !descMatch) return false;
+               const filtered = categories.filter((cat) => {
+                if (topicSearchQuery.trim()) {
+                  const q = topicSearchQuery.toLowerCase().trim();
+
+                  const nameMatch =
+                    String(cat.name || "")
+                      .toLowerCase()
+                      .includes(q);
+
+                  if (!nameMatch) {
+                    return false;
                   }
-                  return true;
-                });
+                }
+
+                return true;
+              });
                 filtered.sort((a, b) => String(a?.name || "").localeCompare(String(b?.name || ""), undefined, { sensitivity: "base" }));
 
                 if (filtered.length === 0) {
                   return (
                     <div className="text-center py-10 bg-slate-50 rounded-2xl border border-dashed border-slate-200 space-y-2">
                       <Tag className="h-8 w-8 text-slate-400 mx-auto" />
-                      <p className="text-sm font-bold text-slate-700">No topics match your filters</p>
-                      <p className="text-xs text-slate-500">Try adjusting your search query or status filter.</p>
+                      <p className="text-sm font-bold text-slate-700">
+                          No topics found
+                      </p>
+
+                      <p className="text-xs text-slate-500">
+                          Try another topic name.
+                      </p>
                     </div>
                   );
                 }
@@ -5100,115 +5510,57 @@ export default function AdminPortal({
                           <tr>
                             <th className="p-3.5 pl-6 w-16">#</th>
                             <th className="p-3.5">Topic & Discipline Name</th>
-                            <th className="p-3.5">Status</th>
                             <th className="p-3.5 pr-6 text-right">Actions</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
                           {filtered.map((cat, idx) => {
-                            const isDeactivated = inactiveTopics.includes(cat.id);
 
                             return (
                               <tr
                                 key={cat.id ? `${cat.id}-${idx}` : `cat-idx-${idx}`}
-                                className={`hover:bg-slate-50/80 transition-colors ${
-                                  isDeactivated ? "bg-slate-50/60 opacity-75" : ""
-                                }`}
+                                className="hover:bg-slate-50/80 transition-colors"
                               >
                                 <td className="p-3.5 pl-6 font-bold text-slate-400">{idx + 1}</td>
                                 <td className="p-3.5">
-                                  {editingTopicId === cat.id ? (
-                                    <div className="flex items-center gap-2 max-w-md">
-                                      <input
-                                        type="text"
-                                        value={editTopicName}
-                                        onChange={(e) => setEditTopicName(e.target.value)}
-                                        className="flex-1 border border-slate-300 rounded-lg px-3 py-1 text-xs font-bold text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                      />
-                                      <button
-                                        onClick={() => {
-                                          if (!editTopicName.trim()) return;
-                                          onEditCategory(cat.id, {
-                                            name: editTopicName.trim(),
-                                          });
-                                          setEditingTopicId(null);
-                                          showToast(`Topic "${editTopicName.trim()}" updated!`);
-                                        }}
-                                        className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs cursor-pointer shadow-2xs"
-                                      >
-                                        Save
-                                      </button>
-                                      <button
-                                        onClick={() => setEditingTopicId(null)}
-                                        className="px-3 py-1 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-lg text-xs cursor-pointer"
-                                      >
-                                        Cancel
-                                      </button>
-                                    </div>
-                                  ) : (
-                                    <div>
-                                      <span className="font-bold text-slate-900 text-sm break-words">{cat.name}</span>
-                                      {cat.description && (
-                                        <p className="text-[11px] text-slate-400 mt-0.5 break-words">{cat.description}</p>
-                                      )}
-                                    </div>
-                                  )}
+                                  <div>
+                                    <span className="font-bold text-slate-900 text-sm break-words">
+                                      {cat.name}
+                                    </span>
+                                  </div>
                                 </td>
-                                <td className="p-3.5">
-                                  <span
-                                    className={`px-2.5 py-1 rounded-full text-[10px] font-bold border inline-flex items-center gap-1 ${
-                                      !isDeactivated
-                                        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                                        : "bg-amber-50 text-amber-700 border-amber-200"
-                                    }`}
-                                  >
-                                    <span className={`h-1.5 w-1.5 rounded-full ${!isDeactivated ? "bg-emerald-500" : "bg-amber-500"}`}></span>
-                                    {!isDeactivated ? "Active" : "Deactivated"}
-                                  </span>
-                                </td>
+                                
                                 <td className="p-3.5 pr-6 text-right whitespace-nowrap">
                                   <div className="flex items-center justify-end gap-1.5">
-                                    <button
-                                      onClick={() => {
-                                        setEditingTopicId(cat.id);
-                                        setEditTopicName(cat.name);
-                                        setEditTopicDesc(cat.description || "");
-                                      }}
-                                      className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg text-xs transition-colors cursor-pointer flex items-center gap-1"
-                                      title="Edit Topic"
-                                    >
-                                      <Edit2 className="h-3.5 w-3.5" />
-                                      <span>Edit</span>
-                                    </button>
 
                                     <button
-                                      onClick={() => {
-                                        if (isDeactivated) {
-                                          setInactiveTopics(inactiveTopics.filter((id) => id !== cat.id));
-                                          showToast(`Topic "${cat.name}" activated!`);
-                                        } else {
-                                          setInactiveTopics([...inactiveTopics, cat.id]);
-                                          showToast(`Topic "${cat.name}" deactivated!`);
-                                        }
-                                      }}
-                                      className={`px-2.5 py-1 font-bold rounded-lg text-xs transition-colors cursor-pointer flex items-center gap-1 ${
-                                        !isDeactivated
-                                          ? "bg-amber-100 hover:bg-amber-200 text-amber-800"
-                                          : "bg-emerald-100 hover:bg-emerald-200 text-emerald-800"
-                                      }`}
-                                      title={!isDeactivated ? "Deactivate Topic" : "Activate Topic"}
-                                    >
-                                      {!isDeactivated ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                                      <span>{!isDeactivated ? "Deactivate" : "Activate"}</span>
-                                    </button>
+                                onClick={async () => {
+                                  if (
+                                    !confirm(
+                                      `Are you sure you want to permanently delete topic "${cat.name}"?`
+                                    )
+                                  ) {
+                                    showToast("Delete action cancelled.");
+                                    return;
+                                  }
 
-                                    <button
-                                      onClick={() => {
-                                        if (confirm(`Are you sure you want to permanently delete topic "${cat.name}"?`)) {
-                                          onDeleteCategory(cat.id);
-                                          showToast(`Topic "${cat.name}" deleted.`);
-                                        }
-                                      }}
+                                  try {
+                                    await onDeleteCategory(cat.id);
+
+                                    showToast(
+                                      `Topic "${cat.name}" deleted permanently.`
+                                    );
+                                  } catch (error) {
+                                    console.error(
+                                      "Topic deletion failed:",
+                                      error
+                                    );
+
+                                    showToast(
+                                      "Failed to delete topic. Please try again."
+                                    );
+                                  }
+                                }}
                                       className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg transition-colors cursor-pointer"
                                       title="Delete Topic"
                                     >

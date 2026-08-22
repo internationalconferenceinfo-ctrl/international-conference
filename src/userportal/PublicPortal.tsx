@@ -1036,23 +1036,29 @@ const trustedOrganizersList = useMemo(() => {
     });
   }, [filteredConferences]);
 
-  const activeBannersList = useMemo(() => {
-    if (!banners || banners.length === 0) return [];
-    const active = banners.filter((b) => {
-      if (!b) return false;
-      if (b.status === "Inactive" || b.status === "Deactivated") return false;
-      return b.status === "Active" || !b.status;
-    });
-    const seen = new Set<string>();
-    const unique: Banner[] = [];
-    for (const item of active) {
-      if (item && item.id && !seen.has(item.id)) {
-        seen.add(item.id);
-        unique.push(item);
+      const activeBannersList = useMemo(() => {
+      if (!banners || banners.length === 0) {
+        return [];
       }
-    }
-    return unique.sort((a, b) => (Number(a.order) || 999) - (Number(b.order) || 999));
-  }, [banners]);
+
+      const seen = new Set<string>();
+      const unique: Banner[] = [];
+
+      for (const item of banners) {
+        if (item && item.id && !seen.has(item.id)) {
+          seen.add(item.id);
+          unique.push(item);
+        }
+      }
+
+      return unique
+        .sort(
+          (a, b) =>
+            (Number(a.place ?? a.order) || 999) -
+            (Number(b.place ?? b.order) || 999)
+        )
+        .slice(0, 5);
+    }, [banners]);
 
   // Filter ONLY Approved banner content entries
   const approvedBannerContents = useMemo(() => {
