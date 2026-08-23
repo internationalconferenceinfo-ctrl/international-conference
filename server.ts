@@ -1241,6 +1241,29 @@ app.post("/api/admin/reset-database", rateLimit("admin-reset", 20, 60 * 60 * 100
       return res.status(401).json({ success: false, error: "Invalid Admin password. Delete operation aborted." });
     }
 
+          // Collect Organizer Auth user IDs before deleting organizer records.
+      let organizerAuthUserIds: string[] = [];
+
+      if (scope === "all") {
+        const { data: organizerRows, error: organizerRowsError } =
+          await supabaseServerClient
+            .from("organizers")
+            .select("id, auth_user_id");
+
+        if (organizerRowsError && !isMissingTableError(organizerRowsError)) {
+          return res.status(500).json({
+            success: false,
+            error: `Unable to prepare Organizer account deletion: ${organizerRowsError.message}`
+          });
+        }
+
+        organizerAuthUserIds = (organizerRows || [])
+          .map((organizer: any) =>
+            String(organizer.auth_user_id || organizer.id || "").trim()
+          )
+          .filter(Boolean);
+      }
+
     const selectedSection = scope === "all" ? null : DATABASE_RESET_SECTIONS[scope];
     const targets = selectedSection?.targets || FULL_RESET_TARGETS;
 
@@ -1278,6 +1301,32 @@ app.post("/api/admin/reset-database", rateLimit("admin-reset", 20, 60 * 60 * 100
 
     const results: Record<string, string> = {};
     const failures: string[] = [];
+
+    // Clear Organizer security records safely before deleting organizers.
+    if (scope === "all") {
+      const organizerSecurityTables = [
+        "organizer_auth_secrets",
+        "organizer_legacy_auth"
+      ];
+
+      for (const table of organizerSecurityTables) {
+        const { error } = await supabaseServerClient
+          .from(table)
+          .delete()
+          .not("organizer_id", "is", null);
+
+        if (error && !isMissingTableError(error)) {
+          return res.status(500).json({
+            success: false,
+            error: `Failed to clear ${table}: ${error.message}`
+          });
+        }
+
+        results[table] = error
+          ? "Not installed; skipped"
+          : "Organizer security records deleted";
+      }
+    }
 
     for (const target of targets) {
       try {
@@ -1318,6 +1367,22 @@ app.post("/api/admin/reset-database", rateLimit("admin-reset", 20, 60 * 60 * 100
         clearedTables: results,
       });
     }
+
+    // Delete Organizer users from Supabase Auth after database records are cleared.
+      if (scope === "all" && organizerAuthUserIds.length > 0) {
+        for (const authUserId of organizerAuthUserIds) {
+          const { error: authDeleteError } =
+            await supabaseServerClient.auth.admin.deleteUser(authUserId);
+
+          if (authDeleteError) {
+            return res.status(500).json({
+              success: false,
+              error: `Database records were deleted, but Organizer Auth user "${authUserId}" could not be deleted: ${authDeleteError.message}`,
+              clearedTables: results,
+            });
+          }
+        }
+      }
 
     const label = selectedSection?.label || "the full application database";
     return res.json({

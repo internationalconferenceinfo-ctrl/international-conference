@@ -130,36 +130,6 @@ type MenuKey =
   | "ADMIN_PASSWORD"
   | "DATABASE_RESET";
 
-type DatabaseResetScope =
-  | "conferences"
-  | "organizers"
-  | "banners"
-  | "topics"
-  | "locations"
-  | "media_partners"
-  | "associates"
-  | "feedback"
-  | "subscribers"
-  | "contact_inquiries"
-  | "notifications"
-  | "audit_logs"
-  | "public_contact";
-
-const DATABASE_RESET_OPTIONS: Array<{ value: DatabaseResetScope; label: string; description: string }> = [
-  { value: "conferences", label: "Conferences", description: "Deletes conferences in every status and their linked notifications and audit entries." },
-  { value: "organizers", label: "Organizer Accounts", description: "Deletes organizer accounts, their conferences, notifications, and organizer audit entries." },
-  { value: "banners", label: "Banners & Banner Content", description: "Deletes homepage banners, banner titles, descriptions, and linked banner content." },
-  { value: "topics", label: "Topics & Categories", description: "Deletes all topics, categories, and inactive-topic settings." },
-  { value: "locations", label: "Countries & Cities", description: "Deletes countries, cities, and inactive-location settings." },
-  { value: "media_partners", label: "Media Partners", description: "Deletes all media partner applications and records." },
-  { value: "associates", label: "Associates", description: "Deletes all associate applications and records." },
-  { value: "feedback", label: "User Feedback", description: "Deletes approved, pending, and rejected feedback." },
-  { value: "subscribers", label: "Subscribers", description: "Deletes every subscriber email record." },
-  { value: "contact_inquiries", label: "Contact Inquiries", description: "Deletes all Contact Us submissions." },
-  { value: "notifications", label: "Notifications", description: "Deletes all Admin and Organizer notifications." },
-  { value: "audit_logs", label: "Audit Logs", description: "Deletes the complete administration audit history." },
-  { value: "public_contact", label: "Public Contact & Social Links", description: "Deletes saved public contact details and social links." },
-];
 
 interface MediaPartner {
   id: string;
@@ -1474,52 +1444,73 @@ export default function AdminPortal({
 
   // Database Reset States
   const [resetAdminPassword, setResetAdminPassword] = useState("");
-  const [resetScope, setResetScope] = useState<DatabaseResetScope>("conferences");
   const [isResettingDb, setIsResettingDb] = useState(false);
   const [resetStatus, setResetStatus] = useState<{ type: "success" | "error"; msg: string } | null>(null);
 
-  const handleResetDatabase = async (scope: DatabaseResetScope | "all") => {
+    const handleResetDatabase = async () => {
     setResetStatus(null);
 
     if (!resetAdminPassword) {
-      setResetStatus({ type: "error", msg: "Super Admin password is required." });
+      setResetStatus({
+        type: "error",
+        msg: "Super Admin password is required."
+      });
       return;
     }
 
-    const selected = DATABASE_RESET_OPTIONS.find((option) => option.value === scope);
-    const targetLabel = scope === "all" ? "the FULL application database" : selected?.label || "the selected section";
-    const warning = scope === "all"
-      ? "This permanently deletes every application data section. Your Super Admin login and profile will be preserved."
-      : `${selected?.description || "The selected records will be permanently deleted."} This removal applies everywhere in the website.`;
+    const warning =
+      "This will permanently delete ALL application data from the database. " +
+      "Your Super Admin login/profile will be preserved. " +
+      "This action cannot be undone.";
 
-    if (!window.confirm(`Permanently delete ${targetLabel}?\n\n${warning}\n\nThis action cannot be undone.`)) {
+    if (
+      !window.confirm(
+        `Permanently delete the FULL application database?\n\n${warning}`
+      )
+    ) {
       return;
     }
 
     setIsResettingDb(true);
+
     try {
       const res = await adminFetch("/api/admin/reset-database", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json"
+        },
         body: JSON.stringify({
           adminPassword: resetAdminPassword,
-          scope,
+          scope: "all"
         })
       });
+
       const data = await res.json();
+
       if (data && data.success) {
-        setResetStatus({ type: "success", msg: data.message || "Database successfully reset!" });
+        setResetStatus({
+          type: "success",
+          msg: data.message || "Full database successfully deleted!"
+        });
+
         setResetAdminPassword("");
-        showToast(scope === "all" ? "Full database deletion complete!" : `${selected?.label || "Selected section"} deleted!`);
-        // Refresh page after short delay to reload clean state
+
+        showToast("Full database deletion complete!");
+
         setTimeout(() => {
           window.location.reload();
         }, 1500);
       } else {
-        setResetStatus({ type: "error", msg: data.error || "Failed to reset database." });
+        setResetStatus({
+          type: "error",
+          msg: data.error || "Failed to delete full database."
+        });
       }
     } catch (err: any) {
-      setResetStatus({ type: "error", msg: "Server error executing database reset." });
+      setResetStatus({
+        type: "error",
+        msg: "Server error while deleting the full database."
+      });
     } finally {
       setIsResettingDb(false);
     }
@@ -2377,7 +2368,6 @@ export default function AdminPortal({
                     <AlertTriangle className="h-7 w-7" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-black text-rose-900">Delete Database Records</h2>
                     <p className="text-xs text-rose-600 font-semibold mt-0.5">Delete one section or reset the full application database</p>
                   </div>
                 </div>
@@ -2401,59 +2391,39 @@ export default function AdminPortal({
                     <span>{resetStatus.msg}</span>
                   </div>
                 )}
-
-                <div className="space-y-5 text-xs">
+                <div className="space-y-4">
                   <div className="space-y-1.5">
-                    <label className="font-bold text-slate-800">Select the data section to delete</label>
-                    <select
-                      value={resetScope}
-                      onChange={(event) => setResetScope(event.target.value as DatabaseResetScope)}
-                      className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white font-bold text-slate-800 cursor-pointer"
-                    >
-                      {DATABASE_RESET_OPTIONS.map((option) => (
-                        <option key={option.value} value={option.value}>{option.label}</option>
-                      ))}
-                    </select>
-                    <p className="px-1 text-[11px] leading-relaxed text-slate-500">
-                      {DATABASE_RESET_OPTIONS.find((option) => option.value === resetScope)?.description}
-                    </p>
-                  </div>
+                    <label className="font-bold text-slate-800 text-xs">
+                      Super Admin Password
+                    </label>
 
-                  <div className="space-y-1.5">
-                    <label className="font-bold text-slate-800">Enter current Super Admin password</label>
                     <input
                       type="password"
                       value={resetAdminPassword}
                       onChange={(e) => setResetAdminPassword(e.target.value)}
-                      placeholder="Super Admin Password"
-                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-rose-500 bg-white"
+                      placeholder="Enter Super Admin password"
+                      className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500 text-xs"
                     />
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-4 border-t border-slate-100">
-                    <button
-                      type="button"
-                      onClick={() => handleResetDatabase(resetScope)}
-                      disabled={isResettingDb || !resetAdminPassword}
-                      className="w-full py-3.5 bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs rounded-2xl transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                      {isResettingDb ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                      <span>{isResettingDb ? "Deleting Records..." : "Delete Selected Section"}</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleResetDatabase("all")}
-                      disabled={isResettingDb || !resetAdminPassword}
-                      className="w-full py-3.5 bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs rounded-2xl transition-all shadow-lg flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                      {isResettingDb ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Database className="h-4 w-4" />}
-                      <span>{isResettingDb ? "Deleting Records..." : "Delete Full Database"}</span>
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={handleResetDatabase}
+                    disabled={isResettingDb || !resetAdminPassword}
+                    className="w-full py-3.5 bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs rounded-2xl transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    {isResettingDb ? (
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-4 w-4" />
+                    )}
 
-                  <p className="text-center text-[10px] font-semibold text-rose-600">
-                    Full database deletion removes every listed section and cannot be undone.
-                  </p>
+                    <span>
+                      {isResettingDb
+                        ? "Deleting Full Database..."
+                        : "Delete Full Database"}
+                    </span>
+                  </button>
                 </div>
               </div>
             </div>
