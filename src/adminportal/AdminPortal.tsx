@@ -171,7 +171,7 @@ interface MediaPartner {
   description?: string;
   email?: string;
   submittedAt?: string;
-  status: "Approved" | "Pending" | "Deactivated";
+  status?: string;
 }
 
 interface Associate {
@@ -184,7 +184,7 @@ interface Associate {
   description?: string;
   email?: string;
   submittedAt?: string;
-  status: "Approved" | "Pending" | "Deactivated";
+  status?: string;
 }
 
 interface TextItem {
@@ -1198,8 +1198,8 @@ export default function AdminPortal({
     const pendingConfs = conferences.filter((c) => isPendingStatus(c.status) && !isConferenceCompleted(c)).length;
     const approvedConfs = conferences.filter((c) => (c.status === ConferenceStatus.Approved || String(c.status).toLowerCase().trim() === "approved") && !isConferenceCompleted(c)).length;
     const totalOrgs = organizers.length;
-    const mediaPartnerReqs = mediaPartners.filter((m) => m.status === "Pending").length;
-    const associateReqs = associates.filter((a) => a.status === "Pending").length;
+    const mediaPartnerReqs = mediaPartners.length;
+    const associateReqs = associates.length;
     const feedbackCount = userFeedbacks.length;
     const subscriberCount = subscriberEmails.length;
 
@@ -1277,16 +1277,8 @@ export default function AdminPortal({
   const [showAddTopicForm, setShowAddTopicForm] = useState(false);
 
   // Feedback management states
-  const [editingFeedbackId, setEditingFeedbackId] = useState<string | null>(null);
-  const [editFbName, setEditFbName] = useState("");
-  const [editFbImage, setEditFbImage] = useState("");
-  const [editFbText, setEditFbText] = useState("");
-  const [editFbRating, setEditFbRating] = useState(5);
-  const [editFbCountry, setEditFbCountry] = useState("");
-  const [editFbStatus, setEditFbStatus] = useState<"Approved" | "Pending">("Approved");
 
   const [fbSearchQuery, setFbSearchQuery] = useState("");
-  const [fbStatusFilter, setFbStatusFilter] = useState<"ALL" | "ACTIVE" | "INACTIVE">("ALL");
 
   const syncUserFeedbacksToStorageAndRtdb = async (updatedList: UserFeedback[]) => {
     const deduplicated = Array.from(
@@ -1301,12 +1293,6 @@ export default function AdminPortal({
   // Subscriber management states
   const [subSearchQuery, setSubSearchQuery] = useState("");
   const [selectedSubIds, setSelectedSubIds] = useState<string[]>([]);
-
-  const syncSubscriberEmailsToStorageAndRtdb = (updatedList: SubscriberItem[]) => {
-    setSubscriberEmails(updatedList);
-    if (onUpdateSubscriberEmails) onUpdateSubscriberEmails(updatedList);
-    saveToSupabase("subscriber_emails", updatedList);
-  };
 
   const [newPartnerName, setNewPartnerName] = useState("");
   const [newPartnerType, setNewPartnerType] = useState("");
@@ -3389,11 +3375,6 @@ export default function AdminPortal({
                   <span className="text-xs font-semibold px-3 py-1 bg-slate-100 text-slate-700 rounded-full border border-slate-200">
                     Total: {mediaPartners.length} Partners
                   </span>
-                  {mediaPartners.filter((m) => m.status === "Pending").length > 0 && (
-                    <span className="text-xs font-bold px-3 py-1 bg-amber-100 text-amber-800 rounded-full border border-amber-200">
-                      {mediaPartners.filter((m) => m.status === "Pending").length} Pending
-                    </span>
-                  )}
                 </div>
               </div>
 
@@ -3423,17 +3404,7 @@ export default function AdminPortal({
                               <h4 className="font-bold text-sm text-slate-900 break-words" title={mp.name}>{mp.name}</h4>
                             </div>
                           </div>
-                          <span
-                            className={`shrink-0 px-2.5 py-0.5 text-[10px] font-bold rounded-full border ${
-                              mp.status === "Approved"
-                                ? "bg-emerald-100 text-emerald-800 border-emerald-200"
-                                : mp.status === "Pending"
-                                ? "bg-amber-100 text-amber-800 border-amber-200"
-                                : "bg-slate-100 text-slate-600 border-slate-200"
-                            }`}
-                          >
-                            {mp.status}
-                          </span>
+                          
                         </div>
 
                         {/* Description */}
@@ -3475,60 +3446,7 @@ export default function AdminPortal({
 
                       {/* Actions */}
                       <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
-                        {mp.status === "Pending" && (
-                          <button
-                            onClick={async () => {
-                              const updated = mediaPartners.map((m) => {
-                                const isTarget = (m.id && mp.id) ? m.id === mp.id : m.name === mp.name;
-                                return isTarget ? { ...m, status: "Approved" } : m;
-                              });
-                              setMediaPartners(updated);
-                              await saveToSupabase("media_partners", updated);
-                              triggerBroadcastSync();
-                              showToast("Media Partner approved!");
-                            }}
-                            className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition-colors cursor-pointer shadow-xs"
-                          >
-                            Approve
-                          </button>
-                        )}
-
-                        {mp.status === "Approved" && (
-                          <button
-                            onClick={async () => {
-                              const updated = mediaPartners.map((m) => {
-                                const isTarget = (m.id && mp.id) ? m.id === mp.id : m.name === mp.name;
-                                return isTarget ? { ...m, status: "Deactivated" } : m;
-                              });
-                              setMediaPartners(updated);
-                              await saveToSupabase("media_partners", updated);
-                              triggerBroadcastSync();
-                              showToast("Media Partner deactivated.");
-                            }}
-                            className="px-3 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-800 font-bold text-xs rounded-xl transition-colors cursor-pointer"
-                          >
-                            Deactivate
-                          </button>
-                        )}
-
-                        {mp.status === "Deactivated" && (
-                          <button
-                            onClick={async () => {
-                              const updated = mediaPartners.map((m) => {
-                                const isTarget = (m.id && mp.id) ? m.id === mp.id : m.name === mp.name;
-                                return isTarget ? { ...m, status: "Approved" } : m;
-                              });
-                              setMediaPartners(updated);
-                              await saveToSupabase("media_partners", updated);
-                              triggerBroadcastSync();
-                              showToast("Media Partner activated!");
-                            }}
-                            className="px-3.5 py-1.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold text-xs rounded-xl transition-colors cursor-pointer"
-                          >
-                            Activate
-                          </button>
-                        )}
-
+                        
                         <button
                           onClick={async () => {
                             if (confirm(`Are you sure you want to permanently delete media partner "${mp.name}"?`)) {
@@ -3543,17 +3461,30 @@ export default function AdminPortal({
                                 }
                               }
                               const updated = mediaPartners.filter((m) => {
-                                if (targetId && m.id) return m.id !== targetId;
+                                if (targetId && m.id) {
+                                  return m.id !== targetId;
+                                }
+
                                 return m.name !== mp.name;
                               });
+
                               setMediaPartners(updated);
+
                               if (targetId) {
-                                await deleteFromSupabase("media_partners", targetId);
+                                const deleteOk = await deleteFromSupabase(
+                                  "media_partners",
+                                  targetId
+                                );
+
+                                if (!deleteOk) {
+                                  showToast("Failed to delete Media Partner.");
+                                  return;
+                                }
                               }
-                              await saveToSupabase("media_partners", updated);
+
                               triggerBroadcastSync();
                               showToast("Media Partner deleted.");
-                            }
+                            };
                           }}
                           className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold text-xs rounded-xl transition-colors cursor-pointer flex items-center gap-1"
                         >
@@ -3581,11 +3512,7 @@ export default function AdminPortal({
                   <span className="text-xs font-semibold px-3 py-1 bg-slate-100 text-slate-700 rounded-full border border-slate-200">
                     Total: {associates.length} Associates
                   </span>
-                  {associates.filter((a) => a.status === "Pending").length > 0 && (
-                    <span className="text-xs font-bold px-3 py-1 bg-amber-100 text-amber-800 rounded-full border border-amber-200">
-                      {associates.filter((a) => a.status === "Pending").length} Pending
-                    </span>
-                  )}
+                  
                 </div>
               </div>
 
@@ -3615,17 +3542,7 @@ export default function AdminPortal({
                               <h4 className="font-bold text-sm text-slate-900 break-words" title={assoc.name}>{assoc.name}</h4>
                             </div>
                           </div>
-                          <span
-                            className={`shrink-0 px-2.5 py-0.5 text-[10px] font-bold rounded-full border ${
-                              assoc.status === "Approved"
-                                ? "bg-emerald-100 text-emerald-800 border-emerald-200"
-                                : assoc.status === "Pending"
-                                ? "bg-amber-100 text-amber-800 border-amber-200"
-                                : "bg-slate-100 text-slate-600 border-slate-200"
-                            }`}
-                          >
-                            {assoc.status}
-                          </span>
+                          
                         </div>
 
                         {/* Description */}
@@ -3667,60 +3584,6 @@ export default function AdminPortal({
 
                       {/* Actions */}
                       <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
-                        {assoc.status === "Pending" && (
-                          <button
-                            onClick={async () => {
-                              const updated = associates.map((a) => {
-                                const isTarget = (a.id && assoc.id) ? a.id === assoc.id : a.name === assoc.name;
-                                return isTarget ? { ...a, status: "Approved" } : a;
-                              });
-                              setAssociates(updated);
-                              await saveToSupabase("associates", updated);
-                              triggerBroadcastSync();
-                              showToast("Associate approved!");
-                            }}
-                            className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition-colors cursor-pointer shadow-xs"
-                          >
-                            Approve
-                          </button>
-                        )}
-
-                        {assoc.status === "Approved" && (
-                          <button
-                            onClick={async () => {
-                              const updated = associates.map((a) => {
-                                const isTarget = (a.id && assoc.id) ? a.id === assoc.id : a.name === assoc.name;
-                                return isTarget ? { ...a, status: "Deactivated" } : a;
-                              });
-                              setAssociates(updated);
-                              await saveToSupabase("associates", updated);
-                              triggerBroadcastSync();
-                              showToast("Associate deactivated.");
-                            }}
-                            className="px-3 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-800 font-bold text-xs rounded-xl transition-colors cursor-pointer"
-                          >
-                            Deactivate
-                          </button>
-                        )}
-
-                        {assoc.status === "Deactivated" && (
-                          <button
-                            onClick={async () => {
-                              const updated = associates.map((a) => {
-                                const isTarget = (a.id && assoc.id) ? a.id === assoc.id : a.name === assoc.name;
-                                return isTarget ? { ...a, status: "Approved" } : a;
-                              });
-                              setAssociates(updated);
-                              await saveToSupabase("associates", updated);
-                              triggerBroadcastSync();
-                              showToast("Associate activated!");
-                            }}
-                            className="px-3.5 py-1.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold text-xs rounded-xl transition-colors cursor-pointer"
-                          >
-                            Activate
-                          </button>
-                        )}
-
                         <button
                           onClick={async () => {
                             if (confirm(`Are you sure you want to permanently delete associate "${assoc.name}"?`)) {
@@ -3735,14 +3598,27 @@ export default function AdminPortal({
                                 }
                               }
                               const updated = associates.filter((a) => {
-                                if (targetId && a.id) return a.id !== targetId;
+                                if (targetId && a.id) {
+                                  return a.id !== targetId;
+                                }
+
                                 return a.name !== assoc.name;
                               });
+
                               setAssociates(updated);
+
                               if (targetId) {
-                                await deleteFromSupabase("associates", targetId);
+                                const deleteOk = await deleteFromSupabase(
+                                  "associates",
+                                  targetId
+                                );
+
+                                if (!deleteOk) {
+                                  showToast("Failed to delete Associate.");
+                                  return;
+                                }
                               }
-                              await saveToSupabase("associates", updated);
+
                               triggerBroadcastSync();
                               showToast("Associate deleted.");
                             }
@@ -5588,10 +5464,10 @@ export default function AdminPortal({
                 <div>
                   <h3 className="text-base font-bold text-[#37494E] flex items-center gap-2">
                     <MessageSquare className="h-5 w-5 text-blue-600" />
-                    <span>{activeMenu === "APPROVED_FEEDBACK" ? "Approved User Feedbacks" : "User Feedback & Testimonial Management"}</span>
+                    <span>User Feedback Management</span>
                   </h3>
                   <p className="text-xs text-slate-500 mt-1">
-                    Manage feedback submitted by users from the User Portal. Activate items to render on the Home Page Testimonials section.
+                    View and manage feedback submitted by users. All submitted feedback is automatically visible on the User Portal.
                   </p>
                 </div>
 
@@ -5599,6 +5475,66 @@ export default function AdminPortal({
                   <span className="text-xs font-semibold px-3 py-1 bg-slate-100 text-slate-700 rounded-full border border-slate-200">
                     Total: {userFeedbacks.length}
                   </span>
+
+                  {userFeedbacks.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const confirmed = window.confirm(
+                          `Are you sure you want to permanently delete all ${userFeedbacks.length} feedbacks? This cannot be undone.`
+                        );
+
+                        if (!confirmed) {
+                          return;
+                        }
+
+                        try {
+                          const feedbackIds = userFeedbacks
+                            .map((fb) => fb.id)
+                            .filter(Boolean) as string[];
+
+                          for (const id of feedbackIds) {
+                            await deleteFromSupabase(
+                              "user_feedbacks",
+                              id
+                            );
+                          }
+
+                          // Update Admin + App state after database deletion
+                          setUserFeedbacks([]);
+
+                          if (onUpdateUserFeedbacks) {
+                            onUpdateUserFeedbacks([]);
+                          }
+
+                          safeSetLocalStorage(
+                            "gch_feedbacks",
+                            []
+                          );
+
+                          triggerBroadcastSync();
+
+                          showToast(
+                            "All feedback permanently deleted."
+                          );
+                        } catch (error) {
+                          console.error(
+                            "Delete all feedback failed:",
+                            error
+                          );
+
+                          showToast(
+                            "Failed to delete all feedback. Please try again."
+                          );
+                        }
+                      }}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-lg transition-colors cursor-pointer"
+                      title="Delete all feedback"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      Delete All
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -5623,52 +5559,13 @@ export default function AdminPortal({
                   )}
                 </div>
 
-                <div className="flex items-center gap-1.5 self-start sm:self-auto overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
-                  <button
-                    onClick={() => setFbStatusFilter("ALL")}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                      fbStatusFilter === "ALL"
-                        ? "bg-[#37494E] text-white shadow-xs"
-                        : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-100"
-                    }`}
-                  >
-                    All ({userFeedbacks.length})
-                  </button>
-                  <button
-                    onClick={() => setFbStatusFilter("ACTIVE")}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                      fbStatusFilter === "ACTIVE"
-                        ? "bg-emerald-600 text-white shadow-xs"
-                        : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-100"
-                    }`}
-                  >
-                    Active / Approved ({userFeedbacks.filter((f) => f.status === "Approved" || f.status === "Active").length})
-                  </button>
-                  <button
-                    onClick={() => setFbStatusFilter("INACTIVE")}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                      fbStatusFilter === "INACTIVE"
-                        ? "bg-amber-600 text-white shadow-xs"
-                        : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-100"
-                    }`}
-                  >
-                    Inactive / Pending ({userFeedbacks.filter((f) => f.status !== "Approved" && f.status !== "Active").length})
-                  </button>
-                </div>
+                
               </div>
 
               {/* Feedbacks Grid */}
               {(() => {
                 const filtered = userFeedbacks.filter((fb) => {
-                  if (activeMenu === "APPROVED_FEEDBACK" && (fb.status !== "Approved" && fb.status !== "Active")) {
-                    return false;
-                  }
-                  if (fbStatusFilter === "ACTIVE" && (fb.status !== "Approved" && fb.status !== "Active")) {
-                    return false;
-                  }
-                  if (fbStatusFilter === "INACTIVE" && (fb.status === "Approved" || fb.status === "Active")) {
-                    return false;
-                  }
+                  
                   if (fbSearchQuery.trim()) {
                     const q = fbSearchQuery.toLowerCase();
                     const matchName = fb.name?.toLowerCase().includes(q);
@@ -5691,8 +5588,8 @@ export default function AdminPortal({
                       <MessageSquare className="h-10 w-10 text-slate-300 mx-auto mb-2" />
                       <p className="text-sm font-bold text-slate-600">No Feedback Found</p>
                       <p className="text-xs text-slate-400 mt-1">
-                        {fbSearchQuery || fbStatusFilter !== "ALL"
-                          ? "Try adjusting your search or filter settings."
+                        {fbSearchQuery
+                          ? "Try adjusting your search."
                           : "User submissions from the footer form will automatically appear here."}
                       </p>
                     </div>
@@ -5702,136 +5599,6 @@ export default function AdminPortal({
                 return (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {filtered.map((fb, fbIdx) => {
-                      const isEditing = editingFeedbackId === fb.id;
-                      const isActive = fb.status === "Approved" || fb.status === "Active";
-
-                      if (isEditing) {
-                        return (
-                          <div key={fb.id || `fb-edit-${fbIdx}`} className="p-4 border-2 border-blue-400 rounded-xl bg-blue-50/40 space-y-3 text-xs shadow-md">
-                            <div className="flex items-center justify-between border-b border-blue-200 pb-2">
-                              <h4 className="font-bold text-slate-900 flex items-center gap-1.5">
-                                <Edit2 className="h-3.5 w-3.5 text-blue-600" />
-                                <span>Edit Feedback #{fb.id}</span>
-                              </h4>
-                              <button
-                                onClick={() => setEditingFeedbackId(null)}
-                                className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
-                              >
-                                <X className="h-4 w-4" />
-                              </button>
-                            </div>
-
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                              <div>
-                                <label className="font-bold text-slate-700 block text-[10px] mb-0.5">Reviewer Name</label>
-                                <input
-                                  type="text"
-                                  value={editFbName}
-                                  onChange={(e) => setEditFbName(e.target.value)}
-                                  className="w-full bg-white border border-slate-200 rounded-lg p-2 font-semibold text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                                />
-                              </div>
-
-                              <div>
-                                <label className="font-bold text-slate-700 block text-[10px] mb-0.5">Country / Institution</label>
-                                <input
-                                  type="text"
-                                  value={editFbCountry}
-                                  onChange={(e) => setEditFbCountry(e.target.value)}
-                                  className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                                />
-                              </div>
-                            </div>
-
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                              <div>
-                                <label className="font-bold text-slate-700 block text-[10px] mb-0.5">Rating (1-5)</label>
-                                <select
-                                  value={editFbRating}
-                                  onChange={(e) => setEditFbRating(Number(e.target.value))}
-                                  className="w-full bg-white border border-slate-200 rounded-lg p-2 font-bold text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                                >
-                                  <option value={5}>⭐⭐⭐⭐⭐ (5 Stars)</option>
-                                  <option value={4}>⭐⭐⭐⭐ (4 Stars)</option>
-                                  <option value={3}>⭐⭐⭐ (3 Stars)</option>
-                                  <option value={2}>⭐⭐ (2 Stars)</option>
-                                  <option value={1}>⭐ (1 Star)</option>
-                                </select>
-                              </div>
-
-                              <div>
-                                <label className="font-bold text-slate-700 block text-[10px] mb-0.5">Status</label>
-                                <select
-                                  value={editFbStatus}
-                                  onChange={(e) => setEditFbStatus(e.target.value as any)}
-                                  className="w-full bg-white border border-slate-200 rounded-lg p-2 font-bold text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                                >
-                                  <option value="Approved">Active (Show on Home Page)</option>
-                                  <option value="Pending">Inactive / Pending Review</option>
-                                </select>
-                              </div>
-                            </div>
-
-                            <ImageUploaderField
-                              label="Avatar Photo"
-                              value={editFbImage}
-                              onChange={setEditFbImage}
-                              placeholder="Paste image URL (https://...)"
-                              aspectHint="PNG, JPG, SVG, WEBP"
-                              isLogo={true}
-                            />
-
-                            <div>
-                              <label className="font-bold text-slate-700 block text-[10px] mb-0.5">Feedback Text</label>
-                              <textarea
-                                rows={3}
-                                value={editFbText}
-                                onChange={(e) => setEditFbText(e.target.value)}
-                                className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none"
-                              />
-                            </div>
-
-                            <div className="flex items-center justify-end gap-2 pt-2 border-t border-blue-200">
-                              <button
-                                onClick={() => setEditingFeedbackId(null)}
-                                className="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-lg cursor-pointer"
-                              >
-                                Cancel
-                              </button>
-                              <button
-                                onClick={() => {
-                                  if (!editFbName.trim() || !editFbText.trim()) {
-                                    showToast("Name and text are required.");
-                                    return;
-                                  }
-                                  const updated = userFeedbacks.map((item) => {
-                                    const isTarget = item.id ? item.id === fb.id : (item.name === fb.name && item.text === fb.text);
-                                    if (isTarget) {
-                                      return {
-                                        ...item,
-                                        name: editFbName.trim(),
-                                        image: editFbImage.trim(),
-                                        text: editFbText.trim(),
-                                        rating: editFbRating,
-                                        country: editFbCountry.trim(),
-                                        status: editFbStatus
-                                      };
-                                    }
-                                    return item;
-                                  });
-                                  syncUserFeedbacksToStorageAndRtdb(updated);
-                                  setEditingFeedbackId(null);
-                                  showToast(`Feedback from "${editFbName.trim()}" updated successfully!`);
-                                }}
-                                className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg cursor-pointer shadow-xs flex items-center gap-1"
-                              >
-                                <Save className="h-3.5 w-3.5" />
-                                <span>Save Changes</span>
-                              </button>
-                            </div>
-                          </div>
-                        );
-                      }
 
                       return (
                         <div key={fb.id ? `${fb.id}-${fbIdx}` : `fb-item-${fbIdx}`} className="p-4 border border-slate-200 rounded-xl bg-slate-50/50 space-y-3 text-xs shadow-2xs hover:border-slate-300 transition-all">
@@ -5860,46 +5627,10 @@ export default function AdminPortal({
                           <p className="text-slate-700 italic leading-relaxed text-xs">"{fb.text}"</p>
 
                           <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-slate-200/80">
-                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${isActive ? "bg-emerald-100 text-emerald-800 border-emerald-200" : "bg-amber-100 text-amber-800 border-amber-200"}`}>
-                              Status: {isActive ? "Active (On Homepage)" : "Inactive / Pending"}
-                            </span>
+                            
 
                             {/* Actions: Activate/Deactivate Toggle and Delete */}
                             <div className="flex items-center gap-1.5">
-                              <button
-                                onClick={() => {
-                                  const nextStatus = isActive ? "Pending" : "Approved";
-                                  const updated = userFeedbacks.map((f) => {
-                                    const isTarget = (f.id && fb.id) ? f.id === fb.id : (f.name === fb.name && f.text === fb.text);
-                                    return isTarget ? { ...f, status: nextStatus as any } : f;
-                                  });
-                                  syncUserFeedbacksToStorageAndRtdb(updated);
-                                  showToast(
-                                    nextStatus === "Approved"
-                                      ? "Feedback activated! Now visible on User Portal."
-                                      : "Feedback deactivated and hidden from User Portal."
-                                  );
-                                }}
-                                className={`px-2.5 py-1.5 font-bold text-xs rounded-xl transition-all flex items-center gap-1 cursor-pointer ${
-                                  isActive
-                                    ? "bg-amber-100 hover:bg-amber-200 text-amber-800 border border-amber-200"
-                                    : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
-                                }`}
-                                title={isActive ? "Deactivate from Home Page" : "Activate on Home Page"}
-                              >
-                                {isActive ? (
-                                  <>
-                                    <EyeOff className="h-3.5 w-3.5" />
-                                    <span>Deactivate</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <CheckCircle2 className="h-3.5 w-3.5" />
-                                    <span>Activate</span>
-                                  </>
-                                )}
-                              </button>
-
                               <button
                                 onClick={async () => {
                                   if (!confirm(`Are you sure you want to permanently delete feedback from "${fb.name}"?`)) {
@@ -5918,12 +5649,49 @@ export default function AdminPortal({
                                   if (fb.id) {
                                     await deleteFromSupabase("user_feedbacks", fb.id);
                                   }
-                                  const updated = userFeedbacks.filter((f) => {
-                                    if (f.id && fb.id) return f.id !== fb.id;
-                                    return !(f.name === fb.name && f.text === fb.text);
-                                  });
-                                  await syncUserFeedbacksToStorageAndRtdb(updated);
-                                  showToast("Feedback permanently deleted.");
+
+                                  if (fb.id) {
+                                  const deleteOk = await deleteFromSupabase(
+                                    "user_feedbacks",
+                                    fb.id
+                                  );
+
+                                  if (!deleteOk) {
+                                    showToast(
+                                      "Failed to delete feedback from database."
+                                    );
+                                    return;
+                                  }
+                                }
+
+                                const updated = userFeedbacks.filter((f) => {
+                                  if (f.id && fb.id) {
+                                    return f.id !== fb.id;
+                                  }
+
+                                  return !(
+                                    f.name === fb.name &&
+                                    f.text === fb.text
+                                  );
+                                });
+
+                                setUserFeedbacks(updated);
+
+                                if (onUpdateUserFeedbacks) {
+                                  onUpdateUserFeedbacks(updated);
+                                }
+
+                                safeSetLocalStorage(
+                                  "gch_feedbacks",
+                                  updated
+                                );
+
+                                triggerBroadcastSync();
+
+                                showToast(
+                                  "Feedback permanently deleted."
+                                );
+
                                 }}
                                 className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold text-xs rounded-xl transition-colors cursor-pointer flex items-center gap-1 border border-rose-200/60"
                                 title="Delete feedback"
@@ -6031,40 +5799,97 @@ export default function AdminPortal({
                 <div className="flex items-center gap-2 self-start sm:self-auto">
                   {selectedSubIds.length > 0 && (
                     <button
-                      onClick={() => {
-                        const deleteCount = selectedSubIds.length;
-                        if (!confirm(`Are you sure you want to permanently delete ${deleteCount} selected subscriber(s)?`)) {
-                          showToast("Delete action cancelled.");
-                          return;
-                        }
-                        const updated = subscriberEmails.filter((s) => !selectedSubIds.includes(s.id || s.email));
-                        syncSubscriberEmailsToStorageAndRtdb(updated);
-                        setSelectedSubIds([]);
-                        showToast(`Deleted ${deleteCount} selected subscriber(s).`);
-                      }}
-                      className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl transition-all shadow-xs cursor-pointer flex items-center gap-1.5 animate-fadeIn"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                      <span>Delete Selected ({selectedSubIds.length})</span>
-                    </button>
-                  )}
+                    onClick={async () => {
+                      const deleteCount = selectedSubIds.length;
 
-                  {subscriberEmails.length > 0 && (
-                    <button
-                      onClick={() => {
-                        if (confirm(`Are you sure you want to permanently delete all ${subscriberEmails.length} subscriber(s)?`)) {
-                          syncSubscriberEmailsToStorageAndRtdb([]);
-                          setSelectedSubIds([]);
-                          showToast("All subscribers cleared.");
-                        } else showToast("Delete action cancelled.");
-                      }}
-                      className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-bold text-xs rounded-xl transition-colors cursor-pointer flex items-center gap-1"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                      <span>Clear All</span>
-                    </button>
-                  )}
-                </div>
+                      if (
+                        !confirm(
+                          `Are you sure you want to permanently delete ${deleteCount} selected subscriber(s)?`
+                        )
+                      ) {
+                        showToast("Delete action cancelled.");
+                        return;
+                      }
+
+                      try {
+                        const selectedSubscribers = subscriberEmails.filter((s) =>
+                          selectedSubIds.includes(s.id || s.email)
+                        );
+
+                        for (const sub of selectedSubscribers) {
+                          if (sub.id) {
+                            const deleteOk = await deleteFromSupabase(
+                              "subscriber_emails",
+                              sub.id
+                            );
+
+                            if (!deleteOk) {
+                              showToast(
+                                `Failed to delete subscriber "${sub.email}" from database.`
+                              );
+                              return;
+                            }
+                          } else {
+                            const client = getSupabaseClient();
+
+                            if (!client) {
+                              showToast("Database connection unavailable.");
+                              return;
+                            }
+
+                            const { error } = await client
+                              .from("subscriber_emails")
+                              .delete()
+                              .eq("email", sub.email);
+
+                            if (error) {
+                              console.error(
+                                "Subscriber delete by email failed:",
+                                error
+                              );
+
+                              showToast(
+                                `Failed to delete subscriber "${sub.email}" from database.`
+                              );
+                              return;
+                            }
+                          }
+                        }
+                        const updated = subscriberEmails.filter(
+                          (s) => !selectedSubIds.includes(s.id || s.email)
+                        );
+
+                        setSubscriberEmails(updated);
+
+                        if (onUpdateSubscriberEmails) {
+                          onUpdateSubscriberEmails(updated);
+                        }
+
+                        triggerBroadcastSync();
+
+                        setSelectedSubIds([]);
+
+                        showToast(
+                          `Deleted ${deleteCount} selected subscriber(s).`
+                        );
+                      } catch (error) {
+                        console.error(
+                          "Delete selected subscribers failed:",
+                          error
+                        );
+
+                        showToast(
+                          "Failed to delete selected subscribers. Please try again."
+                        );
+                      }
+                    }}
+                    className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl transition-all shadow-xs cursor-pointer flex items-center gap-1.5 animate-fadeIn"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    <span>Delete Selected ({selectedSubIds.length})</span>
+                  </button>
+                )}
+              </div>
               </div>
 
               {/* Subscribers List Table */}
@@ -6105,26 +5930,35 @@ export default function AdminPortal({
                       <thead>
                         <tr className="bg-[#37494E] text-white font-bold uppercase tracking-wider text-[10px]">
                           <th className="p-3 w-10 text-center">
-                            <input
-                              type="checkbox"
-                              checked={allFilteredSelected}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  const ids = filtered.map((f) => f.id || f.email);
-                                  setSelectedSubIds(Array.from(new Set([...selectedSubIds, ...ids])));
-                                } else {
-                                  const ids = filtered.map((f) => f.id || f.email);
-                                  setSelectedSubIds(selectedSubIds.filter((id) => !ids.includes(id)));
-                                }
-                              }}
-                              className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                            />
-                          </th>
+                          <input
+                            type="checkbox"
+                            checked={allFilteredSelected}
+                            onChange={(e) => {
+                              const filteredIds = filtered.map(
+                                (s) => s.id || s.email
+                              );
+
+                              if (e.target.checked) {
+                                setSelectedSubIds((prev) =>
+                                  Array.from(
+                                    new Set([...prev, ...filteredIds])
+                                  )
+                                );
+                              } else {
+                                setSelectedSubIds((prev) =>
+                                  prev.filter(
+                                    (id) => !filteredIds.includes(id)
+                                  )
+                                );
+                              }
+                            }}
+                            className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                          />
+                        </th>
                           <th className="p-3 w-12 text-center">#</th>
                           <th className="p-3">Subscriber Email Address</th>
                           <th className="p-3">Subscribed Date & Time</th>
                           <th className="p-3 text-center">Status</th>
-                          <th className="p-3 text-right">Action</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 bg-white">
@@ -6166,28 +6000,7 @@ export default function AdminPortal({
                                   <CheckCircle2 className="h-3 w-3 text-emerald-600" /> Subscribed
                                 </span>
                               </td>
-                              <td className="p-3 text-right">
-                                <button
-                                  onClick={() => {
-                                    if (!confirm(`Are you sure you want to permanently delete subscriber "${sub.email}"?`)) {
-                                      showToast("Delete action cancelled.");
-                                      return;
-                                    }
-                                    const updated = subscriberEmails.filter((s) => {
-                                      if (s.id && sub.id) return s.id !== sub.id;
-                                      return s.email.toLowerCase() !== sub.email.toLowerCase();
-                                    });
-                                    syncSubscriberEmailsToStorageAndRtdb(updated);
-                                    setSelectedSubIds(selectedSubIds.filter((id) => id !== itemKey));
-                                    showToast(`Subscriber "${sub.email}" deleted successfully.`);
-                                  }}
-                                  className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold text-xs rounded-xl transition-colors cursor-pointer inline-flex items-center gap-1 border border-rose-200/60"
-                                  title="Delete subscriber"
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                  <span>Delete</span>
-                                </button>
-                              </td>
+                              
                             </tr>
                           );
                         })}

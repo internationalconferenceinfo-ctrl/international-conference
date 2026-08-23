@@ -300,7 +300,7 @@ export default function PublicPortal({
         image: userFeedbackImage.trim() || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&h=120&q=80",
         text: userFeedbackText.trim().slice(0, 50),
         rating: userFeedbackRating || 5,
-        status: "Pending", // Saved as Pending
+        status: "Approved",
         date: formattedDate,
         country: userFeedbackLocation.trim() || "Global"
       };
@@ -376,7 +376,7 @@ export default function PublicPortal({
     }
   };
 
-  // Handle Collaboration Submission (Saves directly to Supabase as Pending for Admin Approval)
+  // Handle Collaboration Submission (Saves directly to Supabase and goes live immediately)
   const handleCollabSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!collabName.trim() || !collabUrl.trim() || !collabDescription.trim()) {
@@ -409,7 +409,6 @@ export default function PublicPortal({
           description: collabDescription.trim().slice(0, 150),
           email: "",
           submittedAt: dateStr,
-          status: "Pending"
         };
 
         const res = await saveRecordToSupabase("media_partners", newPartner);
@@ -426,7 +425,7 @@ export default function PublicPortal({
 
         onAddNotification?.(
           "New Media Partner Submission 🤝",
-          `New media partner '${newPartner.name}' submitted for approval.`,
+          `New media partner '${newPartner.name}' submitted and is now live.`,
           "info",
           "ADMIN",
           newPartner.id,
@@ -442,7 +441,6 @@ export default function PublicPortal({
           description: collabDescription.trim().slice(0, 150),
           email: "",
           submittedAt: dateStr,
-          status: "Pending"
         };
 
         const res = await saveRecordToSupabase("associates", newAssoc);
@@ -459,7 +457,7 @@ export default function PublicPortal({
 
         onAddNotification?.(
           "New Associate Submission 🏢",
-          `New associate '${newAssoc.name}' submitted for approval.`,
+          `New associate '${newAssoc.name}' submitted and is now live.`,
           "info",
           "ADMIN",
           newAssoc.id,
@@ -532,36 +530,88 @@ export default function PublicPortal({
     };
   }, []);
 
-  // Approved Media Partners list
-  const approvedMediaPartnersList = useMemo(() => {
-    return dynamicMediaPartners
-      .filter((m) => m.status === "Approved")
-      .map((m) => ({
-        id: m.id,
-        name: m.name,
-        role: m.title || m.type || "Media Partner",
-        badgeColor: "bg-blue-50 text-blue-600 border-blue-100",
-        borderHover: "hover:border-blue-300",
-        initials: m.name.split(" ").map((w: string) => w[0]).join("").toUpperCase().slice(0, 4) || "MP",
-        logo: m.logo || "https://images.unsplash.com/photo-1541829070764-84a7d30dd3f3?auto=format&fit=crop&w=120&h=120&q=80",
-        description: m.description || "Official media distribution and scientific publishing partner.",
-        website: m.website
-      }));
-  }, [dynamicMediaPartners]);
+  // Media Partners list - newest submission first
+const approvedMediaPartnersList = useMemo(() => {
+  return [...dynamicMediaPartners]
+    .sort((a, b) => {
+      const timeA = a.submittedAt
+        ? new Date(a.submittedAt).getTime()
+        : 0;
 
-  // Approved Associates list
+      const timeB = b.submittedAt
+        ? new Date(b.submittedAt).getTime()
+        : 0;
+
+      if (timeA !== timeB) {
+        return timeB - timeA;
+      }
+
+      return String(b.id || "").localeCompare(
+        String(a.id || "")
+      );
+    })
+    .map((m) => ({
+      id: m.id,
+      name: m.name,
+      role: m.title || m.type || "Media Partner",
+      badgeColor: "bg-blue-50 text-blue-600 border-blue-100",
+      borderHover: "hover:border-blue-300",
+      initials:
+        m.name
+          .split(" ")
+          .map((w: string) => w[0])
+          .join("")
+          .toUpperCase()
+          .slice(0, 4) || "MP",
+      logo:
+        m.logo ||
+        "https://images.unsplash.com/photo-1541829070764-84a7d30dd3f3?auto=format&fit=crop&w=120&h=120&q=80",
+      description:
+        m.description ||
+        "Official media distribution and scientific publishing partner.",
+      website: m.website
+    }));
+}, [dynamicMediaPartners]);
+
+ // Associates list - newest submission first
   const approvedAssociatesList = useMemo(() => {
-    return dynamicAssociates
-      .filter((a) => a.status === "Approved")
+    return [...dynamicAssociates]
+      .sort((a, b) => {
+        const timeA = a.submittedAt
+          ? new Date(a.submittedAt).getTime()
+          : 0;
+
+        const timeB = b.submittedAt
+          ? new Date(b.submittedAt).getTime()
+          : 0;
+
+        if (timeA !== timeB) {
+          return timeB - timeA;
+        }
+
+        return String(b.id || "").localeCompare(
+          String(a.id || "")
+        );
+      })
       .map((a) => ({
         id: a.id,
         name: a.name,
         role: a.title || a.category || "Associate",
         badgeColor: "bg-indigo-50 text-indigo-600 border-indigo-100",
         borderHover: "hover:border-indigo-300",
-        initials: a.name.split(" ").map((w: string) => w[0]).join("").toUpperCase().slice(0, 4) || "ASC",
-        logo: a.logo || "https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=120&h=120&q=80",
-        description: a.description || "Official academic associative network board.",
+        initials:
+          a.name
+            .split(" ")
+            .map((w: string) => w[0])
+            .join("")
+            .toUpperCase()
+            .slice(0, 4) || "ASC",
+        logo:
+          a.logo ||
+          "https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=120&h=120&q=80",
+        description:
+          a.description ||
+          "Official academic associative network board.",
         website: a.website
       }));
   }, [dynamicAssociates]);
@@ -1111,7 +1161,9 @@ const trustedOrganizersList = useMemo(() => {
 
   const approvedFeedbacksList = useMemo(() => {
     const list: UserFeedback[] = userFeedbacks || [];
-    const activeOnly = list.filter((f) => f && (f.status === "Approved" || f.status === "Active"));
+    const activeOnly = list.filter(
+      (f) => Boolean(f)
+    );
     const seen = new Set<string>();
     const unique: UserFeedback[] = [];
     for (const item of activeOnly) {
@@ -1136,7 +1188,9 @@ const trustedOrganizersList = useMemo(() => {
   // Initialize and synchronize shuffled feedbacks pool from ALL approved feedbacks
   useEffect(() => {
     if (approvedFeedbacksList.length > 0) {
-      setShuffledFeedbacksPool(shuffleFeedbackList(approvedFeedbacksList));
+      setShuffledFeedbacksPool(
+        shuffleFeedbackList(approvedFeedbacksList).slice(0, 10)
+      );
       setHomeFeedbackScrollIndex(0);
     } else {
       setShuffledFeedbacksPool([]);
@@ -2366,47 +2420,51 @@ const trustedOrganizersList = useMemo(() => {
       {tab === "HOME" && (
         <>
           {/* Customer Feedback Testimonials - Single-Card Shuffled Auto-sliding Carousel */}
-      <section 
-        className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-10 md:p-12 text-white relative overflow-hidden space-y-8 shadow-xl"
+      <section
+        className="relative overflow-hidden rounded-[32px] border border-slate-200 bg-gradient-to-br from-slate-50 via-white to-blue-50/60 p-6 sm:p-8 md:p-10 space-y-8 shadow-sm"
         onMouseEnter={() => setIsHomeFeedbackHovered(true)}
         onMouseLeave={() => setIsHomeFeedbackHovered(false)}
       >
         <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 left-0 translate-y-1/2 -translate-x-1/2 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4 relative z-10 text-center md:text-left">
-          <div className="space-y-1.5">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-5 relative z-10 text-center md:text-left">
+        <div className="space-y-2">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/15 border border-blue-400/30 text-blue-300 text-xs font-bold uppercase tracking-wider">
               <Sparkles className="h-3.5 w-3.5" />
-              <span>Testimonials</span>
+              <span>Community Reviews</span>
             </div>
-            <h2 className="text-2xl md:text-3xl font-extrabold font-display text-white">Customer Feedback</h2>
-            <p className="text-slate-400 text-xs sm:text-sm max-w-xl">
-              See why researchers, academics, and conference directors love International Conference.
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold font-display text-slate-900 tracking-tight">
+              What Our Community Says
+            </h2>
+            <p className="text-slate-500 text-xs sm:text-sm max-w-xl leading-relaxed">
+              Real feedback shared by researchers, academics, organizers, and conference attendees from around the world.
             </p>
           </div>
 
           {/* Controls: Active Slide Counter & Step Controls */}
           {shuffledFeedbacksPool.length > 0 && (
             <div className="flex items-center gap-2.5 shrink-0">
-              <span className="text-xs font-semibold text-slate-300 bg-white/5 border border-white/10 px-3 py-1.5 rounded-xl backdrop-blur-xs">
-                {shuffledFeedbacksPool.length <= 1 
-                  ? `${shuffledFeedbacksPool.length} Review` 
+              <span className="text-xs font-bold text-slate-600 bg-white border border-slate-200 px-3 py-1.5 rounded-xl shadow-sm">
+                {shuffledFeedbacksPool.length <= 1
+                  ? `${shuffledFeedbacksPool.length} Review`
                   : `${(homeFeedbackScrollIndex % shuffledFeedbacksPool.length) + 1} / ${shuffledFeedbacksPool.length}`}
               </span>
+
               {shuffledFeedbacksPool.length > 1 && (
                 <>
                   <button
                     onClick={() => handleManualScrollFeedback("left")}
                     aria-label="Previous testimonial"
-                    className="p-2 rounded-xl bg-white/5 hover:bg-white/15 text-white border border-white/10 transition-all hover:scale-105 active:scale-95 cursor-pointer shadow-sm"
+                    className="p-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 transition-all hover:shadow-md active:scale-95 cursor-pointer"
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </button>
+
                   <button
                     onClick={() => handleManualScrollFeedback("right")}
                     aria-label="Next testimonial"
-                    className="p-2 rounded-xl bg-white/5 hover:bg-white/15 text-white border border-white/10 transition-all hover:scale-105 active:scale-95 cursor-pointer shadow-sm"
+                    className="p-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 transition-all hover:shadow-md active:scale-95 cursor-pointer"
                   >
                     <ChevronRight className="h-4 w-4" />
                   </button>
@@ -2425,7 +2483,9 @@ const trustedOrganizersList = useMemo(() => {
           {shuffledFeedbacksPool.length === 0 || !currentHomeFeedback ? (
             <div className="text-center py-10 px-4 text-slate-400 bg-white/5 border border-white/10 rounded-2xl space-y-3">
               <MessageSquare className="h-8 w-8 text-slate-500 mx-auto" />
-              <p className="text-sm font-semibold text-slate-300">No feedback approved yet.</p>
+             <p className="text-sm font-semibold text-slate-300">
+              No feedback available yet.
+            </p>
               <p className="text-xs text-slate-400 max-w-sm mx-auto">
                 Be the first to share your experience with conferences and our platform.
               </p>
@@ -2441,80 +2501,107 @@ const trustedOrganizersList = useMemo(() => {
             <div className="relative">
               <AnimatePresence mode="wait">
                 <motion.div
-                  key={`home-fb-slide-${currentHomeFeedback.id || currentHomeFeedback.name}-${homeFeedbackScrollIndex}`}
-                  initial={{ opacity: 0, y: 12, scale: 0.98 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -12, scale: 0.98 }}
-                  transition={{ duration: 0.4, ease: "easeOut" }}
-                  className="bg-white/5 border border-white/10 p-7 sm:p-10 rounded-3xl space-y-6 text-center backdrop-blur-md shadow-2xl relative overflow-hidden"
-                >
-                  <div className="absolute top-4 right-6 text-white/5 pointer-events-none">
-                    <Quote className="h-20 w-20 rotate-180" />
-                  </div>
+                    key={`home-fb-slide-${currentHomeFeedback.id || currentHomeFeedback.name}-${homeFeedbackScrollIndex}`}
+                    initial={{ opacity: 0, x: 30 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -30 }}
+                    transition={{ duration: 0.35, ease: "easeOut" }}
+                    className="bg-white rounded-3xl overflow-hidden shadow-2xl border border-slate-200 text-left"
+                  >
+                    {/* Top accent */}
+                    <div className="h-1.5 bg-gradient-to-r from-blue-600 via-indigo-500 to-violet-500" />
 
-                  {/* Rating Stars & Verified Tag */}
-                  <div className="flex items-center justify-center gap-2">
-                    <div className="flex items-center gap-1">
-                      {[...Array(currentHomeFeedback.rating || 5)].map((_, i) => (
-                        <Star key={i} className="h-5 w-5 fill-yellow-400 text-yellow-400" />
-                      ))}
-                    </div>
-                    <span className="text-[10px] font-bold text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 rounded-full flex items-center gap-1 ml-1.5">
-                      <CheckCircle2 className="h-3 w-3" /> Verified Review
-                    </span>
-                  </div>
+                    <div className="p-6 sm:p-8">
+                      {/* Top Row */}
+                      <div className="flex items-start justify-between gap-4 mb-5">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <img
+                            src={getCleanImageSrc(
+                              currentHomeFeedback.image,
+                              "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&h=120&q=80"
+                            )}
+                            alt={currentHomeFeedback.name}
+                            className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl object-cover border border-slate-200 shadow-sm shrink-0"
+                            referrerPolicy="no-referrer"
+                          />
 
-                  {/* Feedback Text Quote */}
-                  <p className="text-slate-100 text-base sm:text-lg md:text-xl italic leading-relaxed font-normal max-w-xl mx-auto">
-                    "{currentHomeFeedback.text}"
-                  </p>
+                          <div className="min-w-0">
+                            <h4 className="font-extrabold text-slate-900 text-sm sm:text-base truncate">
+                              {currentHomeFeedback.name}
+                            </h4>
 
-                  {/* Reviewer Details */}
-                  <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 pt-4 border-t border-white/10">
-                    <img
-                      src={getCleanImageSrc(currentHomeFeedback.image, "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&h=120&q=80")}
-                      alt={currentHomeFeedback.name}
-                      className="w-12 h-12 rounded-full border-2 border-blue-400/80 object-contain shadow-md shrink-0"
-                      referrerPolicy="no-referrer"
-                    />
-                    <div className="text-center sm:text-left">
-                      <h4 className="font-bold text-sm sm:text-base text-white">{currentHomeFeedback.name}</h4>
-                      <p className="text-xs text-blue-300 font-medium flex items-center justify-center sm:justify-start gap-1">
-                        <MapPin className="h-3.5 w-3.5 shrink-0" />
-                        <span>{currentHomeFeedback.country || "Global Scholar"}</span>
+                            <div className="flex items-center gap-1.5 mt-1 text-xs text-slate-500">
+                              <MapPin className="h-3.5 w-3.5 text-blue-500 shrink-0" />
+                              <span className="truncate">
+                                {currentHomeFeedback.country || "Global"}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                          <Quote className="h-5 w-5" />
+                        </div>
+                      </div>
+
+                      {/* Stars */}
+                      <div className="flex items-center gap-2 mb-4">
+                        <div className="flex items-center gap-0.5">
+                          {[...Array(currentHomeFeedback.rating || 5)].map((_, i) => (
+                            <Star
+                              key={i}
+                              className="h-4 w-4 fill-amber-400 text-amber-400"
+                            />
+                          ))}
+                        </div>
+
+                        <span className="text-xs font-bold text-slate-600">
+                          {currentHomeFeedback.rating || 5}.0
+                        </span>
+                      </div>
+
+                      {/* Feedback */}
+                      <p className="text-slate-700 text-sm sm:text-base leading-7 font-medium">
+                        “{currentHomeFeedback.text}”
                       </p>
+
+                      {/* Footer */}
+                      <div className="flex items-center justify-between gap-3 mt-6 pt-4 border-t border-slate-100">
+                        <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 px-2.5 py-1 rounded-full">
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          Community Feedback
+                        </span>
+
+                        {currentHomeFeedback.date && (
+                          <span className="text-[10px] sm:text-xs text-slate-400 font-medium">
+                            {currentHomeFeedback.date}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </motion.div>
+                  </motion.div>
               </AnimatePresence>
 
               {/* Progress Dots Indicator (shows for <= 12 items, or compact progress for more) */}
               {shuffledFeedbacksPool.length > 1 && (
                 <div className="flex items-center justify-center gap-1.5 mt-5">
-                  {shuffledFeedbacksPool.length <= 12 ? (
-                    shuffledFeedbacksPool.map((_, dotIdx) => {
-                      const isActive = (homeFeedbackScrollIndex % shuffledFeedbacksPool.length) === dotIdx;
-                      return (
-                        <button
-                          key={dotIdx}
-                          onClick={() => setHomeFeedbackScrollIndex(dotIdx)}
-                          aria-label={`Go to slide ${dotIdx + 1}`}
-                          className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
-                            isActive ? "w-6 bg-blue-400" : "w-1.5 bg-white/20 hover:bg-white/40"
-                          }`}
-                        />
-                      );
-                    })
-                  ) : (
-                    <div className="w-48 h-1 bg-white/15 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-blue-400 rounded-full transition-all duration-300"
-                        style={{
-                          width: `${(((homeFeedbackScrollIndex % shuffledFeedbacksPool.length) + 1) / shuffledFeedbacksPool.length) * 100}%`
-                        }}
+                  {shuffledFeedbacksPool.map((_, dotIdx) => {
+                    const isActive =
+                      (homeFeedbackScrollIndex % shuffledFeedbacksPool.length) === dotIdx;
+
+                    return (
+                      <button
+                        key={dotIdx}
+                        onClick={() => setHomeFeedbackScrollIndex(dotIdx)}
+                        aria-label={`Go to feedback ${dotIdx + 1}`}
+                        className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${
+                          isActive
+                            ? "w-7 bg-blue-600"
+                            : "w-2 bg-slate-300 hover:bg-slate-400"
+                        }`}
                       />
-                    </div>
-                  )}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -2528,7 +2615,7 @@ const trustedOrganizersList = useMemo(() => {
               if (onTabChange) onTabChange("FEEDBACK");
               window.scrollTo({ top: 0, behavior: "smooth" });
             }}
-            className="w-full sm:w-auto px-7 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs sm:text-sm rounded-xl shadow-lg shadow-blue-600/30 transition-all hover:scale-105 active:scale-95 cursor-pointer flex items-center justify-center gap-2 group"
+            className="w-full sm:w-auto px-7 py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-2 group"
           >
             <span>View More</span>
             <ArrowRight className="h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
@@ -2536,15 +2623,16 @@ const trustedOrganizersList = useMemo(() => {
           
           <button
             onClick={() => setIsFeedbackModalOpen(true)}
-            className="w-full sm:w-auto px-5 py-3 bg-white/10 hover:bg-white/20 text-white font-semibold text-xs sm:text-sm rounded-xl border border-white/15 transition-all hover:border-white/30 cursor-pointer flex items-center justify-center gap-2"
+            className="w-full sm:w-auto px-5 py-3 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs sm:text-sm rounded-xl border border-slate-200 transition-all hover:border-slate-300 hover:shadow-sm cursor-pointer flex items-center justify-center gap-2"
           >
-            <MessageSquare className="h-4 w-4 text-amber-300" />
+            <MessageSquare className="h-4 w-4 text-blue-600" />
             <span>Add Your Feedback</span>
           </button>
         </div>
       </section>
         </>
       )}
+
 
       {/* About Us Section */}
       {tab === "ABOUT" && (
