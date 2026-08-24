@@ -3460,133 +3460,240 @@ const handleEditCategory = async (
           </div>
         </div>
 
-        {/* Hero image and details */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-6">
-            <div className="relative aspect-video w-full rounded-2xl overflow-hidden bg-slate-100 shadow-sm border border-slate-200">
-              <img
-                src={getCleanImageSrc(selectedConference.bannerImage, "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=800&q=80")}
-                alt={selectedConference.title}
-                className="h-full w-full object-contain"
-                referrerPolicy="no-referrer"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=800&q=80";
-                }}
-              />
-            </div>
+{/* About Conference - Image with Wrapping Description */}
+<div className="bg-white border border-slate-200/90 p-5 md:p-6 rounded-2xl shadow-2xs">
 
-            <div className="bg-white border border-slate-200/90 p-6 rounded-2xl space-y-3 shadow-2xs">
-              <h3 className="text-lg font-extrabold text-slate-900 font-display flex items-center gap-2 border-b border-slate-100 pb-2">
-                <span className="w-2 h-2 rounded-full bg-blue-600"></span> About the Conference
-              </h3>
-              <p className="text-slate-600 text-sm leading-relaxed font-normal whitespace-pre-line">
-                {selectedConference.description}
-              </p>
-            </div>
-          </div>
+  {/* Heading */}
+  <h3 className="text-lg font-extrabold text-slate-900 font-display flex items-center gap-2 border-b border-slate-100 pb-3 mb-5">
+    <span className="w-2 h-2 rounded-full bg-blue-600"></span>
+    About the Conference
+  </h3>
 
-          <div className="space-y-6">
-            {/* Quick Action card & Info boxes */}
-            <div className="bg-slate-50/80 border border-slate-200 p-6 rounded-2xl space-y-6">
-              <h3 className="font-extrabold text-slate-900 text-sm border-b border-slate-200 pb-2.5 uppercase tracking-wider text-xs">
-                Conference Details & Actions
-              </h3>
-              
-              <div className="space-y-3">
-                <button
-                  onClick={() => {
-                    setSelectedOrganizerId(selectedConference.organizerId);
-                    window.scrollTo({ top: 0, behavior: "smooth" });
-                  }}
-                  className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 border border-blue-600 text-white text-sm font-extrabold rounded-xl transition-all shadow-md shadow-blue-600/20 flex items-center justify-center gap-2 cursor-pointer text-center"
-                >
-                  Organizer Profile <Users className="h-4 w-4 shrink-0" />
-                </button>
-                <a
-                  href={selectedConference.conferenceWebsite || "#"}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full py-3 bg-white hover:bg-slate-50 text-slate-800 text-sm font-bold rounded-xl transition-all border border-slate-300 hover:border-blue-400 text-center block cursor-pointer shadow-2xs hover:shadow-xs"
-                >
-                  Official Conference Website
-                </a>
-                <button
-                  onClick={handleShareClick}
-                  className={`w-full py-3 text-sm font-bold rounded-xl transition-all border flex items-center justify-center gap-2 cursor-pointer text-center shadow-2xs ${
-                    copied
-                      ? "bg-emerald-50 border-emerald-300 text-emerald-800 font-extrabold"
-                      : "bg-white hover:bg-slate-50 text-slate-800 border-slate-300 hover:border-blue-400"
-                  }`}
-                >
-                  {copied ? (
-                    <>
-                      <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" /> Copied Link!
-                    </>
-                  ) : (
-                    <>
-                      <Share2 className="h-4 w-4 text-slate-500 shrink-0" /> Share Event
-                    </>
-                  )}
-                </button>
-              </div>
+  {/* Image + Wrapping Description */}
+  <div className="text-slate-600 text-sm md:text-[15px] leading-7 font-normal">
 
-              {/* Colored Information Boxes */}
-              <div className="space-y-3 pt-2">
-                {/* Date Box */}
-                <div className="bg-blue-50/90 border border-blue-200/90 p-4 rounded-2xl space-y-1 shadow-2xs">
-                  <div className="text-blue-900 font-extrabold text-xs uppercase tracking-wider flex items-center gap-1.5">
-                    <CalendarIcon className="h-4 w-4 text-blue-600 shrink-0" /> Date & Schedule
-                  </div>
-                  <p className="font-extrabold text-slate-900 text-sm pt-0.5">
-                    {formatConferenceDate(selectedConference.startDate)} to {formatConferenceDate(selectedConference.endDate)}
-                  </p>
-                  <p className="text-xs text-blue-800 font-medium">{selectedConference.time} ({selectedConference.timeZone})</p>
-                </div>
+    {/* LEFT IMAGE */}
+    <div className="w-full sm:w-[38%] lg:w-[30%] sm:float-left sm:mr-6 mb-4">
+      <div className="w-full h-[220px] sm:h-[240px] lg:h-[260px] rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 shadow-sm">
+        <img
+          src={getCleanImageSrc(
+            selectedConference.bannerImage,
+            "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=800&q=80"
+          )}
+          alt={selectedConference.title}
+          className="w-full h-full object-contain"
+          referrerPolicy="no-referrer"
+          onError={(e) => {
+            (e.target as HTMLImageElement).src =
+              "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=800&q=80";
+          }}
+        />
+      </div>
+    </div>
 
-                {/* Location Box */}
-                <div className="bg-emerald-50/90 border border-emerald-200/90 p-4 rounded-2xl space-y-1 shadow-2xs">
-                  <div className="text-emerald-900 font-extrabold text-xs uppercase tracking-wider flex items-center gap-1.5">
-                    <MapPinIcon className="h-4 w-4 text-emerald-600 shrink-0" /> Venue & Location
-                  </div>
-                  <p className="font-extrabold text-slate-900 text-sm pt-0.5">{selectedConference.venue}</p>
-                  <p className="text-xs text-emerald-800 font-medium">{selectedConference.city}, {selectedConference.country}</p>
-                </div>
+    {/* DESCRIPTION */}
+    <p className="whitespace-pre-line">
+      {selectedConference.description}
+    </p>
 
-                {/* Topic & Mode Box */}
-                <div className="bg-purple-50/90 border border-purple-200/90 p-4 rounded-2xl space-y-2 shadow-2xs">
-                  <div className="text-purple-900 font-extrabold text-xs uppercase tracking-wider flex items-center gap-1.5">
-                    <Sparkles className="h-4 w-4 text-purple-600 shrink-0" /> Topic & Attendance Mode
-                  </div>
-                  <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                    <span className="text-xs font-extrabold bg-white text-purple-900 border border-purple-200 px-2.5 py-1 rounded-lg">
-                      {selectedConference.category}
-                    </span>
-                    {selectedConference.attendanceType && (
-                      <span className="text-xs font-extrabold bg-purple-600 text-white px-2.5 py-1 rounded-lg">
-                        {selectedConference.attendanceType}
-                      </span>
-                    )}
-                  </div>
-                </div>
+    {/* Clear float */}
+    <div className="clear-both"></div>
 
-                {/* Contact Box */}
-                {(selectedConference.contactEmail || org?.email) && (
-                  <div className="bg-amber-50/90 border border-amber-200/90 p-4 rounded-2xl space-y-1 shadow-2xs">
-                    <div className="text-amber-900 font-extrabold text-xs uppercase tracking-wider flex items-center gap-1.5">
-                      <Mail className="h-4 w-4 text-amber-600 shrink-0" /> Official Contact
-                    </div>
-                    <a
-                      href={`mailto:${selectedConference.contactEmail || org?.email}`}
-                      className="font-bold text-xs text-amber-900 hover:underline break-all block pt-0.5"
-                    >
-                      {selectedConference.contactEmail || org?.email}
-                    </a>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
+  </div>
+</div>
+
+
+{/* Other Conference Details - 3 Equal Columns */}
+<div className="grid grid-cols-1 md:grid-cols-3 gap-5 lg:gap-6">
+
+  {/* COLUMN 1 - DATE & SCHEDULE */}
+  <div className="bg-blue-50/90 border border-blue-200/90 p-5 rounded-2xl shadow-2xs">
+    <div className="text-blue-900 font-extrabold text-xs uppercase tracking-wider flex items-center gap-2 border-b border-blue-200 pb-3 mb-4">
+      <CalendarIcon className="h-4 w-4 text-blue-600 shrink-0" />
+      Date & Schedule
+    </div>
+
+    <div className="space-y-3">
+      <div>
+        <p className="text-[11px] text-blue-700 font-bold uppercase mb-1">
+          Start Date
+        </p>
+        <p className="font-extrabold text-slate-900 text-sm">
+          {formatConferenceDate(selectedConference.startDate)}
+        </p>
+      </div>
+
+      <div>
+        <p className="text-[11px] text-blue-700 font-bold uppercase mb-1">
+          End Date
+        </p>
+        <p className="font-extrabold text-slate-900 text-sm">
+          {formatConferenceDate(selectedConference.endDate)}
+        </p>
+      </div>
+
+      {selectedConference.time && (
+        <div>
+          <p className="text-[11px] text-blue-700 font-bold uppercase mb-1">
+            Time
+          </p>
+          <p className="font-semibold text-slate-800 text-sm">
+            {selectedConference.time}
+          </p>
         </div>
+      )}
+
+      {selectedConference.timeZone && (
+        <div>
+          <p className="text-[11px] text-blue-700 font-bold uppercase mb-1">
+            Time Zone
+          </p>
+          <p className="font-semibold text-slate-800 text-sm">
+            {selectedConference.timeZone}
+          </p>
+        </div>
+      )}
+    </div>
+  </div>
+
+
+  {/* COLUMN 2 - VENUE & LOCATION */}
+  <div className="bg-emerald-50/90 border border-emerald-200/90 p-5 rounded-2xl shadow-2xs">
+    <div className="text-emerald-900 font-extrabold text-xs uppercase tracking-wider flex items-center gap-2 border-b border-emerald-200 pb-3 mb-4">
+      <MapPinIcon className="h-4 w-4 text-emerald-600 shrink-0" />
+      Venue & Location
+    </div>
+
+    <div className="space-y-3">
+      {selectedConference.venue && (
+        <div>
+          <p className="text-[11px] text-emerald-700 font-bold uppercase mb-1">
+            Venue
+          </p>
+          <p className="font-extrabold text-slate-900 text-sm">
+            {selectedConference.venue}
+          </p>
+        </div>
+      )}
+
+      {selectedConference.city && (
+        <div>
+          <p className="text-[11px] text-emerald-700 font-bold uppercase mb-1">
+            City
+          </p>
+          <p className="font-semibold text-slate-800 text-sm">
+            {selectedConference.city}
+          </p>
+        </div>
+      )}
+
+      {selectedConference.country && (
+        <div>
+          <p className="text-[11px] text-emerald-700 font-bold uppercase mb-1">
+            Country
+          </p>
+          <p className="font-semibold text-slate-800 text-sm">
+            {selectedConference.country}
+          </p>
+        </div>
+      )}
+    </div>
+  </div>
+
+
+  {/* COLUMN 3 - OTHER DETAILS */}
+  <div className="bg-purple-50/90 border border-purple-200/90 p-5 rounded-2xl shadow-2xs">
+    <div className="text-purple-900 font-extrabold text-xs uppercase tracking-wider flex items-center gap-2 border-b border-purple-200 pb-3 mb-4">
+      <Sparkles className="h-4 w-4 text-purple-600 shrink-0" />
+      Other Details
+    </div>
+
+    <div className="space-y-4">
+
+      {/* Category + Attendance */}
+      <div>
+        <p className="text-[11px] text-purple-700 font-bold uppercase mb-2">
+          Topic & Attendance
+        </p>
+
+        <div className="flex flex-wrap gap-2">
+          <span className="text-xs font-extrabold bg-white text-purple-900 border border-purple-200 px-2.5 py-1 rounded-lg">
+            {selectedConference.category}
+          </span>
+
+          {selectedConference.attendanceType && (
+            <span className="text-xs font-extrabold bg-purple-600 text-white px-2.5 py-1 rounded-lg">
+              {selectedConference.attendanceType}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Contact */}
+      {(selectedConference.contactEmail || org?.email) && (
+        <div>
+          <p className="text-[11px] text-purple-700 font-bold uppercase mb-1 flex items-center gap-1">
+            <Mail className="h-3.5 w-3.5" />
+            Official Contact
+          </p>
+
+          <a
+            href={`mailto:${selectedConference.contactEmail || org?.email}`}
+            className="font-semibold text-sm text-slate-800 hover:text-purple-700 hover:underline break-all"
+          >
+            {selectedConference.contactEmail || org?.email}
+          </a>
+        </div>
+      )}
+
+      {/* Buttons */}
+      <div className="space-y-2.5 pt-2">
+
+        <button
+          onClick={() => {
+            setSelectedOrganizerId(selectedConference.organizerId);
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
+          className="w-full py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 border border-blue-600 text-white text-xs font-extrabold rounded-xl transition-all shadow-md shadow-blue-600/20 flex items-center justify-center gap-2 cursor-pointer"
+        >
+          Organizer Profile
+          <Users className="h-4 w-4 shrink-0" />
+        </button>
+
+        <a
+          href={selectedConference.conferenceWebsite || "#"}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-full py-2.5 bg-white hover:bg-slate-50 text-slate-800 text-xs font-bold rounded-xl transition-all border border-slate-300 hover:border-blue-400 text-center block cursor-pointer"
+        >
+          Official Conference Website
+        </a>
+
+        <button
+          onClick={handleShareClick}
+          className={`w-full py-2.5 text-xs font-bold rounded-xl transition-all border flex items-center justify-center gap-2 cursor-pointer ${
+            copied
+              ? "bg-emerald-50 border-emerald-300 text-emerald-800"
+              : "bg-white hover:bg-slate-50 text-slate-800 border-slate-300 hover:border-blue-400"
+          }`}
+        >
+          {copied ? (
+            <>
+              <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+              Copied Link!
+            </>
+          ) : (
+            <>
+              <Share2 className="h-4 w-4 text-slate-500 shrink-0" />
+              Share Event
+            </>
+          )}
+        </button>
+
+      </div>
+    </div>
+  </div>
+</div>
 
         {/* Similar Conferences - Full Width Container below details card */}
         {similarConferences.length > 0 && (
