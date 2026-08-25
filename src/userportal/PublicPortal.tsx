@@ -2711,11 +2711,11 @@ const trustedOrganizersList = useMemo(() => {
             </div>
           </div>
 
-          <div className="relative rounded-3xl overflow-hidden aspect-[4/3] bg-slate-100 shadow-lg">
+          <div className="relative rounded-3xl overflow-hidden shadow-lg">
             <img
               src={dynamicAboutUs.imageUrl}
               alt="About Conference Hall"
-              className="w-full h-full object-contain"
+              className="w-full h-auto object-cover block"
               referrerPolicy="no-referrer"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-slate-950/40 via-transparent to-transparent" />
