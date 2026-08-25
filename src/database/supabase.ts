@@ -651,7 +651,7 @@ const ADMIN_SERVER_TABLES = new Set([
   "conferences", "organizers", "categories", "banners", "banner_contents",
   "user_feedbacks", "subscriber_emails", "contact_inquiries", "countries", "cities",
   "inactive_countries", "inactive_cities", "inactive_topics", "media_partners", "associates",
-  "contact_info", "social_links", "notifications", "audit_logs"
+  "contact_info", "social_links", "notifications", "audit_logs", "about_us"
 ]);
 
 const ADMIN_READ_PREFERRED_TABLES = new Set([
@@ -840,32 +840,87 @@ export async function saveToSupabase(key: string, data: any): Promise<boolean> {
   }
 }
     else if (typeof data === "object" && data !== null) {
-      if (snakeTable === "contact_info") {
-        const payload = {
-          id: data.id || "primary",
-          email: data.email || "",
-          phone: data.phone || "",
-          address: data.address || "",
-          website: data.website || "",
-          updated_at: new Date().toISOString()
-        };
-        const res = await client.from("contact_info").upsert(payload);
-        if (!res.error) success = true;
-      } else if (snakeTable === "social_links") {
-        const payload = {
-          id: data.id || "primary",
-          facebook: data.facebook || "",
-          instagram: data.instagram || "",
-          linkedin: data.linkedin || "",
-          twitter: data.twitter || "",
-          youtube: data.youtube || "",
-          other: data.other || "",
-          updated_at: new Date().toISOString()
-        };
-        const res = await client.from("social_links").upsert(payload);
-        if (!res.error) success = true;
-      }
+  if (snakeTable === "contact_info") {
+    const payload = {
+      id: data.id || "primary",
+      email: data.email || "",
+      phone: data.phone || "",
+      address: data.address || "",
+      website: data.website || "",
+      updated_at: new Date().toISOString()
+    };
+
+    const res = await client.from("contact_info").upsert(payload);
+
+    if (!res.error) {
+      success = true;
     }
+  }
+
+  else if (snakeTable === "social_links") {
+    const payload = {
+      id: data.id || "primary",
+      facebook: data.facebook || "",
+      instagram: data.instagram || "",
+      linkedin: data.linkedin || "",
+      twitter: data.twitter || "",
+      youtube: data.youtube || "",
+      other: data.other || "",
+      updated_at: new Date().toISOString()
+    };
+
+    const res = await client.from("social_links").upsert(payload);
+
+    if (!res.error) {
+      success = true;
+    }
+  }
+
+  else if (snakeTable === "about_us") {
+    const payload = {
+      id: data.id || "primary",
+      mission_badge: data.mission_badge || "",
+      title: data.title || "",
+      paragraph1: data.paragraph1 || "",
+      paragraph2: data.paragraph2 || "",
+      stat1_value: data.stat1_value || "",
+      stat1_label: data.stat1_label || "",
+      stat2_value: data.stat2_value || "",
+      stat2_label: data.stat2_label || "",
+      image_url: data.image_url || "",
+      updated_at: data.updated_at || new Date().toISOString()
+    };
+
+    const adminWrite = await tryAdminServerUpsert(
+      "about_us",
+      payload
+    );
+
+    if (adminWrite.handled) {
+      if (adminWrite.success) {
+        success = true;
+      } else {
+        console.error(
+          "[About Us Admin Save Error]:",
+          adminWrite.error
+        );
+      }
+    } else {
+      const res = await client
+        .from("about_us")
+        .upsert(payload);
+
+      if (res.error) {
+        console.error(
+          "[About Us Supabase Save Error]:",
+          res.error
+        );
+      } else {
+        success = true;
+      }
+        }
+  }
+}
   } catch (err) {
     console.error("[Supabase Table Sync Error]:", err);
   }

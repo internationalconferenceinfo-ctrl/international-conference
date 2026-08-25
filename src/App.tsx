@@ -3460,47 +3460,47 @@ const handleEditCategory = async (
           </div>
         </div>
 
-{/* About Conference - Image with Wrapping Description */}
-<div className="bg-white border border-slate-200/90 p-5 md:p-6 rounded-2xl shadow-2xs">
+        {/* About Conference - Image with Wrapping Description */}
+        <div className="bg-white border border-slate-200/90 p-5 md:p-6 rounded-2xl shadow-2xs">
 
-  {/* Heading */}
-  <h3 className="text-lg font-extrabold text-slate-900 font-display flex items-center gap-2 border-b border-slate-100 pb-3 mb-5">
-    <span className="w-2 h-2 rounded-full bg-blue-600"></span>
-    About the Conference
-  </h3>
+          {/* Heading */}
+          <h3 className="text-lg font-extrabold text-slate-900 font-display flex items-center gap-2 border-b border-slate-100 pb-3 mb-5">
+            <span className="w-2 h-2 rounded-full bg-blue-600"></span>
+            About the Conference
+          </h3>
 
-  {/* Image + Wrapping Description */}
-  <div className="text-slate-600 text-sm md:text-[15px] leading-7 font-normal">
+          {/* Image + Wrapping Description */}
+          <div className="text-slate-600 text-sm md:text-[15px] leading-7 font-normal">
 
-    {/* LEFT IMAGE */}
-    <div className="w-full sm:w-[38%] lg:w-[30%] sm:float-left sm:mr-6 mb-4">
-      <div className="w-full h-[220px] sm:h-[240px] lg:h-[260px] rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 shadow-sm">
-        <img
-          src={getCleanImageSrc(
-            selectedConference.bannerImage,
-            "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=800&q=80"
-          )}
-          alt={selectedConference.title}
-          className="w-full h-full object-contain"
-          referrerPolicy="no-referrer"
-          onError={(e) => {
-            (e.target as HTMLImageElement).src =
-              "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=800&q=80";
-          }}
-        />
-      </div>
-    </div>
+            {/* LEFT IMAGE */}
+            <div className="w-full sm:w-[38%] lg:w-[30%] sm:float-left sm:mr-6 mb-4">
+              <div className="w-full h-[220px] sm:h-[240px] lg:h-[260px] rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 shadow-sm">
+                <img
+                  src={getCleanImageSrc(
+                    selectedConference.bannerImage,
+                    "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=800&q=80"
+                  )}
+                  alt={selectedConference.title}
+                  className="w-full h-full object-contain"
+                  referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src =
+                      "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=800&q=80";
+                  }}
+                />
+              </div>
+            </div>
 
-    {/* DESCRIPTION */}
-    <p className="whitespace-pre-line">
-      {selectedConference.description}
-    </p>
+            {/* DESCRIPTION */}
+            <p className="whitespace-pre-line">
+              {selectedConference.description}
+            </p>
 
-    {/* Clear float */}
-    <div className="clear-both"></div>
+            {/* Clear float */}
+            <div className="clear-both"></div>
 
-  </div>
-</div>
+          </div>
+        </div>
 
 
 {/* Other Conference Details - 3 Equal Columns */}

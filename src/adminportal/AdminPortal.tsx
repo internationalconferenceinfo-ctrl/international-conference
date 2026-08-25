@@ -163,6 +163,20 @@ interface TextItem {
   status: "Active" | "Inactive";
 }
 
+interface AboutUsContent {
+  id: string;
+  mission_badge: string;
+  title: string;
+  paragraph1: string;
+  paragraph2: string;
+  stat1_value: string;
+  stat1_label: string;
+  stat2_value: string;
+  stat2_label: string;
+  image_url: string;
+  updated_at?: string;
+}
+
 export default function AdminPortal({
   conferences,
   categories,
@@ -399,6 +413,48 @@ export default function AdminPortal({
       });
     }
   }, [subscriberEmailsProp]);
+
+  // Load About Us content from Supabase
+useEffect(() => {
+  const loadAboutUsContent = async () => {
+    setIsLoadingAboutUs(true);
+
+    try {
+      const data = await fetchFromSupabase<AboutUsContent[]>(
+        "about_us",
+        true
+      );
+
+      const record = Array.isArray(data) ? data[0] : data;
+
+      if (record) {
+        const loadedContent: AboutUsContent = {
+          id: record.id || "primary",
+          mission_badge: record.mission_badge || "Our Mission",
+          title: record.title || "About International Conference",
+          paragraph1: record.paragraph1 || "",
+          paragraph2: record.paragraph2 || "",
+          stat1_value: record.stat1_value || "",
+          stat1_label: record.stat1_label || "",
+          stat2_value: record.stat2_value || "",
+          stat2_label: record.stat2_label || "",
+          image_url: record.image_url || "",
+          updated_at: record.updated_at
+        };
+
+        setAboutUsContent(loadedContent);
+        setAboutUsOriginal(loadedContent);
+      }
+    } catch (error) {
+      console.error("Failed to load About Us content:", error);
+      showToast("Unable to load About Us content.");
+    } finally {
+      setIsLoadingAboutUs(false);
+    }
+  };
+
+  loadAboutUsContent();
+}, []);
 
   // Excel Bulk Upload and Demo File Download Handlers for Location Management
         const downloadDemoExcel = async () => {
@@ -1310,6 +1366,25 @@ export default function AdminPortal({
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
   }, []);
 
+  // About Us management states
+const [aboutUsContent, setAboutUsContent] = useState<AboutUsContent>({
+  id: "primary",
+  mission_badge: "Our Mission",
+  title: "About International Conference",
+  paragraph1: "",
+  paragraph2: "",
+  stat1_value: "100% Vetted",
+  stat1_label: "Deception-Free Listings",
+  stat2_value: "30+ Countries",
+  stat2_label: "Worldwide Coverage",
+  image_url: ""
+});
+
+const [aboutUsOriginal, setAboutUsOriginal] = useState<AboutUsContent | null>(null);
+const [isEditingAboutUs, setIsEditingAboutUs] = useState(false);
+const [isSavingAboutUs, setIsSavingAboutUs] = useState(false);
+const [isLoadingAboutUs, setIsLoadingAboutUs] = useState(true);
+
   // Admin Profile & Security States
   const [adminProfile, setAdminProfile] = useState<{
     name: string;
@@ -1390,6 +1465,56 @@ export default function AdminPortal({
       setIsSavingPublicContact(false);
     }
   };
+
+  const handleSaveAboutUs = async () => {
+  if (!aboutUsContent.title.trim()) {
+    showToast("About Us title cannot be empty.");
+    return;
+  }
+
+  if (!aboutUsContent.paragraph1.trim()) {
+    showToast("About Us first paragraph cannot be empty.");
+    return;
+  }
+
+  setIsSavingAboutUs(true);
+
+  try {
+    const updatedContent: AboutUsContent = {
+      ...aboutUsContent,
+      id: "primary",
+      updated_at: new Date().toISOString()
+    };
+
+    const saved = await saveToSupabase("about_us", updatedContent);
+
+    if (!saved) {
+      showToast("Unable to save About Us changes.");
+      return;
+    }
+
+    setAboutUsContent(updatedContent);
+    setAboutUsOriginal(updatedContent);
+    setIsEditingAboutUs(false);
+
+    triggerBroadcastSync();
+
+    showToast("About Us page updated successfully!");
+  } catch (error) {
+    console.error("Failed to save About Us:", error);
+    showToast("Unable to save About Us changes.");
+  } finally {
+    setIsSavingAboutUs(false);
+  }
+};
+
+const handleCancelAboutUsEdit = () => {
+  if (aboutUsOriginal) {
+    setAboutUsContent({ ...aboutUsOriginal });
+  }
+
+  setIsEditingAboutUs(false);
+};
 
   // Password Change States
   const [currentPassword, setCurrentPassword] = useState("");
@@ -1844,6 +1969,19 @@ export default function AdminPortal({
                       }`}
                     >
                       Subscribers
+                    </button>
+                    <button
+                      onClick={() => {
+                        setActiveMenu("ABOUT_INFO");
+                        if (window.innerWidth < 1024) setIsSidebarOpen(false);
+                      }}
+                      className={`w-full text-left py-1.5 px-2.5 rounded-lg transition-colors cursor-pointer ${
+                        activeMenu === "ABOUT_INFO"
+                          ? "text-white font-bold bg-white/20"
+                          : "text-slate-300 hover:text-white"
+                      }`}
+                    >
+                      About Us
                     </button>
                   </div>
                 )}
@@ -5679,6 +5817,331 @@ export default function AdminPortal({
               })()}
             </div>
           )}
+
+          {/* About Us Management */}
+{activeMenu === "ABOUT_INFO" && (
+  <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-6">
+
+    {/* Header */}
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
+      <div>
+        <h3 className="text-base font-bold text-[#37494E] flex items-center gap-2">
+          <Info className="h-5 w-5 text-blue-600" />
+          <span>About Us Management</span>
+        </h3>
+
+        <p className="text-xs text-slate-500 mt-1">
+          Edit the content displayed on the User Portal About Us page.
+        </p>
+      </div>
+
+      {!isEditingAboutUs && !isLoadingAboutUs && (
+        <button
+          onClick={() => {
+            setAboutUsOriginal({ ...aboutUsContent });
+            setIsEditingAboutUs(true);
+          }}
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer transition-all shadow-sm"
+        >
+          <Edit3 className="h-4 w-4" />
+          Edit
+        </button>
+      )}
+    </div>
+
+    {/* Loading */}
+    {isLoadingAboutUs ? (
+      <div className="py-16 flex flex-col items-center justify-center text-slate-500">
+        <RefreshCw className="h-7 w-7 animate-spin text-blue-600 mb-3" />
+        <p className="text-xs font-semibold">
+          Loading About Us content...
+        </p>
+      </div>
+    ) : (
+      <div className="space-y-6">
+
+        {/* Mission Badge + Title */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-slate-700">
+              Mission Badge
+            </label>
+
+            <input
+              type="text"
+              value={aboutUsContent.mission_badge}
+              disabled={!isEditingAboutUs}
+              onChange={(e) =>
+                setAboutUsContent({
+                  ...aboutUsContent,
+                  mission_badge: e.target.value
+                })
+              }
+              className={`w-full px-4 py-2.5 text-sm rounded-xl border outline-none transition-all ${
+                isEditingAboutUs
+                  ? "bg-white border-slate-300 focus:ring-2 focus:ring-blue-500"
+                  : "bg-slate-50 border-slate-200 text-slate-600"
+              }`}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-slate-700">
+              Main Title
+            </label>
+
+            <input
+              type="text"
+              value={aboutUsContent.title}
+              disabled={!isEditingAboutUs}
+              onChange={(e) =>
+                setAboutUsContent({
+                  ...aboutUsContent,
+                  title: e.target.value
+                })
+              }
+              className={`w-full px-4 py-2.5 text-sm rounded-xl border outline-none transition-all ${
+                isEditingAboutUs
+                  ? "bg-white border-slate-300 focus:ring-2 focus:ring-blue-500"
+                  : "bg-slate-50 border-slate-200 text-slate-600"
+              }`}
+            />
+          </div>
+        </div>
+
+
+        {/* Paragraph 1 */}
+        <div className="space-y-2">
+          <label className="text-xs font-bold text-slate-700">
+            Paragraph 1
+          </label>
+
+          <textarea
+            rows={6}
+            value={aboutUsContent.paragraph1}
+            disabled={!isEditingAboutUs}
+            onChange={(e) =>
+              setAboutUsContent({
+                ...aboutUsContent,
+                paragraph1: e.target.value
+              })
+            }
+            className={`w-full px-4 py-3 text-sm rounded-xl border outline-none leading-relaxed resize-y transition-all ${
+              isEditingAboutUs
+                ? "bg-white border-slate-300 focus:ring-2 focus:ring-blue-500"
+                : "bg-slate-50 border-slate-200 text-slate-600"
+            }`}
+          />
+        </div>
+
+
+        {/* Paragraph 2 */}
+        <div className="space-y-2">
+          <label className="text-xs font-bold text-slate-700">
+            Paragraph 2
+          </label>
+
+          <textarea
+            rows={6}
+            value={aboutUsContent.paragraph2}
+            disabled={!isEditingAboutUs}
+            onChange={(e) =>
+              setAboutUsContent({
+                ...aboutUsContent,
+                paragraph2: e.target.value
+              })
+            }
+            className={`w-full px-4 py-3 text-sm rounded-xl border outline-none leading-relaxed resize-y transition-all ${
+              isEditingAboutUs
+                ? "bg-white border-slate-300 focus:ring-2 focus:ring-blue-500"
+                : "bg-slate-50 border-slate-200 text-slate-600"
+            }`}
+          />
+        </div>
+
+
+        {/* Statistics */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+
+          {/* Stat 1 */}
+          <div className="bg-blue-50 border border-blue-100 rounded-2xl p-5 space-y-4">
+            <p className="text-xs font-extrabold text-blue-900 uppercase tracking-wider">
+              Statistic 1
+            </p>
+
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-700">
+                Value
+              </label>
+
+              <input
+                type="text"
+                value={aboutUsContent.stat1_value}
+                disabled={!isEditingAboutUs}
+                onChange={(e) =>
+                  setAboutUsContent({
+                    ...aboutUsContent,
+                    stat1_value: e.target.value
+                  })
+                }
+                className="w-full px-3 py-2.5 bg-white border border-blue-200 rounded-xl text-sm disabled:bg-blue-50"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-700">
+                Label
+              </label>
+
+              <input
+                type="text"
+                value={aboutUsContent.stat1_label}
+                disabled={!isEditingAboutUs}
+                onChange={(e) =>
+                  setAboutUsContent({
+                    ...aboutUsContent,
+                    stat1_label: e.target.value
+                  })
+                }
+                className="w-full px-3 py-2.5 bg-white border border-blue-200 rounded-xl text-sm disabled:bg-blue-50"
+              />
+            </div>
+          </div>
+
+
+          {/* Stat 2 */}
+          <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-5 space-y-4">
+            <p className="text-xs font-extrabold text-emerald-900 uppercase tracking-wider">
+              Statistic 2
+            </p>
+
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-700">
+                Value
+              </label>
+
+              <input
+                type="text"
+                value={aboutUsContent.stat2_value}
+                disabled={!isEditingAboutUs}
+                onChange={(e) =>
+                  setAboutUsContent({
+                    ...aboutUsContent,
+                    stat2_value: e.target.value
+                  })
+                }
+                className="w-full px-3 py-2.5 bg-white border border-emerald-200 rounded-xl text-sm disabled:bg-emerald-50"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-700">
+                Label
+              </label>
+
+              <input
+                type="text"
+                value={aboutUsContent.stat2_label}
+                disabled={!isEditingAboutUs}
+                onChange={(e) =>
+                  setAboutUsContent({
+                    ...aboutUsContent,
+                    stat2_label: e.target.value
+                  })
+                }
+                className="w-full px-3 py-2.5 bg-white border border-emerald-200 rounded-xl text-sm disabled:bg-emerald-50"
+              />
+            </div>
+          </div>
+
+        </div>
+
+
+        {/* Image URL */}
+        <div className="space-y-2">
+          <label className="text-xs font-bold text-slate-700">
+            About Us Image URL
+          </label>
+
+          <input
+            type="text"
+            value={aboutUsContent.image_url}
+            disabled={!isEditingAboutUs}
+            onChange={(e) =>
+              setAboutUsContent({
+                ...aboutUsContent,
+                image_url: e.target.value
+              })
+            }
+            placeholder="https://..."
+            className={`w-full px-4 py-2.5 text-sm rounded-xl border outline-none ${
+              isEditingAboutUs
+                ? "bg-white border-slate-300 focus:ring-2 focus:ring-blue-500"
+                : "bg-slate-50 border-slate-200 text-slate-600"
+            }`}
+          />
+        </div>
+
+
+        {/* Image Preview */}
+        {aboutUsContent.image_url && (
+          <div className="space-y-2">
+            <p className="text-xs font-bold text-slate-700">
+              Image Preview
+            </p>
+
+            <div className="w-full sm:w-80 h-48 bg-slate-100 border border-slate-200 rounded-2xl overflow-hidden">
+              <img
+                src={aboutUsContent.image_url}
+                alt="About Us"
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = "none";
+                }}
+              />
+            </div>
+          </div>
+        )}
+
+
+        {/* Edit Mode Buttons */}
+        {isEditingAboutUs && (
+          <div className="flex items-center justify-end gap-3 pt-5 border-t border-slate-100">
+
+            <button
+              type="button"
+              disabled={isSavingAboutUs}
+              onClick={handleCancelAboutUsEdit}
+              className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold cursor-pointer disabled:opacity-50"
+            >
+              Cancel
+            </button>
+
+            <button
+              type="button"
+              disabled={isSavingAboutUs}
+              onClick={handleSaveAboutUs}
+              className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer shadow-sm disabled:opacity-50"
+            >
+              {isSavingAboutUs ? (
+                <RefreshCw className="h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
+
+              {isSavingAboutUs
+                ? "Saving..."
+                : "Save Changes"}
+            </button>
+
+          </div>
+        )}
+
+      </div>
+    )}
+  </div>
+)}
 
           {activeMenu === "SUBSCRIBER_EMAILS" && (
             <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-5">

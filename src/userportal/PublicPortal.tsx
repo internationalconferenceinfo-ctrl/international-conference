@@ -149,6 +149,18 @@ export default function PublicPortal({
   const [footerContactInfo, setFooterContactInfo] = useState<ContactInfo>({ ...OFFICIAL_CONTACT_INFO });
   const [footerSocialMedia, setFooterSocialMedia] = useState<SocialLinks>({ ...OFFICIAL_SOCIAL_LINKS });
 
+  const [dynamicAboutUs, setDynamicAboutUs] = useState({
+  missionBadge: aboutUsContent.missionBadge,
+  title: aboutUsContent.title,
+  paragraph1: aboutUsContent.paragraph1,
+  paragraph2: aboutUsContent.paragraph2,
+  stat1Value: aboutUsContent.stat1Value,
+  stat1Label: aboutUsContent.stat1Label,
+  stat2Value: aboutUsContent.stat2Value,
+  stat2Label: aboutUsContent.stat2Label,
+  imageUrl: aboutUsContent.imageUrl,
+});
+
   useEffect(() => {
     const refreshPublicContact = () => {
       fetchFromSupabase<any>("contact_info", true).then((data) => {
@@ -178,6 +190,42 @@ export default function PublicPortal({
       unsubscribeSocial();
       channel?.close();
     };
+  }, []);
+   useEffect(() => {
+    const loadAboutUs = async () => {
+      try {
+        const data = await fetchFromSupabase<any[]>(
+          "about_us",
+          true
+        );
+
+        if (!data || !Array.isArray(data) || data.length === 0) {
+          return;
+        }
+
+        const row =
+          data.find((item) => item.id === "primary") || data[0];
+
+        if (!row) return;
+
+        setDynamicAboutUs({
+          missionBadge: row.mission_badge || aboutUsContent.missionBadge,
+          title: row.title || aboutUsContent.title,
+          paragraph1: row.paragraph1 || aboutUsContent.paragraph1,
+          paragraph2: row.paragraph2 || aboutUsContent.paragraph2,
+          stat1Value: row.stat1_value || aboutUsContent.stat1Value,
+          stat1Label: row.stat1_label || aboutUsContent.stat1Label,
+          stat2Value: row.stat2_value || aboutUsContent.stat2Value,
+          stat2Label: row.stat2_label || aboutUsContent.stat2Label,
+          imageUrl: row.image_url || aboutUsContent.imageUrl,
+        });
+
+      } catch (error) {
+        console.error("Failed to load About Us:", error);
+      }
+    };
+
+    loadAboutUs();
   }, []);
 
   const selectedCategory = selectedCategoryProp !== undefined ? selectedCategoryProp : selectedCategoryLocal;
@@ -1040,7 +1088,7 @@ const trustedOrganizersList = useMemo(() => {
       return `International Conferences in ${selectedCity}, ${selectedCountry}`;
     }
     if (hasCity) {
-      return `International Conferences in ${selectedCity}`;
+      return `International Conferences in ${selectedCity}`;const [footerContactInfo, setFooterContactInfo] = useState<ContactInfo>({ ...OFFICIAL_CONTACT_INFO });
     }
     if (hasCountry) {
       return `International Conferences in ${selectedCountry}`;
@@ -2639,33 +2687,33 @@ const trustedOrganizersList = useMemo(() => {
         <section id="about" className="scroll-mt-24 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div className="space-y-6">
             <div className="space-y-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-blue-600">{aboutUsContent.missionBadge}</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-blue-600">{dynamicAboutUs.missionBadge}</span>
               <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight font-display">
-                {aboutUsContent.title}
+                {dynamicAboutUs.title}
               </h1>
             </div>
             <p className="text-slate-600 leading-relaxed font-medium">
-              {aboutUsContent.paragraph1}
+              {dynamicAboutUs.paragraph1}
             </p>
             <p className="text-slate-600 leading-relaxed font-medium">
-              {aboutUsContent.paragraph2}
+              {dynamicAboutUs.paragraph2}
             </p>
 
             <div className="grid grid-cols-2 gap-6 pt-4 border-t border-slate-100">
               <div className="space-y-1">
-                <div className="text-2xl font-extrabold text-blue-600">{aboutUsContent.stat1Value}</div>
-                <p className="text-xs text-slate-400 font-bold uppercase">{aboutUsContent.stat1Label}</p>
+                <div className="text-2xl font-extrabold text-blue-600">{dynamicAboutUs.stat1Value}</div>
+                <p className="text-xs text-slate-400 font-bold uppercase">{dynamicAboutUs.stat1Label}</p>
               </div>
               <div className="space-y-1">
-                <div className="text-2xl font-extrabold text-indigo-600">{aboutUsContent.stat2Value}</div>
-                <p className="text-xs text-slate-400 font-bold uppercase">{aboutUsContent.stat2Label}</p>
+                <div className="text-2xl font-extrabold text-indigo-600">{dynamicAboutUs.stat2Value}</div>
+                <p className="text-xs text-slate-400 font-bold uppercase">{dynamicAboutUs.stat2Label}</p>
               </div>
             </div>
           </div>
 
           <div className="relative rounded-3xl overflow-hidden aspect-[4/3] bg-slate-100 shadow-lg">
             <img
-              src={aboutUsContent.imageUrl}
+              src={dynamicAboutUs.imageUrl}
               alt="About Conference Hall"
               className="w-full h-full object-contain"
               referrerPolicy="no-referrer"
