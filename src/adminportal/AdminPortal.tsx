@@ -123,6 +123,8 @@ type MenuKey =
   | "ADD_TOPICS"
   | "MANAGE_TOPICS"
   | "ABOUT_INFO"
+  | "HOME_DESCRIPTION"
+  | "CONFERENCE_DESCRIPTION"
   | "APPROVED_FEEDBACK"
   | "MANAGE_FEEDBACK"
   | "SUBSCRIBER_EMAILS"
@@ -174,6 +176,22 @@ interface AboutUsContent {
   stat2_value: string;
   stat2_label: string;
   image_url: string;
+  updated_at?: string;
+}
+
+interface HomeDescriptionContent {
+  id: string;
+  description: string;
+  updated_at?: string;
+}
+
+interface ConferenceDescriptionContent {
+  id: string;
+  default_description: string;
+  topic_description: string;
+  country_description: string;
+  city_description: string;
+  combined_description: string;
   updated_at?: string;
 }
 
@@ -455,6 +473,89 @@ useEffect(() => {
 
   loadAboutUsContent();
 }, []);
+
+// Load Home Main Description from Supabase
+useEffect(() => {
+  const loadHomeDescription = async () => {
+    setIsLoadingHomeDescription(true);
+
+    try {
+      const data = await fetchFromSupabase<HomeDescriptionContent[]>(
+        "home_description",
+        true
+      );
+
+      const record = Array.isArray(data) ? data[0] : data;
+
+      if (record) {
+        const loadedContent: HomeDescriptionContent = {
+          id: record.id || "primary",
+          description: record.description || "",
+          updated_at: record.updated_at
+        };
+
+        setHomeDescription(loadedContent);
+        setHomeDescriptionOriginal(loadedContent);
+      }
+    } catch (error) {
+      console.error(
+        "Failed to load Home Description:",
+        error
+      );
+
+      showToast("Unable to load Home Description.");
+    } finally {
+      setIsLoadingHomeDescription(false);
+    }
+  };
+
+  loadHomeDescription();
+}, []);
+
+// Load Conference Description templates from Supabase
+useEffect(() => {
+  const loadConferenceDescription = async () => {
+    setIsLoadingConferenceDescription(true);
+
+    try {
+      const data = await fetchFromSupabase<ConferenceDescriptionContent[]>(
+        "conference_descriptions",
+        true
+      );
+
+      const record = Array.isArray(data) ? data[0] : data;
+
+      if (record) {
+       const loadedContent: ConferenceDescriptionContent = {
+  id: record.id || "primary",
+ default_description:
+  record.default_description ||
+  "Discover verified, peer-reviewed, and high-impact academic conferences, research symposiums, and professional summits from around the world. All listed events undergo rigorous vetting by International Conference to ensure credential legitimacy, past record authenticity, and index authority.",
+  topic_description: record.topic_description || "",
+  country_description: record.country_description || "",
+  city_description: record.city_description || "",
+  combined_description: record.combined_description || "",
+  updated_at: record.updated_at
+};
+        setConferenceDescription(loadedContent);
+        setConferenceDescriptionOriginal(loadedContent);
+      }
+    } catch (error) {
+      console.error(
+        "Failed to load Conference Description:",
+        error
+      );
+
+      showToast("Unable to load Conference Description.");
+    } finally {
+      setIsLoadingConferenceDescription(false);
+    }
+  };
+
+  loadConferenceDescription();
+}, []);
+
+
 
   // Excel Bulk Upload and Demo File Download Handlers for Location Management
         const downloadDemoExcel = async () => {
@@ -1385,6 +1486,50 @@ const [isEditingAboutUs, setIsEditingAboutUs] = useState(false);
 const [isSavingAboutUs, setIsSavingAboutUs] = useState(false);
 const [isLoadingAboutUs, setIsLoadingAboutUs] = useState(true);
 
+
+// Home Main Description management states
+const [homeDescription, setHomeDescription] = useState<HomeDescriptionContent>({
+  id: "primary",
+  description: ""
+});
+
+const [homeDescriptionOriginal, setHomeDescriptionOriginal] =
+  useState<HomeDescriptionContent | null>(null);
+
+const [isEditingHomeDescription, setIsEditingHomeDescription] =
+  useState(false);
+
+const [isSavingHomeDescription, setIsSavingHomeDescription] =
+  useState(false);
+
+const [isLoadingHomeDescription, setIsLoadingHomeDescription] =
+  useState(true);
+
+
+  // Conference Description management states
+const [conferenceDescription, setConferenceDescription] =
+  useState<ConferenceDescriptionContent>({
+    id: "primary",
+    default_description:
+  "Discover verified, peer-reviewed, and high-impact academic conferences, research symposiums, and professional summits from around the world. All listed events undergo rigorous vetting by International Conference to ensure credential legitimacy, past record authenticity, and index authority.",
+    topic_description: "",
+    country_description: "",
+    city_description: "",
+    combined_description: ""
+  });
+
+const [conferenceDescriptionOriginal, setConferenceDescriptionOriginal] =
+  useState<ConferenceDescriptionContent | null>(null);
+
+const [isEditingConferenceDescription, setIsEditingConferenceDescription] =
+  useState(false);
+
+const [isSavingConferenceDescription, setIsSavingConferenceDescription] =
+  useState(false);
+
+const [isLoadingConferenceDescription, setIsLoadingConferenceDescription] =
+  useState(true);
+
   // Admin Profile & Security States
   const [adminProfile, setAdminProfile] = useState<{
     name: string;
@@ -1506,6 +1651,153 @@ const [isLoadingAboutUs, setIsLoadingAboutUs] = useState(true);
   } finally {
     setIsSavingAboutUs(false);
   }
+};
+
+const handleSaveHomeDescription = async () => {
+  if (!homeDescription.description.trim()) {
+    showToast("Main Description cannot be empty.");
+    return;
+  }
+
+  setIsSavingHomeDescription(true);
+
+  try {
+    const updatedContent: HomeDescriptionContent = {
+      ...homeDescription,
+      id: "primary",
+      updated_at: new Date().toISOString()
+    };
+
+    const result = await saveRecordToSupabase(
+      "home_description",
+      updatedContent
+    );
+
+    if (!result.success) {
+      console.error(
+        "Home Description save failed:",
+        result.error
+      );
+
+      showToast(
+        result.error || "Unable to save Main Description."
+      );
+
+      return;
+    }
+
+    setHomeDescription(updatedContent);
+    setHomeDescriptionOriginal(updatedContent);
+    setIsEditingHomeDescription(false);
+
+    triggerBroadcastSync();
+
+    showToast("Main Description updated successfully!");
+  } catch (error) {
+    console.error(
+      "Failed to save Main Description:",
+      error
+    );
+
+    showToast("Unable to save Main Description.");
+  } finally {
+    setIsSavingHomeDescription(false);
+  }
+};
+
+
+const handleCancelHomeDescriptionEdit = () => {
+  if (homeDescriptionOriginal) {
+    setHomeDescription({
+      ...homeDescriptionOriginal
+    });
+  }
+
+  setIsEditingHomeDescription(false);
+};
+
+const handleSaveConferenceDescription = async () => {
+  if (!conferenceDescription.default_description.trim()) {
+    showToast("Default Description cannot be empty.");
+    return;
+  }
+
+  if (!conferenceDescription.topic_description.trim()) {
+    showToast("Topic Description cannot be empty.");
+    return;
+  }
+
+  if (!conferenceDescription.country_description.trim()) {
+    showToast("Country Description cannot be empty.");
+    return;
+  }
+
+  if (!conferenceDescription.city_description.trim()) {
+    showToast("City Description cannot be empty.");
+    return;
+  }
+
+  if (!conferenceDescription.combined_description.trim()) {
+    showToast("Combined Description cannot be empty.");
+    return;
+  }
+
+  setIsSavingConferenceDescription(true);
+
+  try {
+    const updatedContent: ConferenceDescriptionContent = {
+      ...conferenceDescription,
+      id: "primary",
+      updated_at: new Date().toISOString()
+    };
+
+    const result = await saveRecordToSupabase(
+      "conference_descriptions",
+      updatedContent
+    );
+
+    if (!result.success) {
+      console.error(
+        "Conference Description save failed:",
+        result.error
+      );
+
+      showToast(
+        result.error || "Unable to save Conference Description."
+      );
+
+      return;
+    }
+
+    setConferenceDescription(updatedContent);
+    setConferenceDescriptionOriginal(updatedContent);
+    setIsEditingConferenceDescription(false);
+
+    triggerBroadcastSync();
+
+    showToast("Conference Description updated successfully!");
+  } catch (error) {
+    console.error(
+      "Failed to save Conference Description:",
+      error
+    );
+
+    showToast("Unable to save Conference Description.");
+  } finally {
+    setIsSavingConferenceDescription(false);
+  }
+};
+
+
+
+const handleCancelConferenceDescriptionEdit = () => {
+  if (conferenceDescriptionOriginal) {
+    setConferenceDescription({
+      ...conferenceDescriptionOriginal
+    });
+  }
+
+  setIsEditingConferenceDescription(false);
 };
 
 const handleCancelAboutUsEdit = () => {
@@ -1983,6 +2275,35 @@ const handleCancelAboutUsEdit = () => {
                     >
                       About Us
                     </button>
+
+                    <button
+                      onClick={() => {
+                        setActiveMenu("HOME_DESCRIPTION");
+                        if (window.innerWidth < 1024) setIsSidebarOpen(false);
+                      }}
+                      className={`w-full text-left py-1.5 px-2.5 rounded-lg transition-colors cursor-pointer ${
+                        activeMenu === "HOME_DESCRIPTION"
+                          ? "text-white font-bold bg-white/20"
+                          : "text-slate-300 hover:text-white"
+                      }`}
+                    >
+                      Main Description
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setActiveMenu("CONFERENCE_DESCRIPTION");
+                        if (window.innerWidth < 1024) setIsSidebarOpen(false);
+                      }}
+                      className={`w-full text-left py-1.5 px-2.5 rounded-lg transition-colors cursor-pointer ${
+                        activeMenu === "CONFERENCE_DESCRIPTION"
+                          ? "text-white font-bold bg-white/20"
+                          : "text-slate-300 hover:text-white"
+                      }`}
+                    >
+                      Conference Description
+                    </button>
+
                   </div>
                 )}
               </div>
@@ -5863,6 +6184,33 @@ const handleCancelAboutUsEdit = () => {
         {/* Mission Badge + Title */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
 
+{/* Default Description */}
+<div className="space-y-2">
+  <label className="text-xs font-bold text-slate-700">
+  Main Description
+</label>
+
+  <textarea
+    rows={5}
+    value={conferenceDescription.default_description}
+    disabled={!isEditingConferenceDescription}
+    onChange={(e) =>
+      setConferenceDescription({
+        ...conferenceDescription,
+        default_description: e.target.value
+      })
+    }
+    placeholder="Enter the default conference page description..."
+    className={`w-full px-4 py-3 text-sm rounded-xl border outline-none leading-relaxed resize-y transition-all ${
+      isEditingConferenceDescription
+        ? "bg-white border-slate-300 focus:ring-2 focus:ring-blue-500"
+        : "bg-slate-50 border-slate-200 text-slate-600"
+    }`}
+  />
+</div>
+
+{/* Topic Description */}
+
           <div className="space-y-2">
             <label className="text-xs font-bold text-slate-700">
               Mission Badge
@@ -6058,90 +6406,425 @@ const handleCancelAboutUsEdit = () => {
         </div>
 
 
-        {/* Image URL */}
-        <div className="space-y-2">
-          <label className="text-xs font-bold text-slate-700">
-            About Us Image URL
-          </label>
+              {/* Image URL */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-700">
+                  About Us Image URL
+                </label>
 
-          <input
-            type="text"
-            value={aboutUsContent.image_url}
-            disabled={!isEditingAboutUs}
-            onChange={(e) =>
-              setAboutUsContent({
-                ...aboutUsContent,
-                image_url: e.target.value
-              })
-            }
-            placeholder="https://..."
-            className={`w-full px-4 py-2.5 text-sm rounded-xl border outline-none ${
-              isEditingAboutUs
-                ? "bg-white border-slate-300 focus:ring-2 focus:ring-blue-500"
-                : "bg-slate-50 border-slate-200 text-slate-600"
-            }`}
-          />
-        </div>
-
-
-        {/* Image Preview */}
-        {aboutUsContent.image_url && (
-          <div className="space-y-2">
-            <p className="text-xs font-bold text-slate-700">
-              Image Preview
-            </p>
-
-            <div className="w-full sm:w-80 h-48 bg-slate-100 border border-slate-200 rounded-2xl overflow-hidden">
-              <img
-                src={aboutUsContent.image_url}
-                alt="About Us"
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).style.display = "none";
-                }}
-              />
-            </div>
-          </div>
-        )}
+                <input
+                  type="text"
+                  value={aboutUsContent.image_url}
+                  disabled={!isEditingAboutUs}
+                  onChange={(e) =>
+                    setAboutUsContent({
+                      ...aboutUsContent,
+                      image_url: e.target.value
+                    })
+                  }
+                  placeholder="https://..."
+                  className={`w-full px-4 py-2.5 text-sm rounded-xl border outline-none ${
+                    isEditingAboutUs
+                      ? "bg-white border-slate-300 focus:ring-2 focus:ring-blue-500"
+                      : "bg-slate-50 border-slate-200 text-slate-600"
+                  }`}
+                />
+              </div>
 
 
-        {/* Edit Mode Buttons */}
-        {isEditingAboutUs && (
-          <div className="flex items-center justify-end gap-3 pt-5 border-t border-slate-100">
+              {/* Image Preview */}
+              {aboutUsContent.image_url && (
+                <div className="space-y-2">
+                  <p className="text-xs font-bold text-slate-700">
+                    Image Preview
+                  </p>
 
-            <button
-              type="button"
-              disabled={isSavingAboutUs}
-              onClick={handleCancelAboutUsEdit}
-              className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold cursor-pointer disabled:opacity-50"
-            >
-              Cancel
-            </button>
-
-            <button
-              type="button"
-              disabled={isSavingAboutUs}
-              onClick={handleSaveAboutUs}
-              className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer shadow-sm disabled:opacity-50"
-            >
-              {isSavingAboutUs ? (
-                <RefreshCw className="h-4 w-4 animate-spin" />
-              ) : (
-                <Save className="h-4 w-4" />
+                  <div className="w-full sm:w-80 h-48 bg-slate-100 border border-slate-200 rounded-2xl overflow-hidden">
+                    <img
+                      src={aboutUsContent.image_url}
+                      alt="About Us"
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = "none";
+                      }}
+                    />
+                  </div>
+                </div>
               )}
 
-              {isSavingAboutUs
-                ? "Saving..."
-                : "Save Changes"}
-            </button>
 
-          </div>
-        )}
+              {/* Edit Mode Buttons */}
+              {isEditingAboutUs && (
+                <div className="flex items-center justify-end gap-3 pt-5 border-t border-slate-100">
 
-      </div>
-    )}
-  </div>
-)}
+                  <button
+                    type="button"
+                    disabled={isSavingAboutUs}
+                    onClick={handleCancelAboutUsEdit}
+                    className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold cursor-pointer disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={isSavingAboutUs}
+                    onClick={handleSaveAboutUs}
+                    className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer shadow-sm disabled:opacity-50"
+                  >
+                    {isSavingAboutUs ? (
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4" />
+                    )}
+
+                    {isSavingAboutUs
+                      ? "Saving..."
+                      : "Save Changes"}
+                  </button>
+
+                </div>
+              )}
+
+            </div>
+          )}
+        </div>
+      )}
+
+      
+        {/* Home Main Description Management */}
+          {activeMenu === "HOME_DESCRIPTION" && (
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-6">
+
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
+                <div>
+                  <h3 className="text-base font-bold text-[#37494E] flex items-center gap-2">
+                    <FileText className="h-5 w-5 text-blue-600" />
+                    <span>Main Description</span>
+                  </h3>
+
+                  <p className="text-xs text-slate-500 mt-1">
+                    Edit the description shown on the User Portal Home page before the Countries section.
+                  </p>
+                </div>
+
+                {!isEditingHomeDescription && !isLoadingHomeDescription && (
+                  <button
+                    onClick={() => {
+                      setHomeDescriptionOriginal({ ...homeDescription });
+                      setIsEditingHomeDescription(true);
+                    }}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer transition-all shadow-sm"
+                  >
+                    <Edit3 className="h-4 w-4" />
+                    Edit
+                  </button>
+                )}
+              </div>
+
+              {isLoadingHomeDescription ? (
+                <div className="py-16 flex flex-col items-center justify-center text-slate-500">
+                  <RefreshCw className="h-7 w-7 animate-spin text-blue-600 mb-3" />
+
+                  <p className="text-xs font-semibold">
+                    Loading Main Description...
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-5">
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-700">
+                      Description
+                    </label>
+
+                    <textarea
+                      rows={10}
+                      value={homeDescription.description}
+                      disabled={!isEditingHomeDescription}
+                      onChange={(e) =>
+                        setHomeDescription({
+                          ...homeDescription,
+                          description: e.target.value
+                        })
+                      }
+                      placeholder="Enter the Home page main description..."
+                      className={`w-full px-4 py-3 text-sm rounded-xl border outline-none leading-relaxed resize-y transition-all ${
+                        isEditingHomeDescription
+                          ? "bg-white border-slate-300 focus:ring-2 focus:ring-blue-500"
+                          : "bg-slate-50 border-slate-200 text-slate-600"
+                      }`}
+                    />
+                  </div>
+
+                  {isEditingHomeDescription && (
+                    <div className="flex items-center justify-end gap-3 pt-5 border-t border-slate-100">
+
+                      <button
+                        type="button"
+                        disabled={isSavingHomeDescription}
+                        onClick={handleCancelHomeDescriptionEdit}
+                        className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold cursor-pointer disabled:opacity-50"
+                      >
+                        Cancel
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={isSavingHomeDescription}
+                        onClick={handleSaveHomeDescription}
+                        className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer shadow-sm disabled:opacity-50"
+                      >
+                        {isSavingHomeDescription ? (
+                          <RefreshCw className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Save className="h-4 w-4" />
+                        )}
+
+                        {isSavingHomeDescription
+                          ? "Saving..."
+                          : "Save Changes"}
+                      </button>
+
+                    </div>
+                  )}
+
+                </div>
+              )}
+
+            </div>
+          )}
+
+          {/* Conference Description Management */}
+            {activeMenu === "CONFERENCE_DESCRIPTION" && (
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-6">
+
+                {/* Header */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
+                  <div>
+                    <h3 className="text-base font-bold text-[#37494E] flex items-center gap-2">
+                      <FileText className="h-5 w-5 text-blue-600" />
+                      <span>Conference Description</span>
+                    </h3>
+
+                    <p className="text-xs text-slate-500 mt-1">
+                      Edit the dynamic descriptions shown on the User Portal Conference page.
+                    </p>
+                  </div>
+
+                  {!isEditingConferenceDescription && !isLoadingConferenceDescription && (
+                    <button
+                      onClick={() => {
+                        setConferenceDescriptionOriginal({ ...conferenceDescription });
+                        setIsEditingConferenceDescription(true);
+                      }}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer transition-all shadow-sm"
+                    >
+                      <Edit3 className="h-4 w-4" />
+                      Edit
+                    </button>
+                  )}
+                </div>
+
+                {/* Placeholder Info */}
+                <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4">
+                  <p className="text-xs font-bold text-blue-900 mb-2">
+                    Available Placeholders
+                  </p>
+
+                  <div className="flex flex-wrap gap-2">
+                    <span className="px-2.5 py-1 rounded-lg bg-white border border-blue-200 text-blue-700 text-xs font-mono font-bold">
+                      {"{TOPIC}"}
+                    </span>
+
+                    <span className="px-2.5 py-1 rounded-lg bg-white border border-blue-200 text-blue-700 text-xs font-mono font-bold">
+                      {"{COUNTRY}"}
+                    </span>
+
+                    <span className="px-2.5 py-1 rounded-lg bg-white border border-blue-200 text-blue-700 text-xs font-mono font-bold">
+                      {"{CITY}"}
+                    </span>
+                  </div>
+
+                  <p className="text-xs text-slate-500 mt-2">
+                    These placeholders will automatically be replaced with the visitor's selected Topic, Country, and City.
+                  </p>
+                </div>
+
+                {isLoadingConferenceDescription ? (
+                  <div className="py-16 flex flex-col items-center justify-center text-slate-500">
+                    <RefreshCw className="h-7 w-7 animate-spin text-blue-600 mb-3" />
+                    <p className="text-xs font-semibold">
+                      Loading Conference Description...
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+
+                    {/* Default Description */}
+<div className="space-y-2">
+  <label className="text-xs font-bold text-slate-700">
+    Default Description
+  </label>
+
+  <textarea
+    rows={5}
+    value={conferenceDescription.default_description}
+    disabled={!isEditingConferenceDescription}
+    onChange={(e) =>
+      setConferenceDescription({
+        ...conferenceDescription,
+        default_description: e.target.value
+      })
+    }
+    placeholder="Enter the default conference page description..."
+    className={`w-full px-4 py-3 text-sm rounded-xl border outline-none leading-relaxed resize-y transition-all ${
+      isEditingConferenceDescription
+        ? "bg-white border-slate-300 focus:ring-2 focus:ring-blue-500"
+        : "bg-slate-50 border-slate-200 text-slate-600"
+    }`}
+  />
+</div>
+
+                    {/* Topic Description */}
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-slate-700">
+                        Topic Description
+                      </label>
+
+                      <textarea
+                        rows={5}
+                        value={conferenceDescription.topic_description}
+                        disabled={!isEditingConferenceDescription}
+                        onChange={(e) =>
+                          setConferenceDescription({
+                            ...conferenceDescription,
+                            topic_description: e.target.value
+                          })
+                        }
+                        placeholder="Example: Discover verified conferences focusing on {TOPIC}."
+                        className={`w-full px-4 py-3 text-sm rounded-xl border outline-none leading-relaxed resize-y transition-all ${
+                          isEditingConferenceDescription
+                            ? "bg-white border-slate-300 focus:ring-2 focus:ring-blue-500"
+                            : "bg-slate-50 border-slate-200 text-slate-600"
+                        }`}
+                      />
+                    </div>
+
+                    {/* Country Description */}
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-slate-700">
+                        Country Description
+                      </label>
+
+                      <textarea
+                        rows={5}
+                        value={conferenceDescription.country_description}
+                        disabled={!isEditingConferenceDescription}
+                        onChange={(e) =>
+                          setConferenceDescription({
+                            ...conferenceDescription,
+                            country_description: e.target.value
+                          })
+                        }
+                        placeholder="Example: Explore trusted international conferences taking place in {COUNTRY}."
+                        className={`w-full px-4 py-3 text-sm rounded-xl border outline-none leading-relaxed resize-y transition-all ${
+                          isEditingConferenceDescription
+                            ? "bg-white border-slate-300 focus:ring-2 focus:ring-blue-500"
+                            : "bg-slate-50 border-slate-200 text-slate-600"
+                        }`}
+                      />
+                    </div>
+
+                    {/* City Description */}
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-slate-700">
+                        City Description
+                      </label>
+
+                      <textarea
+                        rows={5}
+                        value={conferenceDescription.city_description}
+                        disabled={!isEditingConferenceDescription}
+                        onChange={(e) =>
+                          setConferenceDescription({
+                            ...conferenceDescription,
+                            city_description: e.target.value
+                          })
+                        }
+                        placeholder="Example: Find upcoming academic conferences in {CITY}, {COUNTRY}."
+                        className={`w-full px-4 py-3 text-sm rounded-xl border outline-none leading-relaxed resize-y transition-all ${
+                          isEditingConferenceDescription
+                            ? "bg-white border-slate-300 focus:ring-2 focus:ring-blue-500"
+                            : "bg-slate-50 border-slate-200 text-slate-600"
+                        }`}
+                      />
+                    </div>
+
+                    {/* Combined Description */}
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-slate-700">
+                        Topic + Country + City Description
+                      </label>
+
+                      <textarea
+                        rows={5}
+                        value={conferenceDescription.combined_description}
+                        disabled={!isEditingConferenceDescription}
+                        onChange={(e) =>
+                          setConferenceDescription({
+                            ...conferenceDescription,
+                            combined_description: e.target.value
+                          })
+                        }
+                        placeholder="Example: Discover verified {TOPIC} conferences taking place in {CITY}, {COUNTRY}."
+                        className={`w-full px-4 py-3 text-sm rounded-xl border outline-none leading-relaxed resize-y transition-all ${
+                          isEditingConferenceDescription
+                            ? "bg-white border-slate-300 focus:ring-2 focus:ring-blue-500"
+                            : "bg-slate-50 border-slate-200 text-slate-600"
+                        }`}
+                      />
+                    </div>
+
+                    {/* Buttons */}
+                    {isEditingConferenceDescription && (
+                      <div className="flex items-center justify-end gap-3 pt-5 border-t border-slate-100">
+
+                        <button
+                          type="button"
+                          disabled={isSavingConferenceDescription}
+                          onClick={handleCancelConferenceDescriptionEdit}
+                          className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold cursor-pointer disabled:opacity-50"
+                        >
+                          Cancel
+                        </button>
+
+                        <button
+                          type="button"
+                          disabled={isSavingConferenceDescription}
+                          onClick={handleSaveConferenceDescription}
+                          className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer shadow-sm disabled:opacity-50"
+                        >
+                          {isSavingConferenceDescription ? (
+                            <RefreshCw className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Save className="h-4 w-4" />
+                          )}
+
+                          {isSavingConferenceDescription
+                            ? "Saving..."
+                            : "Save Changes"}
+                        </button>
+
+                      </div>
+                    )}
+
+                  </div>
+                )}
+
+              </div>
+            )}
+
 
           {activeMenu === "SUBSCRIBER_EMAILS" && (
             <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-5">

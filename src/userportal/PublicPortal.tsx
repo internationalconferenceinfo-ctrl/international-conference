@@ -161,6 +161,25 @@ export default function PublicPortal({
   imageUrl: aboutUsContent.imageUrl,
 });
 
+const [homeMainDescription, setHomeMainDescription] = useState("");
+
+const [conferenceDescriptions, setConferenceDescriptions] = useState({
+  default_description:
+    "Discover verified, peer-reviewed, and high-impact academic conferences, research symposiums, and professional summits from around the world.",
+
+  topic_description:
+    "Discover verified conferences focusing on {TOPIC}.",
+
+  country_description:
+    "Explore trusted international conferences taking place in {COUNTRY}.",
+
+  city_description:
+    "Find upcoming academic conferences in {CITY}, {COUNTRY}.",
+
+  combined_description:
+    "Discover verified {TOPIC} conferences taking place in {CITY}, {COUNTRY}."
+});
+
   useEffect(() => {
     const refreshPublicContact = () => {
       fetchFromSupabase<any>("contact_info", true).then((data) => {
@@ -227,6 +246,85 @@ export default function PublicPortal({
 
     loadAboutUs();
   }, []);
+
+  useEffect(() => {
+  const loadHomeDescription = async () => {
+    try {
+      const data = await fetchFromSupabase<any[]>(
+        "home_description",
+        true
+      );
+
+      if (!data || !Array.isArray(data) || data.length === 0) {
+        return;
+      }
+
+      const row =
+        data.find((item) => item.id === "primary") || data[0];
+
+      if (!row) return;
+
+      setHomeMainDescription(row.description || "");
+    } catch (error) {
+      console.error(
+        "Failed to load Home Main Description:",
+        error
+      );
+    }
+  };
+
+  loadHomeDescription();
+}, []);
+
+useEffect(() => {
+  const loadConferenceDescriptions = async () => {
+    try {
+      const data = await fetchFromSupabase<any[]>(
+        "conference_descriptions",
+        true
+      );
+
+      if (!data || !Array.isArray(data) || data.length === 0) {
+        return;
+      }
+
+      const row =
+        data.find((item) => item.id === "primary") || data[0];
+
+      if (!row) return;
+
+    setConferenceDescriptions({
+  default_description:
+    row.default_description ||
+    "Discover verified, peer-reviewed, and high-impact academic conferences, research symposiums, and professional summits from around the world.",
+
+  topic_description:
+    row.topic_description ||
+    "Discover verified conferences focusing on {TOPIC}.",
+
+  country_description:
+    row.country_description ||
+    "Explore trusted international conferences taking place in {COUNTRY}.",
+
+  city_description:
+    row.city_description ||
+    "Find upcoming academic conferences in {CITY}, {COUNTRY}.",
+
+  combined_description:
+    row.combined_description ||
+    "Discover verified {TOPIC} conferences taking place in {CITY}, {COUNTRY}."
+});
+
+    } catch (error) {
+      console.error(
+        "Failed to load Conference Descriptions:",
+        error
+      );
+    }
+  };
+
+  loadConferenceDescriptions();
+}, []);
 
   const selectedCategory = selectedCategoryProp !== undefined ? selectedCategoryProp : selectedCategoryLocal;
   const selectedCountry = selectedCountryProp !== undefined ? selectedCountryProp : selectedCountryLocal;
@@ -1103,28 +1201,64 @@ const trustedOrganizersList = useMemo(() => {
     return "International Conferences";
   }, [selectedCategory, selectedCity, selectedCountry, searchTerm]);
 
-  // Dynamic filter description
-  const filterDescription = useMemo(() => {
-    const hasCategory = selectedCategory !== "All";
-    const hasCity = selectedCity !== "All";
-    const hasCountry = selectedCountry !== "All";
+ // Dynamic filter description from Admin-controlled templates
+const filterDescription = useMemo(() => {
+  const hasCategory = selectedCategory !== "All";
+  const hasCity = selectedCity !== "All";
+  const hasCountry = selectedCountry !== "All";
 
-    let locationStr = "";
-    if (hasCity && hasCountry) locationStr = `${selectedCity}, ${selectedCountry}`;
-    else if (hasCity) locationStr = selectedCity;
-    else if (hasCountry) locationStr = selectedCountry;
+  const replacePlaceholders = (template: string) => {
+    return template
+      .replace(/\{TOPIC\}/g, hasCategory ? selectedCategory : "")
+      .replace(/\{CITY\}/g, hasCity ? selectedCity : "")
+      .replace(/\{COUNTRY\}/g, hasCountry ? selectedCountry : "")
+      .replace(/\s+,/g, ",")
+      .replace(/,\s*,/g, ",")
+      .replace(/\s{2,}/g, " ")
+      .trim();
+  };
 
-    if (hasCategory && locationStr) {
-      return `Discover verified, peer-reviewed, and high-impact academic conferences, research symposiums, and professional summits focusing on ${selectedCategory} taking place in ${locationStr}. All listed events undergo rigorous vetting by International Conference to ensure credential legitimacy, past record authenticity, and index authority.`;
-    }
-    if (hasCategory) {
-      return `Discover verified, peer-reviewed, and high-impact academic conferences, research symposiums, and professional summits focusing on ${selectedCategory}. All listed events undergo rigorous vetting by International Conference to ensure credential legitimacy, past record authenticity, and index authority.`;
-    }
-    if (locationStr) {
-      return `Discover verified, peer-reviewed, and high-impact academic conferences, research symposiums, and professional summits taking place in ${locationStr}. All listed events undergo rigorous vetting by International Conference to ensure credential legitimacy, past record authenticity, and index authority.`;
-    }
-    return `Discover verified, peer-reviewed, and high-impact academic conferences, research symposiums, and professional summits taking place in or related to ${selectedKeyword}. All listed events undergo rigorous vetting by International Conference to ensure credential legitimacy, past record authenticity, and index authority.`;
-  }, [selectedCategory, selectedCity, selectedCountry, selectedKeyword]);
+  // Topic + City + Country
+  if (hasCategory && hasCity && hasCountry) {
+    return replacePlaceholders(
+      conferenceDescriptions.combined_description
+    );
+  }
+
+  // City selected
+  if (hasCity) {
+    return replacePlaceholders(
+      conferenceDescriptions.city_description
+    );
+  }
+
+  // Country selected
+  if (hasCountry) {
+    return replacePlaceholders(
+      conferenceDescriptions.country_description
+    );
+  }
+
+  // Topic selected
+  if (hasCategory) {
+    return replacePlaceholders(
+      conferenceDescriptions.topic_description
+    );
+  }
+
+  // No filter selected - keep existing default behavior
+  return replacePlaceholders(
+  conferenceDescriptions.default_description
+);
+
+
+}, [
+  selectedCategory,
+  selectedCity,
+  selectedCountry,
+  selectedKeyword,
+  conferenceDescriptions
+]);
 
   // Check if events have mens or not
   const hasMensEvents = useMemo(() => {
@@ -1637,6 +1771,19 @@ const trustedOrganizersList = useMemo(() => {
           </div>
         </div>
       </section>
+
+      {/* Admin Controlled Home Main Description */}
+        {homeMainDescription && (
+          <section className="w-full">
+            <div className="bg-white border border-slate-200 rounded-2xl px-5 py-5 sm:px-7 sm:py-6 shadow-sm">
+              <p className="text-sm sm:text-base text-slate-600 leading-7 text-justify">
+                {homeMainDescription}
+              </p>
+            </div>
+          </section>
+        )}
+
+
 
       {/* International Conference Countries */}
       <section className="space-y-6">
