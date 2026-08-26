@@ -1031,7 +1031,6 @@ export default function OrganizerPortal({
                             <th className="p-3.5">Category</th>
                             <th className="p-3.5">Location</th>
                             <th className="p-3.5">Status</th>
-                            <th className="p-3.5 text-right pr-6 rounded-r-lg">Action</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
@@ -1063,15 +1062,7 @@ export default function OrganizerPortal({
                                   {conf.status}
                                 </span>
                               </td>
-                              <td className="p-3.5 text-right pr-6">
-                                <button
-                                  onClick={() => startEditConference(conf)}
-                                  className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
-                                  title="Edit Conference"
-                                >
-                                  <Edit2 className="h-4 w-4" />
-                                </button>
-                              </td>
+                             
                             </tr>
                           ))}
                         </tbody>

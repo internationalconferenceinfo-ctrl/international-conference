@@ -470,147 +470,175 @@ const verifyOrganizerResetToken = (token?: string): { userId: string; nonce: str
   }
 };
 
-app.post("/api/organizer/signup", rateLimit("organizer-signup", 8, 60 * 60 * 1000), async (req, res) => {
-  if (!requireServiceRole(res)) return;
-  const email = String(req.body?.email || "").trim().toLowerCase();
-  const password = String(req.body?.password || "");
-  const name = String(req.body?.name || "").trim();
-  const resetPin = String(req.body?.resetPin || "").trim();
-  if (!email || !/^\S+@\S+\.\S+$/.test(email) || !name || password.length < 6 || !/^\d{6}$/.test(resetPin)) {
-    return res.status(400).json({ success: false, error: "Enter a valid email, name, password (minimum 6 characters), and 6-digit Reset PIN." });
-  }
+    app.post("/api/organizer/signup", rateLimit("organizer-signup", 8, 60 * 60 * 1000), async (req, res) => {
+      if (!requireServiceRole(res)) return;
+      const email = String(req.body?.email || "").trim().toLowerCase();
+      const password = String(req.body?.password || "");
+      const name = String(req.body?.name || "").trim();
+      const resetPin = String(req.body?.resetPin || "").trim();
+      if (!email || !/^\S+@\S+\.\S+$/.test(email) || !name || password.length < 6 || !/^\d{6}$/.test(resetPin)) {
+        return res.status(400).json({ success: false, error: "Enter a valid email, name, password (minimum 6 characters), and 6-digit Reset PIN." });
+      }
 
-  let createdUserId = "";
-  try {
-    const { data: existingProfile } = await supabaseServerClient.from("organizers").select("id").eq("email", email).maybeSingle();
-    if (existingProfile) return res.status(409).json({ success: false, error: "An account with this email already exists" });
+      let createdUserId = "";
+      try {
+        const { data: existingProfile } = await supabaseServerClient.from("organizers").select("id").eq("email", email).maybeSingle();
+        if (existingProfile) return res.status(409).json({ success: false, error: "An account with this email already exists" });
 
-    const { data: authData, error: authError } = await supabaseServerClient.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-      user_metadata: { role: "ORGANIZER", name },
-    });
-    if (authError || !authData.user) {
-      const message = authError?.message?.toLowerCase().includes("already")
-        ? "An account with this email already exists"
-        : (authError?.message || "Unable to create organizer account");
-      return res.status(authError?.message?.toLowerCase().includes("already") ? 409 : 400).json({ success: false, error: message });
-    }
-    createdUserId = authData.user.id;
+        const { data: authData, error: authError } = await supabaseServerClient.auth.admin.createUser({
+          email,
+          password,
+          email_confirm: true,
+          user_metadata: { role: "ORGANIZER", name },
+        });
+        if (authError || !authData.user) {
+          const message = authError?.message?.toLowerCase().includes("already")
+            ? "An account with this email already exists"
+            : (authError?.message || "Unable to create organizer account");
+          return res.status(authError?.message?.toLowerCase().includes("already") ? 409 : 400).json({ success: false, error: message });
+        }
+        createdUserId = authData.user.id;
 
-    const slugBase = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "organizer";
-    const now = new Date().toISOString();
-    const profile = {
-      id: createdUserId,
-      auth_user_id: createdUserId,
-      email,
-      name: "",
-      contact_person: name,
-      phone: "",
-      website: "",
-      about_organization: "",
-      logo: "https://images.unsplash.com/photo-1599305445671-ac291c95aba9?auto=format&fit=crop&w=120&h=120&q=80",
-      cover_image: "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=1000&q=80",
-      country: "Japan",
-      city: "Tokyo",
-      is_verified: false,
-      is_suspended: false,
-      is_featured: false,
-      is_profile_complete: false,
-      slug: `${slugBase}-${createdUserId.slice(0, 8)}`,
-      created_at: now,
-    };
-    const { error: profileError } = await supabaseServerClient.from("organizers").insert(profile);
-    if (profileError) throw profileError;
+        const slugBase = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "organizer";
+        const now = new Date().toISOString();
+        const profile = {
+          id: createdUserId,
+          auth_user_id: createdUserId,
+          email,
+          name: "",
+          contact_person: name,
+          phone: "",
+          website: "",
+          about_organization: "",
+          logo: "https://images.unsplash.com/photo-1599305445671-ac291c95aba9?auto=format&fit=crop&w=120&h=120&q=80",
+          cover_image: "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=1000&q=80",
+          country: "Japan",
+          city: "Tokyo",
+          is_verified: false,
+          is_suspended: false,
+          is_featured: false,
+          is_profile_complete: false,
+          slug: `${slugBase}-${createdUserId.slice(0, 8)}`,
+          created_at: now,
+        };
+        const { error: profileError } = await supabaseServerClient.from("organizers").insert(profile);
+        if (profileError) throw profileError;
 
-    const { error: secretError } = await supabaseServerClient.from("organizer_auth_secrets").insert({
-      auth_user_id: createdUserId,
-      organizer_id: createdUserId,
-      email,
-      reset_pin_hash: hashRecoveryPin(resetPin),
-      failed_pin_attempts: 0,
-      pin_lockout_until: null,
-      updated_at: now,
-    });
-    if (secretError) throw secretError;
+        const { error: secretError } = await supabaseServerClient.from("organizer_auth_secrets").insert({
+          auth_user_id: createdUserId,
+          organizer_id: createdUserId,
+          email,
+          reset_pin_hash: hashRecoveryPin(resetPin),
+          failed_pin_attempts: 0,
+          pin_lockout_until: null,
+          updated_at: now,
+        });
+        if (secretError) throw secretError;
 
-    return res.json({ success: true, userId: createdUserId });
-  } catch (err: any) {
-    if (createdUserId) {
-      await supabaseServerClient.from("organizer_auth_secrets").delete().eq("auth_user_id", createdUserId).catch(() => undefined);
-      await supabaseServerClient.from("organizers").delete().eq("id", createdUserId).catch(() => undefined);
-      await supabaseServerClient.auth.admin.deleteUser(createdUserId).catch(() => undefined);
-    }
+        return res.json({ success: true, userId: createdUserId });
+      } catch (err: any) {
+        if (createdUserId) {
+        try {
+          await supabaseServerClient
+            .from("organizer_auth_secrets")
+            .delete()
+            .eq("auth_user_id", createdUserId);
+        } catch {}
+
+        try {
+          await supabaseServerClient
+            .from("organizers")
+            .delete()
+            .eq("id", createdUserId);
+        } catch {}
+
+        try {
+          await supabaseServerClient.auth.admin.deleteUser(createdUserId);
+        } catch {}
+      }
     return res.status(500).json({ success: false, error: err?.message || "Organizer signup failed" });
   }
 });
 
 
 app.post("/api/organizer/migrate-login", rateLimit("organizer-migrate-login", 8, 15 * 60 * 1000), async (req, res) => {
-  if (!requireServiceRole(res)) return;
-  const email = String(req.body?.email || "").trim().toLowerCase();
-  const password = String(req.body?.password || "");
-  if (!email || !password) return res.status(400).json({ success: false, error: "Email and password are required." });
+      if (!requireServiceRole(res)) return;
+      const email = String(req.body?.email || "").trim().toLowerCase();
+      const password = String(req.body?.password || "");
+      if (!email || !password) return res.status(400).json({ success: false, error: "Email and password are required." });
 
-  const { data: organizer, error: organizerError } = await supabaseServerClient
-    .from("organizers")
-    .select("id,email,auth_user_id")
-    .eq("email", email)
-    .maybeSingle();
-  if (organizerError) return res.status(500).json({ success: false, error: "Authentication migration is temporarily unavailable." });
-  if (!organizer || organizer.auth_user_id) return res.status(401).json({ success: false, error: "Invalid email or password" });
+      const { data: organizer, error: organizerError } = await supabaseServerClient
+        .from("organizers")
+        .select("id,email,auth_user_id")
+        .eq("email", email)
+        .maybeSingle();
+      if (organizerError) return res.status(500).json({ success: false, error: "Authentication migration is temporarily unavailable." });
+      if (!organizer || organizer.auth_user_id) return res.status(401).json({ success: false, error: "Invalid email or password" });
 
-  const { data: legacy, error: legacyError } = await supabaseServerClient
-    .from("organizer_legacy_auth")
-    .select("organizer_id,password_hash,reset_pin_hash")
-    .eq("organizer_id", organizer.id)
-    .maybeSingle();
-  if (legacyError || !legacy) return res.status(401).json({ success: false, error: "Invalid email or password" });
+      const { data: legacy, error: legacyError } = await supabaseServerClient
+        .from("organizer_legacy_auth")
+        .select("organizer_id,password_hash,reset_pin_hash")
+        .eq("organizer_id", organizer.id)
+        .maybeSingle();
+      if (legacyError || !legacy) return res.status(401).json({ success: false, error: "Invalid email or password" });
 
-  const unpacked = unpackLegacyOrganizerAuth(legacy.password_hash || "");
-  if (!verifyLegacyHash(password, unpacked.passwordHash)) {
-    return res.status(401).json({ success: false, error: "Invalid email or password" });
-  }
+      const unpacked = unpackLegacyOrganizerAuth(legacy.password_hash || "");
+      if (!verifyLegacyHash(password, unpacked.passwordHash)) {
+        return res.status(401).json({ success: false, error: "Invalid email or password" });
+      }
 
-  let createdUserId = "";
-  try {
-    const { data: authData, error: authError } = await supabaseServerClient.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-      user_metadata: { role: "ORGANIZER" },
-    });
-    if (authError || !authData.user) throw authError || new Error("Unable to create Supabase Auth account");
-    createdUserId = authData.user.id;
+      let createdUserId = "";
+      try {
+        const { data: authData, error: authError } = await supabaseServerClient.auth.admin.createUser({
+          email,
+          password,
+          email_confirm: true,
+          user_metadata: { role: "ORGANIZER" },
+        });
+        if (authError || !authData.user) throw authError || new Error("Unable to create Supabase Auth account");
+        createdUserId = authData.user.id;
 
-    const { error: profileUpdateError } = await supabaseServerClient
-      .from("organizers")
-      .update({ auth_user_id: createdUserId })
-      .eq("id", organizer.id);
-    if (profileUpdateError) throw profileUpdateError;
+        const { error: profileUpdateError } = await supabaseServerClient
+          .from("organizers")
+          .update({ auth_user_id: createdUserId })
+          .eq("id", organizer.id);
+        if (profileUpdateError) throw profileUpdateError;
 
-    const resetPinHash = legacy.reset_pin_hash || unpacked.resetPinHash || "";
-    if (resetPinHash) {
-      const { error: secretError } = await supabaseServerClient.from("organizer_auth_secrets").upsert({
-        auth_user_id: createdUserId,
-        organizer_id: organizer.id,
-        email,
-        reset_pin_hash: resetPinHash.startsWith("scrypt$") ? resetPinHash : `legacy$${resetPinHash}`,
-        failed_pin_attempts: 0,
-        pin_lockout_until: null,
-        updated_at: new Date().toISOString(),
-      });
-      if (secretError) throw secretError;
-    }
+        const resetPinHash = legacy.reset_pin_hash || unpacked.resetPinHash || "";
+        if (resetPinHash) {
+          const { error: secretError } = await supabaseServerClient.from("organizer_auth_secrets").upsert({
+            auth_user_id: createdUserId,
+            organizer_id: organizer.id,
+            email,
+            reset_pin_hash: resetPinHash.startsWith("scrypt$") ? resetPinHash : `legacy$${resetPinHash}`,
+            failed_pin_attempts: 0,
+            pin_lockout_until: null,
+            updated_at: new Date().toISOString(),
+          });
+          if (secretError) throw secretError;
+        }
 
-    await supabaseServerClient.from("organizer_legacy_auth").delete().eq("organizer_id", organizer.id);
-    return res.json({ success: true, organizerId: organizer.id });
-  } catch (err: any) {
-    if (createdUserId) {
-      await supabaseServerClient.from("organizer_auth_secrets").delete().eq("auth_user_id", createdUserId).catch(() => undefined);
-      await supabaseServerClient.from("organizers").update({ auth_user_id: null }).eq("id", organizer.id).catch(() => undefined);
-      await supabaseServerClient.auth.admin.deleteUser(createdUserId).catch(() => undefined);
+        await supabaseServerClient.from("organizer_legacy_auth").delete().eq("organizer_id", organizer.id);
+        return res.json({ success: true, organizerId: organizer.id });
+      } catch (err: any) {
+        if (createdUserId) {
+      try {
+        await supabaseServerClient
+          .from("organizer_auth_secrets")
+          .delete()
+          .eq("auth_user_id", createdUserId);
+      } catch {}
+
+      try {
+        await supabaseServerClient
+          .from("organizers")
+          .delete()
+          .eq("id", createdUserId);
+      } catch {}
+
+      try {
+        await supabaseServerClient.auth.admin.deleteUser(createdUserId);
+      } catch {}
     }
     return res.status(500).json({ success: false, error: err?.message || "Organizer account migration failed" });
   }
@@ -771,13 +799,27 @@ app.post("/api/organizer/reset-password", rateLimit("organizer-reset-password", 
       }
       await supabaseServerClient.from("organizer_legacy_auth").delete().eq("organizer_id", organizer.id);
     }
-    return res.json({ success: true });
-  } catch (err: any) {
-    if (createdAuthUser && authUserId) {
-      await supabaseServerClient.from("organizer_auth_secrets").delete().eq("auth_user_id", authUserId).catch(() => undefined);
-      await supabaseServerClient.from("organizers").update({ auth_user_id: null }).eq("id", organizer.id).catch(() => undefined);
-      await supabaseServerClient.auth.admin.deleteUser(authUserId).catch(() => undefined);
-    }
+          return res.json({ success: true });
+        } catch (err: any) {
+          if (createdAuthUser && authUserId) {
+        try {
+          await supabaseServerClient
+            .from("organizer_auth_secrets")
+            .delete()
+            .eq("auth_user_id", authUserId);
+        } catch {}
+
+        try {
+          await supabaseServerClient
+            .from("organizers")
+            .update({ auth_user_id: null })
+            .eq("id", organizer.id);
+        } catch {}
+
+        try {
+          await supabaseServerClient.auth.admin.deleteUser(authUserId);
+        } catch {}
+      }
     return res.status(500).json({ success: false, error: err?.message || "Failed to update password." });
   }
 });
@@ -971,47 +1013,119 @@ app.post("/api/admin/profile", requireAdminSession, async (req, res) => {
   }
 });
 
-// Admin Password Change Endpoint (Server-Side Hash & Salt Validation)
-app.post("/api/admin/change-password", rateLimit("admin-password", 5, 30 * 60 * 1000), requireAdminSession, async (req, res) => {
-  try {
-    await adminStoreReady;
-    const { currentPassword, newPassword, confirmPassword } = req.body || {};
+// Admin Email / ID + Password Update
+app.post(
+  "/api/admin/update-credentials",
+  rateLimit("admin-credentials", 5, 30 * 60 * 1000),
+  requireAdminSession,
+  async (req, res) => {
+    try {
+      await adminStoreReady;
 
-    if (!currentPassword || !newPassword || !confirmPassword) {
-      return res.status(400).json({ success: false, error: "All password fields are required." });
+      const {
+        currentPassword,
+        newEmail,
+        newPassword,
+        confirmPassword
+      } = req.body || {};
+
+      if (!currentPassword) {
+        return res.status(400).json({
+          success: false,
+          error: "Current password is required."
+        });
+      }
+
+      // Verify current password
+      const computedCurrentHash =
+        hashAdminPassword(String(currentPassword));
+
+      if (computedCurrentHash !== currentAdminPasswordHash) {
+        return res.status(401).json({
+          success: false,
+          error: "Current password is incorrect."
+        });
+      }
+
+      const cleanEmail = String(newEmail || "")
+        .trim()
+        .toLowerCase();
+
+      if (cleanEmail && !/^\S+@\S+\.\S+$/.test(cleanEmail)) {
+        return res.status(400).json({
+          success: false,
+          error: "Enter a valid Admin email."
+        });
+      }
+
+      if (newPassword || confirmPassword) {
+        if (String(newPassword).length < 6) {
+          return res.status(400).json({
+            success: false,
+            error: "New password must be at least 6 characters."
+          });
+        }
+
+        if (newPassword !== confirmPassword) {
+          return res.status(400).json({
+            success: false,
+            error: "New password and confirmation do not match."
+          });
+        }
+      }
+
+      const previousProfile = { ...currentAdminProfile };
+      const previousPasswordHash = currentAdminPasswordHash;
+
+      // Replace old Admin email
+      if (cleanEmail) {
+        currentAdminProfile = {
+          ...currentAdminProfile,
+          email: cleanEmail,
+          updatedAt: new Date().toISOString()
+        };
+      }
+
+      // Replace old password
+      if (newPassword) {
+        currentAdminPasswordHash =
+          hashAdminPassword(String(newPassword));
+      }
+
+      const persisted = await persistAdminStore();
+
+      if (!persisted.success) {
+        // Roll back if saving fails
+        currentAdminProfile = previousProfile;
+        currentAdminPasswordHash = previousPasswordHash;
+
+        return res.status(503).json({
+          success: false,
+          error:
+            "Admin credentials could not be saved: " +
+            persisted.error
+        });
+      }
+
+      return res.json({
+        success: true,
+        email: currentAdminProfile.email,
+        message: "Admin credentials updated successfully."
+      });
+
+    } catch (error) {
+      console.error(
+        "Admin credential update failed:",
+        error
+      );
+
+      return res.status(500).json({
+        success: false,
+        error: "Unable to update Admin credentials."
+      });
     }
-
-    if (newPassword !== confirmPassword) {
-      return res.status(400).json({ success: false, error: "New password and confirmation do not match." });
-    }
-
-    if (newPassword.length < 6) {
-      return res.status(400).json({ success: false, error: "New password must be at least 6 characters long." });
-    }
-
-    // Verify current password hash
-    const computedCurrentHash = hashAdminPassword(currentPassword);
-
-    if (computedCurrentHash !== currentAdminPasswordHash) {
-      return res.status(401).json({ success: false, error: "Current password is incorrect." });
-    }
-
-    // Generate new hash
-    const newPasswordHash = hashAdminPassword(newPassword);
-    const previousPasswordHash = currentAdminPasswordHash;
-    currentAdminPasswordHash = newPasswordHash;
-
-    const persisted = await persistAdminStore();
-    if (!persisted.success) {
-      currentAdminPasswordHash = previousPasswordHash;
-      return res.status(503).json({ success: false, error: `Password could not be saved: ${persisted.error}` });
-    }
-
-    return res.json({ success: true, message: "Admin password successfully updated. Please use your new password next time." });
-  } catch (err: any) {
-    return res.status(500).json({ success: false, error: "Server error updating admin password." });
   }
-});
+);
 
 type ResetTarget = {
   table: string;

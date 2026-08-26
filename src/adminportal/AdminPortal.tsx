@@ -1818,6 +1818,13 @@ const handleCancelAboutUsEdit = () => {
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [passwordFeedback, setPasswordFeedback] = useState<{ type: "success" | "error"; msg: string } | null>(null);
 
+  const [newAdminEmail, setNewAdminEmail] = useState(
+  authUser?.email || ""
+);
+
+const [isSavingCredentials, setIsSavingCredentials] =
+  useState(false);
+
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setPasswordFeedback(null);
@@ -1858,6 +1865,74 @@ const handleCancelAboutUsEdit = () => {
       setIsChangingPassword(false);
     }
   };
+
+  const handleUpdateAdminCredentials = async (
+  e: React.FormEvent
+) => {
+  e.preventDefault();
+
+  if (!currentPassword.trim()) {
+    showToast("Current password is required.");
+    return;
+  }
+
+  if (
+    newPassword &&
+    newPassword !== confirmPassword
+  ) {
+    showToast("New passwords do not match.");
+    return;
+  }
+
+  setIsSavingCredentials(true);
+
+  try {
+    const res = await adminFetch(
+      "/api/admin/update-credentials",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          currentPassword,
+          newEmail: newAdminEmail,
+          newPassword,
+          confirmPassword
+        })
+      }
+    );
+
+    const data = await res.json();
+
+    if (!res.ok || !data.success) {
+      showToast(
+        data.error || "Unable to update Admin credentials."
+      );
+      return;
+    }
+
+    setAdminProfile((prev) => ({
+      ...prev,
+      email: data.email || prev.email
+    }));
+
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
+
+    showToast("Admin credentials updated successfully!");
+  } catch (error) {
+    console.error(
+      "Admin credentials update failed:",
+      error
+    );
+
+    showToast("Unable to update Admin credentials.");
+  } finally {
+    setIsSavingCredentials(false);
+  }
+};
 
   // Database Reset States
   const [resetAdminPassword, setResetAdminPassword] = useState("");
@@ -2566,7 +2641,7 @@ const handleCancelAboutUsEdit = () => {
                 <div className="flex items-center justify-between border-b border-slate-100 pb-5 mb-6">
                   <div>
                     <h2 className="text-xl font-extrabold text-[#37494E]">Super Admin Profile</h2>
-                    <p className="text-xs text-slate-500 mt-1">Manage your platform administration credentials and display details.</p>
+                    <p className="text-xs text-slate-500 mt-1"> Manage your Super Admin display name and profile photo.</p>
                   </div>
                   <span className="px-3 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded-full border border-blue-200">
                     Master Administrator
@@ -2717,7 +2792,7 @@ const handleCancelAboutUsEdit = () => {
                     <Key className="h-6 w-6" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-extrabold text-[#37494E]">Change Admin Password</h2>
+                    <h2 className="text-xl font-extrabold text-[#37494E]">Admin Login Credentials</h2>
                     <p className="text-xs text-slate-500 mt-0.5">Update your Super Admin access key with secure server-side verification.</p>
                   </div>
                 </div>
@@ -2737,83 +2812,120 @@ const handleCancelAboutUsEdit = () => {
                   </div>
                 )}
 
-                <form onSubmit={handleChangePassword} className="space-y-4 text-xs">
-                  <div className="space-y-1.5">
-                    <label className="font-bold text-slate-700 uppercase text-[10px] tracking-wider">Current Password</label>
-                    <div className="relative">
-                      <input
-                        type={showCurrentPw ? "text" : "password"}
-                        required
-                        value={currentPassword}
-                        onChange={(e) => setCurrentPassword(e.target.value)}
-                        placeholder="Enter current password"
-                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10 bg-white"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowCurrentPw(!showCurrentPw)}
-                        className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer"
-                      >
-                        {showCurrentPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="font-bold text-slate-700 uppercase text-[10px] tracking-wider">New Password (Min 6 chars)</label>
-                    <div className="relative">
-                      <input
-                        type={showNewPw ? "text" : "password"}
-                        required
-                        minLength={6}
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                        placeholder="Enter new strong password"
-                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10 bg-white"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowNewPw(!showNewPw)}
-                        className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer"
-                      >
-                        {showNewPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="font-bold text-slate-700 uppercase text-[10px] tracking-wider">Confirm New Password</label>
-                    <div className="relative">
-                      <input
-                        type={showConfirmPw ? "text" : "password"}
-                        required
-                        minLength={6}
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        placeholder="Re-type new password"
-                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10 bg-white"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowConfirmPw(!showConfirmPw)}
-                        className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer"
-                      >
-                        {showConfirmPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="pt-4 border-t border-slate-100">
-                    <button
-                      type="submit"
-                      disabled={isChangingPassword}
-                      className="w-full py-3 bg-[#37494E] hover:bg-[#2c3b3f] text-white font-bold text-xs rounded-xl transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                <form
+                      onSubmit={handleUpdateAdminCredentials}
+                      className="space-y-4 text-xs"
                     >
-                      {isChangingPassword ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
-                      <span>{isChangingPassword ? "Updating Password..." : "Update Password"}</span>
-                    </button>
-                  </div>
-                </form>
+                      <div className="space-y-1.5">
+                        <label className="font-bold text-slate-700 uppercase text-[10px] tracking-wider">
+                          Admin Email / ID
+                        </label>
+
+                        <input
+                          type="email"
+                          required
+                          value={newAdminEmail}
+                          onChange={(e) => setNewAdminEmail(e.target.value)}
+                          placeholder="Enter admin email"
+                          className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="font-bold text-slate-700 uppercase text-[10px] tracking-wider">
+                          Current Password
+                        </label>
+
+                        <div className="relative">
+                          <input
+                            type={showCurrentPw ? "text" : "password"}
+                            required
+                            value={currentPassword}
+                            onChange={(e) => setCurrentPassword(e.target.value)}
+                            placeholder="Enter current password"
+                            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10 bg-white"
+                          />
+
+                          <button
+                            type="button"
+                            onClick={() => setShowCurrentPw(!showCurrentPw)}
+                            className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer"
+                          >
+                            {showCurrentPw ? (
+                              <EyeOff className="h-4 w-4" />
+                            ) : (
+                              <Eye className="h-4 w-4" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="font-bold text-slate-700 uppercase text-[10px] tracking-wider">
+                          New Password
+                        </label>
+
+                        <div className="relative">
+                          <input
+                            type={showNewPw ? "text" : "password"}
+                            value={newPassword}
+                            onChange={(e) => setNewPassword(e.target.value)}
+                            placeholder="Leave blank if password is unchanged"
+                            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10 bg-white"
+                          />
+
+                          <button
+                            type="button"
+                            onClick={() => setShowNewPw(!showNewPw)}
+                            className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer"
+                          >
+                            {showNewPw ? (
+                              <EyeOff className="h-4 w-4" />
+                            ) : (
+                              <Eye className="h-4 w-4" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="font-bold text-slate-700 uppercase text-[10px] tracking-wider">
+                          Confirm New Password
+                        </label>
+
+                        <div className="relative">
+                          <input
+                            type={showConfirmPw ? "text" : "password"}
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            placeholder="Confirm new password"
+                            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10 bg-white"
+                          />
+
+                          <button
+                            type="button"
+                            onClick={() => setShowConfirmPw(!showConfirmPw)}
+                            className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer"
+                          >
+                            {showConfirmPw ? (
+                              <EyeOff className="h-4 w-4" />
+                            ) : (
+                              <Eye className="h-4 w-4" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+
+                      <button
+                        type="submit"
+                        disabled={isSavingCredentials}
+                        className="w-full px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold disabled:opacity-50 cursor-pointer"
+                      >
+                        {isSavingCredentials
+                          ? "Saving..."
+                          : "Save Admin Credentials"}
+                      </button>
+                    </form>
               </div>
             </div>
           )}
@@ -2895,18 +3007,12 @@ const handleCancelAboutUsEdit = () => {
                 <div>
                   <h3 className="text-base font-bold text-[#37494E]">Organizer Management</h3>
                   <p className="text-xs text-slate-500">
-                    Review completed organizer profiles, activate or deactivate accounts, verify organizers, and manage organizer access.
+                    Review completed organizer profiles, verify organizers, and manage organizer details.
                   </p>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap text-xs">
                   <span className="px-3 py-1 bg-slate-100 text-slate-700 font-bold rounded-full border border-slate-200">
                     Total: {organizers.length}
-                  </span>
-                  <span className="px-3 py-1 bg-emerald-100 text-emerald-800 font-bold rounded-full border border-emerald-200">
-                    Active: {organizers.filter((o) => !o.isSuspended).length}
-                  </span>
-                  <span className="px-3 py-1 bg-amber-100 text-amber-800 font-bold rounded-full border border-amber-200">
-                    Pending/Inactive: {organizers.filter((o) => o.isSuspended).length}
                   </span>
                 </div>
               </div>
@@ -2931,8 +3037,6 @@ const handleCancelAboutUsEdit = () => {
                     className="bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-700 cursor-pointer"
                   >
                     <option value="All">All Statuses</option>
-                    <option value="Active">Active Only</option>
-                    <option value="Inactive">Inactive / Pending Activation</option>
                     <option value="Verified">Verified Only</option>
                   </select>
                 </div>
@@ -2950,8 +3054,6 @@ const handleCancelAboutUsEdit = () => {
 
                   const matchesStatus =
                     statusFilter === "All" ||
-                    (statusFilter === "Active" && !o.isSuspended) ||
-                    (statusFilter === "Inactive" && o.isSuspended) ||
                     (statusFilter === "Verified" && o.isVerified);
 
                   return matchesSearch && matchesStatus;
@@ -3025,17 +3127,6 @@ const handleCancelAboutUsEdit = () => {
                             </div>
 
                             <div className="flex items-center gap-2 pt-1 flex-wrap">
-                              {org.isSuspended ? (
-                                <span className="px-2.5 py-0.5 bg-amber-100 text-amber-800 font-bold text-[10px] rounded-full border border-amber-200 flex items-center gap-1">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
-                                  Inactive / Pending Activation
-                                </span>
-                              ) : (
-                                <span className="px-2.5 py-0.5 bg-emerald-100 text-emerald-800 font-bold text-[10px] rounded-full border border-emerald-200 flex items-center gap-1">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                  Active
-                                </span>
-                              )}
                               {org.isVerified ? (
                                 <span className="px-2.5 py-0.5 bg-blue-100 text-blue-800 font-bold text-[10px] rounded-full flex items-center gap-1 border border-blue-200">
                                   <CheckCircle2 className="h-3 w-3 text-blue-600" /> Verified
@@ -3066,20 +3157,6 @@ const handleCancelAboutUsEdit = () => {
                               className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs cursor-pointer transition-colors"
                             >
                               {org.isVerified ? "Unverify" : "Verify"}
-                            </button>
-
-                            <button
-                              onClick={async () => {
-                                const result = await onToggleSuspendOrganizer(org.id);
-                                showToast(result.success
-                                  ? (result.isActive ? `Activated organizer "${org.organizationName}"` : `Deactivated organizer "${org.organizationName}"`)
-                                  : (result.error || "Unable to update organizer status."));
-                              }}
-                              className={`px-3 py-1.5 font-bold rounded-xl text-xs cursor-pointer transition-colors ${
-                                org.isSuspended ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs" : "bg-amber-500 hover:bg-amber-600 text-white"
-                              }`}
-                            >
-                              {org.isSuspended ? "Activate" : "Deactivate"}
                             </button>
 
                             <button
@@ -7406,25 +7483,6 @@ const handleCancelAboutUsEdit = () => {
                       {viewingOrgDetails.isVerified ? "Unverify Organizer" : "Verify Organizer"}
                     </button>
 
-                    <button
-                      onClick={async () => {
-                        const result = await onToggleSuspendOrganizer(viewingOrgDetails.id);
-                        if (result.success) {
-                          const updated = { ...viewingOrgDetails, isSuspended: !result.isActive };
-                          setViewingOrgDetails(updated);
-                        }
-                        showToast(result.success
-                          ? (result.isActive ? "Organizer account activated!" : "Organizer account deactivated.")
-                          : (result.error || "Unable to update organizer status."));
-                      }}
-                      className={`px-5 py-2 font-bold text-xs rounded-xl transition-colors cursor-pointer shadow-sm ${
-                        viewingOrgDetails.isSuspended
-                          ? "bg-emerald-600 hover:bg-emerald-700 text-white"
-                          : "bg-amber-500 hover:bg-amber-600 text-white"
-                      }`}
-                    >
-                      {viewingOrgDetails.isSuspended ? "Activate Organizer" : "Deactivate Organizer"}
-                    </button>
                   </div>
                 </div>
               </div>

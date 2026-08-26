@@ -2420,17 +2420,21 @@ const handleAddCategory = async (cat: Partial<Category>) => {
       .toString(36)
       .substring(2, 7)}`;
 
-  const topic: Category = {
-    id,
-    name: nameTrimmed,
-    slug:
-      existing?.slug ||
-      cat.slug ||
-      nameTrimmed
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-+|-+$/g, ""),
-  };
+ const topic: Category = {
+  id,
+  name: nameTrimmed,
+  description:
+    cat.description ||
+    existing?.description ||
+    "",
+  slug:
+    existing?.slug ||
+    cat.slug ||
+    nameTrimmed
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, ""),
+};
 
   const result =
     await saveRecordToSupabase(
@@ -2511,15 +2515,16 @@ const handleAddBulkCategories = async (
       if (!normalized) return;
 
       workingMap.set(normalized, {
-        id: cat.id,
-        name: toUpperCaseName(cat.name),
-        slug:
-          cat.slug ||
-          normalized
-            .toLowerCase()
-            .replace(/[^a-z0-9]+/g, "-")
-            .replace(/^-+|-+$/g, ""),
-      });
+      id: cat.id,
+      name: toUpperCaseName(cat.name),
+      description: cat.description || "",
+      slug:
+        cat.slug ||
+        normalized
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-+|-+$/g, ""),
+    });
     });
 
     let addedCount = 0;
@@ -2547,6 +2552,10 @@ const handleAddBulkCategories = async (
       const topic: Category = {
         id,
         name: nameTrimmed,
+        description:
+          cat.description ||
+          existing?.description ||
+          "",
         slug:
           existing?.slug ||
           cat.slug ||
@@ -2665,6 +2674,7 @@ const handleEditCategory = async (
           .toLowerCase()
           .replace(/[^a-z0-9]+/g, "-")
           .replace(/^-+|-+$/g, ""),
+          description: updated.description?.trim() || existing.description || "",
     };
 
     const result =
