@@ -3170,7 +3170,7 @@ const handleEditCategory = async (
     ];
 
     return (
-      <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-100/85 py-3.5 px-4 md:px-6 shadow-sm flex items-center justify-between">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-100/85 shadow-sm px-3 sm:px-4 md:px-6 py-2.5 sm:py-3 flex items-center justify-between gap-2 min-w-0">
         {/* Left Side: Website Logo */}
         <div 
           className="flex items-center gap-3 cursor-pointer group"
@@ -3191,7 +3191,7 @@ const handleEditCategory = async (
             window.scrollTo({ top: 0, behavior: "smooth" });
           }}
         >
-          <div className="w-[180px] h-12 sm:w-[200px] sm:h-14 flex items-center justify-start shrink-0 group-hover:scale-105 transition-transform">
+          <div className="w-[130px] h-10 xs:w-[145px] sm:w-[175px] sm:h-12 md:w-[190px] md:h-14 flex items-center justify-start shrink-0 group-hover:scale-105 transition-transform">
             <img
               src="/company-logo.png"
               alt="International Conference Logo"
@@ -3201,7 +3201,7 @@ const handleEditCategory = async (
         </div>
 
         {/* Right Side: Navigation & Auth Actions */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-1.5 sm:gap-3 md:gap-4 min-w-0 shrink-0">
           {/* Desktop Nav Links - Hidden in Admin / Organizer Portal */}
           {authUser?.role !== "ADMIN" && authUser?.role !== "ORGANIZER" && activePortal !== "ADMIN" && activePortal !== "ORGANIZER" && (
             <nav className="hidden md:flex items-center gap-6 mr-2">
@@ -3288,17 +3288,23 @@ const handleEditCategory = async (
 
           {/* Mobile Menu Toggle Button */}
           <button
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-600 cursor-pointer"
-            aria-label="Toggle Menu"
+            type="button"
+            onClick={() => setIsMobileMenuOpen((prev) => !prev)}
+            className="md:hidden w-10 h-10 p-0 rounded-xl hover:bg-gray-100 active:bg-gray-200 transition-colors text-gray-700 cursor-pointer flex items-center justify-center shrink-0"
+            aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
+            aria-expanded={isMobileMenuOpen}
           >
-            {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            {isMobileMenuOpen ? (
+              <X className="h-5 w-5 sm:h-6 sm:w-6" />
+            ) : (
+              <Menu className="h-5 w-5 sm:h-6 sm:w-6" />
+            )}
           </button>
         </div>
 
         {/* Mobile Dropdown Overlay Menu */}
         {isMobileMenuOpen && (
-          <div className="absolute top-full left-0 right-0 bg-white border-b border-gray-100 shadow-lg px-4 py-4 flex flex-col gap-3 md:hidden z-50">
+          <div className="absolute top-full left-0 right-0 bg-white border-b border-gray-100 shadow-xl px-3 sm:px-4 py-3 flex flex-col gap-2 md:hidden z-50 max-h-[calc(100dvh-64px)] overflow-y-auto overscroll-contain">
             {authUser?.role !== "ADMIN" && authUser?.role !== "ORGANIZER" && activePortal !== "ADMIN" && activePortal !== "ORGANIZER" && navItems.map((item) => {
               const isActive = activePortal === "VISITOR" && publicTab === item.tabId;
               return (

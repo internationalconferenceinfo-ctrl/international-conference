@@ -1587,15 +1587,15 @@ const filterDescription = useMemo(() => {
   };
 
   return (
-    <div className="space-y-20">
+    <div className="space-y-10 sm:space-y-12 md:space-y-16 lg:space-y-20 w-full min-w-0">
       
       {tab === "HOME" && (
         <>
           {/* Hero Carousel Banner Section */}
-          <section
-  id="home"
-  className="relative rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl h-[360px] sm:h-[420px] md:h-[480px] lg:h-[520px] flex items-center bg-slate-900"
->
+        <section
+        id="home"
+        className="relative w-full min-w-0 rounded-xl sm:rounded-2xl md:rounded-3xl overflow-hidden shadow-2xl min-h-[430px] sm:min-h-[440px] md:min-h-[480px] lg:min-h-[520px] flex items-center bg-slate-900"
+      >
         {/* Carousel Slide Images */}
         <div className="absolute inset-0 z-0">
           <AnimatePresence mode="wait">
@@ -1611,7 +1611,7 @@ const filterDescription = useMemo(() => {
                 <img
                   src={activeBannersList[currentSlide % activeBannersList.length]?.image || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=800&q=80"}
                   alt={activeBannersList[currentSlide % activeBannersList.length]?.title || "Conference Banner"}
-                  className="w-full h-full object-contain object-center"
+                  className="w-full h-full object-cover object-center"
                   referrerPolicy="no-referrer"
                 />
               </motion.div>
@@ -1623,16 +1623,16 @@ const filterDescription = useMemo(() => {
         </div>
 
           {/* Hero Overlay Content */}
-        <div className="relative z-10 w-full h-full px-4 sm:px-8 md:px-10 lg:px-12 text-white flex flex-col items-center justify-center text-center space-y-4">
+        <div className="relative z-10 w-full min-w-0 px-4 py-10 sm:px-6 sm:py-12 md:px-10 md:py-14 lg:px-12 text-white flex flex-col items-center justify-center text-center gap-4 sm:gap-5">
           <div className="space-y-2">
-            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold font-display leading-tight tracking-tight line-clamp-2">
+            <h1 className="text-[1.75rem] leading-[1.15] sm:text-4xl md:text-5xl lg:text-6xl font-extrabold font-display tracking-tight max-w-5xl mx-auto line-clamp-3 sm:line-clamp-2 break-words">
               {currentBannerContent?.title ? (
                 currentBannerContent.title
               ) : (
                 <>Discover <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">International</span> Conferences</>
               )}
             </h1>
-            <p className="text-slate-100 text-base sm:text-lg md:text-xl max-w-3xl mx-auto font-medium leading-relaxed line-clamp-2">
+            <p className="text-slate-100 text-sm leading-6 sm:text-base sm:leading-7 md:text-lg lg:text-xl max-w-3xl mx-auto font-medium line-clamp-3 sm:line-clamp-2 px-1">
               {currentBannerContent?.description ? (
                 currentBannerContent.description
               ) : (
@@ -1642,7 +1642,7 @@ const filterDescription = useMemo(() => {
           </div>
 
           {/* Quick Action Buttons */}
-          <div className="flex flex-wrap justify-center items-center gap-3">
+          <div className="w-full sm:w-auto flex flex-col min-[420px]:flex-row sm:flex-row justify-center items-stretch sm:items-center gap-2.5 sm:gap-3">
             <button
               onClick={() => {
                 if (onTabChange) {
@@ -1653,7 +1653,7 @@ const filterDescription = useMemo(() => {
                   if (target) target.scrollIntoView({ behavior: "smooth" });
                 }, 50);
               }}
-              className="px-5 sm:px-6 py-2.5 sm:py-3 text-sm sm:text-base bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all border border-blue-500 hover:border-blue-600 shadow-lg shadow-blue-600/30 flex items-center gap-1.5 sm:gap-2 cursor-pointer text-[11px] sm:text-sm"
+              className="w-full sm:w-auto min-h-11 px-4 sm:px-6 py-2.5 sm:py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all border border-blue-500 hover:border-blue-600 shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 cursor-pointer text-xs sm:text-sm md:text-base"
             >
               Explore Conferences <ArrowRight className="h-4 w-4" />
             </button>
@@ -1661,16 +1661,16 @@ const filterDescription = useMemo(() => {
               onClick={() => {
                 if (onLoginClick) onLoginClick();
               }}
-              className="px-5 sm:px-6 py-2.5 sm:py-3 text-sm sm:text-base bg-white/10 hover:bg-white/20 text-white font-bold rounded-xl transition-all border border-white/30 hover:border-white/55 flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-sm cursor-pointer"
+              className="w-full sm:w-auto min-h-11 px-4 sm:px-6 py-2.5 sm:py-3 bg-white/10 hover:bg-white/20 text-white font-bold rounded-xl transition-all border border-white/30 hover:border-white/55 flex items-center justify-center gap-2 text-xs sm:text-sm md:text-base cursor-pointer"
             >
               Submit a Conference
             </button>
           </div>
 
           {/* Search Box on Hero */}
-          <div className="w-full max-w-2xl mx-auto bg-slate-900/60 backdrop-blur-md rounded-2xl p-2 sm:p-2.5 border border-white/10 shadow-lg mt-2">
+          <div className="w-full max-w-2xl min-w-0 mx-auto bg-slate-900/60 backdrop-blur-md rounded-xl sm:rounded-2xl p-2 sm:p-2.5 border border-white/10 shadow-lg mt-1 sm:mt-2">
             <div className="flex flex-col sm:flex-row gap-2">
-              <div className="flex-1 flex items-center px-3.5 gap-2.5 bg-white/5 rounded-xl border border-white/5">
+              <div className="w-full sm:flex-1 min-w-0 min-h-11 flex items-center px-3 gap-2.5 bg-white/5 rounded-xl border border-white/5">
                 <Search className="h-4 w-4 text-blue-300 shrink-0" />
                 <input
                   type="text"
@@ -1728,8 +1728,8 @@ const filterDescription = useMemo(() => {
       </section>
 
       {/* Statistics Section */}
-      <section className="relative z-10 -mt-10">
-        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
+      <section className="relative z-10 mt-0 sm:-mt-4 md:-mt-6 lg:-mt-10">
+        <div className="grid grid-cols-1 min-[400px]:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-5">
           <div className="bg-white border border-slate-150 hover:border-blue-300 rounded-2xl p-3.5 sm:p-6 shadow-sm hover:shadow-md transition-all duration-300 flex items-center gap-2.5 sm:gap-4">
             <div className="p-2.5 sm:p-3.5 bg-blue-50 text-blue-600 rounded-xl shrink-0">
               <Award className="h-5 w-5 sm:h-6 sm:w-6" />
@@ -1786,10 +1786,10 @@ const filterDescription = useMemo(() => {
 
 
       {/* International Conference Countries */}
-      <section className="space-y-6">
+      <section className="space-y-4 sm:space-y-5 md:space-y-6 min-w-0">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h2 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight font-display flex items-center gap-2">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight font-display flex items-start sm:items-center gap-2 leading-tight">
               <Globe className="h-6 w-6 text-blue-600" /> International Conference Countries
             </h2>
             <p className="text-slate-500 text-sm mt-1">
@@ -1821,14 +1821,14 @@ const filterDescription = useMemo(() => {
             No countries found matching "{countrySearchQuery}".
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5 max-h-[520px] overflow-y-auto pr-1">
+          <div className="grid grid-cols-1 min-[420px]:grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2.5 sm:gap-3.5 max-h-[520px] overflow-y-auto pr-1">
             {filteredCountriesList.map((country, cIdx) => (
               <motion.button
                 key={`${country}-${cIdx}`}
                 whileHover={{ scale: 1.03, y: -2 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => handleCountryClick(country)}
-                className={`p-3.5 rounded-2xl border text-left flex items-center gap-2.5 transition-all cursor-pointer shadow-xs ${
+                className={`p-3 sm:p-3.5 min-h-[72px] rounded-xl sm:rounded-2xl border text-left flex items-center gap-2.5 transition-all cursor-pointer shadow-xs ${
                   selectedCity === "All" && selectedCountry === country
                     ? "bg-blue-600 border-blue-600 text-white"
                     : "bg-white border-slate-150 text-slate-800 hover:border-blue-300"
@@ -1848,17 +1848,17 @@ const filterDescription = useMemo(() => {
       </section>
 
       {/* International Conference Cities */}
-      <section className="space-y-6">
+      <section className="space-y-4 sm:space-y-5 md:space-y-6 min-w-0">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h2 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight font-display flex items-center gap-2">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight font-display flex items-start sm:items-center gap-2 leading-tight">
               <Building2 className="h-6 w-6 text-emerald-600" /> International Conference Cities
             </h2>
-            <p className="text-slate-500 text-sm mt-1">
+            <p className="text-slate-500 text-xs sm:text-sm mt-1 leading-5 sm:leading-6">
               Browse conferences by city. Click any city to view all conferences held in that location.
             </p>
           </div>
-          <div className="relative w-full sm:w-64 shrink-0">
+          <div className="relative w-full sm:w-64 md:w-72 shrink-0">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <input
               type="text"
@@ -1882,7 +1882,7 @@ const filterDescription = useMemo(() => {
             No cities found matching "{citySearchQuery}".
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5 max-h-[520px] overflow-y-auto pr-1">
+          <div className="grid grid-cols-1 min-[420px]:grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2.5 sm:gap-3.5 max-h-[520px] overflow-y-auto pr-1">
             {filteredCitiesList.map((item, cIdx) => {
               const count = getCityConferenceCount(item.cityName, item.countryName);
               const isSelected = selectedCity === item.cityName && (selectedCountry === "All" || selectedCountry === item.countryName);
@@ -1893,7 +1893,7 @@ const filterDescription = useMemo(() => {
                   whileHover={{ scale: 1.03, y: -2 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => handleCityClick(item.cityName, item.countryName)}
-                  className={`p-3.5 rounded-2xl border text-left flex items-start gap-2.5 transition-all cursor-pointer shadow-xs ${
+                  className={`p-3 sm:p-3.5 min-h-[86px] rounded-xl sm:rounded-2xl border text-left flex items-start gap-2.5 transition-all cursor-pointer shadow-xs ${
                     isSelected
                       ? "bg-emerald-600 border-emerald-600 text-white"
                       : "bg-white border-slate-150 text-slate-800 hover:border-emerald-300"
@@ -1925,17 +1925,17 @@ const filterDescription = useMemo(() => {
       </section>
 
       {/* International Conference Topics */}
-      <section className="space-y-6">
+      <section className="space-y-4 sm:space-y-5 md:space-y-6 min-w-0">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h2 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight font-display flex items-center gap-2">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight font-display flex items-start sm:items-center gap-2 leading-tight">
               <BookOpen className="h-6 w-6 text-indigo-600" /> International Conference Topics
             </h2>
-            <p className="text-slate-500 text-sm mt-1">
+            <p className="text-slate-500 text-xs sm:text-sm mt-1 leading-5 sm:leading-6">
               Explore diverse topics and research fields available in event filter categories.
             </p>
           </div>
-          <div className="relative w-full sm:w-64 shrink-0">
+          <div className="relative w-full sm:w-64 md:w-72 shrink-0">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <input
               type="text"
@@ -1959,7 +1959,7 @@ const filterDescription = useMemo(() => {
             No topics found.
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-3.5">
+          <div className="grid grid-cols-1 min-[420px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2.5 sm:gap-3.5">
             {filteredTopicsList.map((topic, tIdx) => {
               const IconComponent = getTopicIcon(topic);
               const mappedCat = topicsMapping[topic] || topic;
@@ -1974,7 +1974,7 @@ const filterDescription = useMemo(() => {
                   whileHover={{ scale: 1.02, y: -2 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => handleTopicClick(topic)}
-                  className={`p-2.5 sm:p-3.5 rounded-2xl border text-left flex items-start gap-2 sm:gap-2.5 transition-all cursor-pointer shadow-xs ${
+                  className={`p-3 sm:p-3.5 min-h-[82px] rounded-xl sm:rounded-2xl border text-left flex items-start gap-2 sm:gap-2.5 transition-all cursor-pointer shadow-xs ${
                     isSelected
                       ? "bg-indigo-600 border-indigo-600 text-white"
                       : "bg-white border-slate-150 text-slate-800 hover:border-indigo-300"
@@ -1997,11 +1997,14 @@ const filterDescription = useMemo(() => {
       </section>
 
       {/* Trusted Organizers */}
-      <section id="organizers" className="scroll-mt-24 bg-slate-50 border border-slate-100 rounded-3xl p-8 md:p-12 shadow-sm space-y-6">
+      <section
+          id="organizers"
+          className="scroll-mt-24 bg-slate-50 border border-slate-100 rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 lg:p-12 shadow-sm space-y-5 sm:space-y-6 min-w-0"
+        >
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div className="space-y-1">
             <span className="text-xs font-bold uppercase tracking-wider text-blue-600 block">Verified Institutions</span>
-            <h2 className="text-2xl md:text-3xl font-extrabold text-slate-900 font-display flex items-center gap-2">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-slate-900 font-display flex items-center gap-2 leading-tight">
               <Users className="h-6 w-6 text-blue-600" /> Trusted Organizers
             </h2>
             <p className="text-slate-500 text-sm max-w-xl">
@@ -2016,7 +2019,7 @@ const filterDescription = useMemo(() => {
           </div>
         ) : (
           <div className="space-y-8">
-            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+            <div className="grid grid-cols-1 min-[420px]:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
               {trustedOrganizersList.slice(0, 8).map((org, oIdx) => {
                 const count = approvedConferences.filter((conf) => {
                   const sameOrganizerId = conf.organizerId === org.id;
@@ -2035,7 +2038,7 @@ const filterDescription = useMemo(() => {
                     whileHover={{ y: -4, scale: 1.01 }}
                     whileTap={{ scale: 0.99 }}
                     onClick={() => onSelectOrganizer(org.id)}
-                    className="group bg-white border border-slate-200 hover:border-blue-300 rounded-2xl p-3 sm:p-6 text-center hover:shadow-md transition-all flex flex-col justify-between items-center space-y-2 sm:space-y-4 cursor-pointer relative h-full"
+                    className="group bg-white border border-slate-200 hover:border-blue-300 rounded-xl sm:rounded-2xl p-4 sm:p-5 lg:p-6 text-center hover:shadow-md transition-all flex flex-col justify-between items-center gap-3 sm:gap-4 cursor-pointer relative h-full min-w-0"
                   >
                     <div className="relative w-14 h-14 sm:w-20 sm:h-20 rounded-2xl overflow-hidden border border-slate-150 shadow-xs shrink-0 bg-slate-50 flex items-center justify-center">
                       {(() => {
@@ -2126,12 +2129,12 @@ const filterDescription = useMemo(() => {
       {/* EVENTS PAGE */}
       {tab === "EVENTS" && (
         /* All Conferences Section */
-        <section id="all-conferences" className="scroll-mt-24 space-y-8">
+        <section id="all-conferences" className="scroll-mt-24 space-y-5 sm:space-y-6 md:space-y-8 min-w-0">
         <div className="space-y-4 border-b border-slate-200 pb-6">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <span className="text-xs font-bold uppercase tracking-wider text-blue-600">Conference Directory</span>
-              <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight font-display mt-1">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight font-display mt-1 leading-tight break-words">
                 {pageHeadingTitle}
               </h1>
               <p className="text-slate-500 text-sm mt-1 font-medium">
@@ -2198,8 +2201,8 @@ const filterDescription = useMemo(() => {
 
         <div className="flex flex-col gap-8 w-full">
           {/* Top horizontal filter bar - Fixed sticky positioning right below top navbar */}
-          <div className="sticky top-[68px] z-30 bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-2xl p-3.5 sm:p-4 shadow-md space-y-3 transition-all duration-300 w-full">
-            <div className="flex items-center justify-between gap-3">
+          <div className="sticky top-[64px] sm:top-[68px] z-30 bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-xl sm:rounded-2xl p-3 sm:p-4 shadow-md space-y-3 transition-all duration-300 w-full min-w-0">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3">
               <div className="flex items-center gap-2">
                 {/* Fixed Filter Button */}
                 <button
@@ -2217,7 +2220,7 @@ const filterDescription = useMemo(() => {
               </div>
 
               {/* Quick Search Input inside sticky bar */}
-              <div className="relative flex-1 max-w-xs sm:max-w-sm md:max-w-md">
+              <div className="relative w-full sm:flex-1 sm:max-w-sm md:max-w-md min-w-0">
                 <input
                   type="text"
                   placeholder="Search titles, or use /INDIA..."
@@ -2358,7 +2361,7 @@ const filterDescription = useMemo(() => {
           {/* Main Content Area: Directory Grid Container */}
           <div className="w-full">
             {/* Conference Directory Container */}
-            <div className="w-full bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs flex flex-col justify-between space-y-6">
+            <div className="w-full min-w-0 bg-white border border-slate-200/90 rounded-xl sm:rounded-2xl p-3.5 sm:p-4 md:p-5 shadow-xs flex flex-col justify-between gap-5 sm:gap-6">
               <div className="space-y-6 flex-1">
                 {/* Subheading displaying count after filter */}
                 <div className="flex items-center justify-between pb-3 border-b border-slate-200">
@@ -2428,7 +2431,7 @@ const filterDescription = useMemo(() => {
                 ) : (
                   <div className="space-y-6">
                     {/* Grid View: 2 columns on mobile, 2 on sm, 3 on md, 4 on lg */}
-                    <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
+                    <div className="grid grid-cols-1 min-[520px]:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-5 lg:gap-6">
                       {paginatedConferences.map((conf, confIdx) => {
                         const org = organizers.find((o) => o.id === conf.organizerId);
                         const orgName = org ? org.organizationName : "Verified Organizer";
@@ -2444,12 +2447,12 @@ const filterDescription = useMemo(() => {
                             onClick={isCompleted ? (e) => e.preventDefault() : () => {
                               window.open(confUrl, "_blank");
                             }}
-                            className={`group bg-white border border-slate-200 rounded-2xl overflow-hidden flex flex-col h-full relative transition-all duration-300 ${
+                            className={`group bg-white border border-slate-200 rounded-xl sm:rounded-2xl overflow-hidden flex flex-col h-full min-w-0 relative transition-all duration-300 ${
                               isCompleted ? "opacity-75 bg-slate-50 cursor-not-allowed" : "hover:border-blue-500 shadow-xs hover:shadow-lg cursor-pointer"
                             }`}
                           >
                               {/* Card Content */}
-                              <div className="p-3.5 sm:p-4.5 flex-1 flex flex-col justify-between space-y-3">
+                              <div className="p-3.5 sm:p-4 md:p-4.5 flex-1 flex flex-col justify-between gap-3 min-w-0">
                                 <div className="space-y-2.5 sm:space-y-3">
                                   {/* Badges Row & Category Badge */}
                                   <div className="flex flex-wrap items-center justify-between gap-1.5 pb-0.5">
@@ -3420,18 +3423,18 @@ const filterDescription = useMemo(() => {
 
       {/* ORGANIZERS PAGE */}
       {tab === "ORGANIZERS" && (
-        <section className="space-y-8">
-          <div className="bg-white border border-slate-100 rounded-3xl p-8 md:p-12 shadow-sm space-y-4">
+        <section className="space-y-5 sm:space-y-6 md:space-y-8 min-w-0">
+          <div className="bg-white border border-slate-100 rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 lg:p-12 shadow-sm space-y-4 min-w-0">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-6">
               <div>
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-bold uppercase tracking-wider mb-2">
                   <Users className="h-3.5 w-3.5" /> Verified Global Network
                 </span>
-                <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 font-display tracking-tight">
+                <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-900 font-display tracking-tight leading-tight break-words">
                   Trusted Organizers
                 </h1>
               </div>
-              <div className="flex items-center gap-2 bg-slate-50 border border-slate-150 px-4 py-2 rounded-2xl shrink-0">
+              <div className="w-full md:w-auto flex items-center justify-center md:justify-start gap-2 bg-slate-50 border border-slate-150 px-3 sm:px-4 py-2 rounded-xl sm:rounded-2xl shrink-0">
                 <ShieldCheck className="h-5 w-5 text-blue-600" />
                 <span className="text-xs font-bold text-slate-700">
                   {allPublicOrganizersList.length} Verified Organizer
@@ -3450,13 +3453,13 @@ const filterDescription = useMemo(() => {
               <p className="text-sm font-semibold">No verified organizers listed at this moment.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+            <div className="grid grid-cols-1 min-[420px]:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
               {allPublicOrganizersList.map((org, oIdx) => {
                 const publishedCount = approvedConferences.filter((c) => c.organizerId === org.id).length;
                 return (
                   <div
                     key={org.id ? `${org.id}-${oIdx}` : `org-page-${oIdx}`}
-                    className="bg-white border border-slate-200 hover:border-blue-400 rounded-2xl p-3.5 sm:p-6 shadow-xs hover:shadow-md transition-all duration-300 flex flex-col justify-between h-full group"
+                    className="bg-white border border-slate-200 hover:border-blue-400 rounded-xl sm:rounded-2xl p-4 sm:p-5 lg:p-6 shadow-xs hover:shadow-md transition-all duration-300 flex flex-col justify-between h-full min-w-0 group"
                   >
                     <div className="space-y-2.5 sm:space-y-4">
                       {/* Organizer Logo & Verified Badge */}
@@ -3479,7 +3482,7 @@ const filterDescription = useMemo(() => {
                         </div>
                         {getIsOrganizerTrusted(org) && (
                           <span className="inline-flex items-center gap-0.5 sm:gap-1 bg-blue-50 text-blue-700 border border-blue-200 px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded-full text-[8px] sm:text-[10px] font-bold shrink-0">
-                            <ShieldCheck className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-blue-600" /> <span className="hidden xs:inline sm:inline">Verified</span>
+                            <ShieldCheck className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-blue-600" /> <span className="hidden sm:inline">Verified</span>
                           </span>
                         )}
                       </div>
@@ -3534,7 +3537,7 @@ const filterDescription = useMemo(() => {
 
       {/* Privacy Policy Tab */}
       {tab === "PRIVACY" && (
-        <section className="bg-white border border-slate-100 rounded-3xl p-8 md:p-12 shadow-sm space-y-6">
+        <section className="bg-white border border-slate-100 rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 lg:p-12 shadow-sm space-y-5 sm:space-y-6 min-w-0">
           <h1 className="text-3xl font-extrabold text-slate-900 font-display">{privacyPolicyContent.title}</h1>
           <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Last updated: {privacyPolicyContent.lastUpdated}</p>
           <div className="prose prose-blue text-sm text-slate-600 space-y-4">
@@ -3552,7 +3555,7 @@ const filterDescription = useMemo(() => {
       {/* Terms of Service Tab */}
       {tab === "TERMS" && (
         <section className="bg-white border border-slate-100 rounded-3xl p-8 md:p-12 shadow-sm space-y-6">
-          <h1 className="text-3xl font-extrabold text-slate-900 font-display">{termsOfServiceContent.title}</h1>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 font-display leading-tight break-words">{termsOfServiceContent.title}</h1>
           <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Last updated: {termsOfServiceContent.lastUpdated}</p>
           <div className="prose prose-blue text-sm text-slate-600 space-y-4">
             <p>{termsOfServiceContent.intro}</p>
@@ -3568,9 +3571,9 @@ const filterDescription = useMemo(() => {
 
       {/* Customer Feedback / Testimonials Full Dedicated Page */}
       {(tab === "FEEDBACK" || tab === "TESTIMONIALS") && (
-        <section className="space-y-8">
+        <section className="space-y-5 sm:space-y-6 md:space-y-8 min-w-0">
           {/* Hero Banner */}
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 md:p-12 text-white relative overflow-hidden shadow-xl">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 lg:p-12 text-white relative overflow-hidden shadow-xl min-w-0">
             <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 w-96 h-96 bg-blue-500/15 rounded-full blur-3xl pointer-events-none" />
             <div className="absolute bottom-0 left-0 translate-y-1/2 -translate-x-1/2 w-96 h-96 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none" />
 
@@ -3580,7 +3583,7 @@ const filterDescription = useMemo(() => {
                   <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
                   <span>Community Reviews & Testimonials</span>
                 </div>
-                <h1 className="text-3xl md:text-4xl font-extrabold font-display text-white tracking-tight">
+                <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold font-display text-white tracking-tight leading-tight break-words">
                   Customer Feedback & Testimonials
                 </h1>
                 <p className="text-slate-300 text-sm md:text-base leading-relaxed">
@@ -3591,7 +3594,7 @@ const filterDescription = useMemo(() => {
               <div className="flex flex-wrap items-center gap-3 shrink-0">
                 <button
                   onClick={() => setIsFeedbackModalOpen(true)}
-                  className="px-5 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs sm:text-sm rounded-xl shadow-lg shadow-blue-600/30 transition-all hover:scale-105 active:scale-95 cursor-pointer flex items-center gap-2"
+                  className="w-full sm:w-auto px-4 sm:px-5 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs sm:text-sm rounded-xl shadow-lg shadow-blue-600/30 transition-all hover:scale-105 active:scale-95 cursor-pointer flex items-center justify-center gap-2"
                 >
                   <MessageSquare className="h-4 w-4 text-amber-300" />
                   <span>Add Your Feedback</span>
@@ -3600,7 +3603,7 @@ const filterDescription = useMemo(() => {
             </div>
 
             {/* Metrics Overview Bar */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8 pt-8 border-t border-white/10 relative z-10">
+            <div className="grid grid-cols-1 min-[520px]:grid-cols-3 gap-3 sm:gap-4 mt-6 sm:mt-8 pt-6 sm:pt-8 border-t border-white/10 relative z-10">
               <div className="bg-white/5 border border-white/10 rounded-2xl p-4 flex items-center gap-3.5">
                 <div className="w-12 h-12 rounded-xl bg-amber-400/15 border border-amber-400/30 flex items-center justify-center text-amber-300 font-extrabold text-lg shrink-0">
                   ★
@@ -3714,7 +3717,7 @@ const filterDescription = useMemo(() => {
                 </span>
                 <span className="font-semibold text-slate-700">Page {feedbackPage} of {feedbackTotalPages}</span>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
               {paginatedFeedbacks.map((fb, idx) => (
                 <div
                   key={fb.id || `all-fb-${idx}`}
@@ -3810,9 +3813,9 @@ const filterDescription = useMemo(() => {
       )}
 
       {/* Footer Section */}
-      <footer className="bg-[#37494E] text-slate-300 border-t border-[#2b3a3e] rounded-3xl p-8 md:p-12 space-y-10 relative z-10 overflow-hidden shadow-lg">
+      <footer className="bg-[#37494E] text-slate-300 border-t border-[#2b3a3e] rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 lg:p-12 space-y-8 sm:space-y-10 relative z-10 overflow-hidden shadow-lg min-w-0">
         {/* 5-Column Grid Layout: Logo, Quick Links, Contact Info, Follow Us, Newsletter */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 sm:gap-8">
           
           {/* Column 1: Logo & Branding */}
           <div className="space-y-4">
@@ -3823,7 +3826,7 @@ const filterDescription = useMemo(() => {
               }}
               className="flex items-center gap-3 cursor-pointer group"
             >
-              <div className="w-[180px] h-12 sm:w-[200px] sm:h-14 flex items-center justify-start shrink-0 group-hover:scale-105 transition-transform">
+              <div className="w-[145px] h-10 sm:w-[170px] sm:h-12 lg:w-[190px] lg:h-14 flex items-center justify-start shrink-0 group-hover:scale-105 transition-transform">
                 <img
                   src="/company-logo.png"
                   alt="International Conference Logo"
@@ -3831,7 +3834,6 @@ const filterDescription = useMemo(() => {
                 />
               </div>
             </div>
-            <br></br>
             <p className="text-xs text-slate-300 leading-relaxed font-medium">
               Global directory for peer-reviewed academic conferences, research symposiums, and professional summits taking place worldwide.
             </p>

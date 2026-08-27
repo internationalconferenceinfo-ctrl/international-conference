@@ -19,7 +19,7 @@
   --color-brand-900: #161e20;
   --color-brand-950: #0e1315;
 
-  /* Override blue palette to match brand #37494E so all existing blue-* utilities automatically render in #37494E */
+  /* Blue palette mapped to brand */
   --color-blue-50: #f2f5f6;
   --color-blue-100: #e2e8ea;
   --color-blue-200: #c5d2d5;
@@ -32,7 +32,7 @@
   --color-blue-900: #161e20;
   --color-blue-950: #0e1315;
 
-  /* Override indigo palette to match brand for single-theme consistency */
+  /* Indigo palette mapped to brand */
   --color-indigo-50: #f2f5f6;
   --color-indigo-100: #e2e8ea;
   --color-indigo-200: #c5d2d5;
@@ -46,12 +46,35 @@
   --color-indigo-950: #0e1315;
 }
 
+/* =========================================================
+   GLOBAL LAYOUT SAFETY
+   ========================================================= */
+
+html,
+body,
+#root {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
 html {
   scroll-behavior: smooth;
   overflow-x: hidden;
 }
 
-* {
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background-color: #f8fafc;
+  color: #0f172a;
+  overflow-x: hidden;
+  text-rendering: optimizeLegibility;
+}
+
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -75,7 +98,7 @@ button {
   max-width: 100%;
 }
 
-/* Prevent long titles, email addresses and URLs from widening cards or dialogs. */
+/* Prevent long titles, emails and URLs from causing overflow */
 p,
 h1,
 h2,
@@ -84,38 +107,16 @@ h4,
 h5,
 h6,
 td,
-th {
+th,
+span,
+a {
   overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
-/* Dashboard tables remain usable on phones and tablets without page overflow. */
-.overflow-x-auto {
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior-inline: contain;
-}
-
-@media (max-width: 639px) {
-  body {
-    font-size: 14px;
-  }
-
-  table {
-    min-width: 680px;
-  }
-
-  [role="dialog"] {
-    max-width: calc(100vw - 1rem);
-    max-height: calc(100dvh - 1rem);
-  }
-}
-
-body {
-  font-family: var(--font-sans);
-  background-color: #f8fafc;
-  color: #0f172a;
-  overflow-x: hidden;
-  text-rendering: optimizeLegibility;
-}
+/* =========================================================
+   TYPOGRAPHY
+   ========================================================= */
 
 .font-display {
   font-family: var(--font-display);
@@ -125,7 +126,121 @@ body {
   font-family: var(--font-mono);
 }
 
-/* Custom scrollbar */
+/* =========================================================
+   RESPONSIVE TABLE / SCROLL SAFETY
+   ========================================================= */
+
+.overflow-x-auto {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-inline: contain;
+  max-width: 100%;
+}
+
+/* Use this class only for large admin/organizer tables */
+.dashboard-table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.dashboard-table-scroll table {
+  width: 100%;
+}
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 767px) {
+  body {
+    font-size: 14px;
+    width: 100%;
+    overflow-x: hidden;
+  }
+
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    min-height: 40px;
+  }
+
+  [role="dialog"] {
+    width: calc(100vw - 1rem);
+    max-width: calc(100vw - 1rem);
+    max-height: calc(100dvh - 1rem);
+    overflow-y: auto;
+  }
+
+  .dashboard-table-scroll table {
+    min-width: 680px;
+  }
+}
+
+/* =========================================================
+   VERY SMALL MOBILE
+   ========================================================= */
+
+@media (max-width: 374px) {
+  html {
+    font-size: 15px;
+  }
+
+  body {
+    font-size: 13px;
+  }
+
+  [role="dialog"] {
+    width: calc(100vw - 0.5rem);
+    max-width: calc(100vw - 0.5rem);
+  }
+}
+
+/* =========================================================
+   TABLET
+   ========================================================= */
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  body {
+    font-size: 14px;
+  }
+
+  [role="dialog"] {
+    max-width: calc(100vw - 2rem);
+    max-height: calc(100dvh - 2rem);
+  }
+}
+
+/* =========================================================
+   LAPTOP
+   ========================================================= */
+
+@media (min-width: 1024px) and (max-width: 1439px) {
+  body {
+    font-size: 15px;
+  }
+}
+
+/* =========================================================
+   DESKTOP
+   ========================================================= */
+
+@media (min-width: 1440px) {
+  body {
+    font-size: 15px;
+  }
+}
+
+/* =========================================================
+   CUSTOM SCROLLBAR
+   ========================================================= */
+
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -145,24 +260,49 @@ body {
   background: #a0a7ae;
 }
 
-/* Global interactive transitions - targeted properties prevent layout thrashing */
-button, a, input, select, textarea {
-  transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, opacity 0.15s ease-in-out, box-shadow 0.15s ease-in-out, transform 0.15s ease-in-out;
+/* =========================================================
+   INTERACTIVE TRANSITIONS
+   ========================================================= */
+
+button,
+a,
+input,
+select,
+textarea {
+  transition:
+    color 0.15s ease-in-out,
+    background-color 0.15s ease-in-out,
+    border-color 0.15s ease-in-out,
+    opacity 0.15s ease-in-out,
+    box-shadow 0.15s ease-in-out,
+    transform 0.15s ease-in-out;
 }
 
 button:not(:disabled) {
   cursor: pointer;
 }
 
-/* Form input focus styles with soft glow */
-input:focus, textarea:focus, select:focus {
+/* =========================================================
+   FORM FOCUS
+   ========================================================= */
+
+input:focus,
+textarea:focus,
+select:focus {
   outline: none !important;
   border-color: #37494e !important;
-  box-shadow: 0 0 0 3px rgba(55, 73, 78, 0.15), 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
-  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  box-shadow:
+    0 0 0 3px rgba(55, 73, 78, 0.15),
+    0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+  transition:
+    border-color 0.15s ease-in-out,
+    box-shadow 0.15s ease-in-out;
 }
 
-/* Table row hover highlight */
+/* =========================================================
+   TABLE ROW HOVER
+   ========================================================= */
+
 tbody tr {
   transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -171,39 +311,56 @@ tbody tr:hover {
   background-color: rgba(241, 245, 249, 0.8) !important;
 }
 
-/* Custom interactive utility classes */
+/* =========================================================
+   CARD / IMAGE / ICON EFFECTS
+   ========================================================= */
+
 .hover-card-lift {
-  transition: transform 0.35s cubic-bezier(0.34, 1.2, 0.64, 1), box-shadow 0.35s ease, border-color 0.35s ease;
+  transition:
+    transform 0.35s cubic-bezier(0.34, 1.2, 0.64, 1),
+    box-shadow 0.35s ease,
+    border-color 0.35s ease;
 }
+
 .hover-card-lift:hover {
   transform: translateY(-4px);
-  box-shadow: 0 14px 28px -6px rgba(15, 23, 42, 0.1), 0 6px 12px -4px rgba(15, 23, 42, 0.05);
+  box-shadow:
+    0 14px 28px -6px rgba(15, 23, 42, 0.1),
+    0 6px 12px -4px rgba(15, 23, 42, 0.05);
 }
 
 .hover-img-zoom {
   transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
 .group:hover .hover-img-zoom,
 .hover-img-zoom:hover {
   transform: scale(1.05);
 }
 
 .hover-icon-scale {
-  transition: transform 0.3s ease, color 0.3s ease;
+  transition:
+    transform 0.3s ease,
+    color 0.3s ease;
 }
+
 .hover-icon-scale:hover,
 button:hover .hover-icon-scale,
 a:hover .hover-icon-scale {
   transform: scale(1.1);
 }
 
-/* Navigation underline hover effect */
+/* =========================================================
+   NAVIGATION
+   ========================================================= */
+
 .nav-link-underline {
   position: relative;
   transition: color 0.3s ease;
 }
+
 .nav-link-underline::after {
-  content: '';
+  content: "";
   position: absolute;
   width: 0;
   height: 2px;
@@ -213,25 +370,140 @@ a:hover .hover-icon-scale {
   transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   border-radius: 2px;
 }
+
 .nav-link-underline:hover::after,
 .nav-link-underline.active::after {
   width: 100%;
 }
 
-/* Sidebar item hover effect */
+/* =========================================================
+   SIDEBAR
+   ========================================================= */
+
 .sidebar-item-hover {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   border-left: 3px solid transparent;
 }
+
 .sidebar-item-hover:hover {
   background-color: rgba(55, 73, 78, 0.08);
   border-left-color: #37494e;
 }
 
-/* Animations */
+/* =========================================================
+   RESPONSIVE HELPER CLASSES
+   ========================================================= */
+
+.responsive-page {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.responsive-container {
+  width: 100%;
+  max-width: 1440px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+@media (min-width: 640px) {
+  .responsive-container {
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .responsive-container {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+.responsive-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .responsive-grid-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.responsive-grid-3 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .responsive-grid-3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1280px) {
+  .responsive-grid-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.responsive-grid-4 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .responsive-grid-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .responsive-grid-4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* Mobile action buttons stack automatically */
+.responsive-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+@media (max-width: 639px) {
+  .responsive-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .responsive-actions > button,
+  .responsive-actions > a {
+    width: 100%;
+  }
+}
+
+/* =========================================================
+   ANIMATIONS
+   ========================================================= */
+
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .animate-fade-in {
@@ -239,8 +511,14 @@ a:hover .hover-icon-scale {
 }
 
 @keyframes pulse-slow {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
 }
 
 .animate-pulse-slow {
