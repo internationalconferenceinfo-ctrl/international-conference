@@ -263,30 +263,37 @@ export default function OrganizerPortal({
   }, [organizers, activeOrgId, authUser]);
 
   useEffect(() => {
-    if (activeProfile) {
-      setProfileOrgName(activeProfile.organizationName || "");
-      setProfileContact(activeProfile.contactPerson || authUser?.name || "");
-      setProfileLogo(activeProfile.logo || "");
-      setProfileCover(activeProfile.coverImage || "");
-      setProfileGallery(activeProfile.galleryImages || []);
-      setProfileWebsite(activeProfile.organizationWebsite || "");
-      setProfileAbout(activeProfile.aboutOrganization || "");
-      setProfileCountry(activeProfile.country || "");
-      setProfileCity(activeProfile.city || "");
-      setProfileTwitter(activeProfile.twitter || "");
-      setProfileLinkedin(activeProfile.linkedin || "");
-      setProfileFacebook(activeProfile.facebook || "");
-      setProfileInstagram(activeProfile.instagram || "");
-      setProfileYoutube(activeProfile.youtube || "");
-      setProfileWhatsapp(activeProfile.whatsapp || "");
-      setProfileTelegram(activeProfile.telegram || "");
-      setProfileTiktok(activeProfile.tiktok || "");
-      setProfileGithub(activeProfile.github || "");
-      setProfilePinterest(activeProfile.pinterest || "");
-    } else if (authUser?.name) {
-      setProfileContact(authUser.name);
-    }
-  }, [activeProfile, countriesList, authUser]);
+  // Do not overwrite unsaved profile form values while the organizer is editing.
+  // This prevents social-media links and other fields from disappearing when
+  // the page receives refreshed organizer data after switching browser tabs/apps.
+  if (isEditingProfile) {
+    return;
+  }
+
+  if (activeProfile) {
+    setProfileOrgName(activeProfile.organizationName || "");
+    setProfileContact(activeProfile.contactPerson || authUser?.name || "");
+    setProfileLogo(activeProfile.logo || "");
+    setProfileCover(activeProfile.coverImage || "");
+    setProfileGallery(activeProfile.galleryImages || []);
+    setProfileWebsite(activeProfile.organizationWebsite || "");
+    setProfileAbout(activeProfile.aboutOrganization || "");
+    setProfileCountry(activeProfile.country || "");
+    setProfileCity(activeProfile.city || "");
+    setProfileTwitter(activeProfile.twitter || "");
+    setProfileLinkedin(activeProfile.linkedin || "");
+    setProfileFacebook(activeProfile.facebook || "");
+    setProfileInstagram(activeProfile.instagram || "");
+    setProfileYoutube(activeProfile.youtube || "");
+    setProfileWhatsapp(activeProfile.whatsapp || "");
+    setProfileTelegram(activeProfile.telegram || "");
+    setProfileTiktok(activeProfile.tiktok || "");
+    setProfileGithub(activeProfile.github || "");
+    setProfilePinterest(activeProfile.pinterest || "");
+  } else if (authUser?.name) {
+    setProfileContact(authUser.name);
+  }
+}, [activeProfile, countriesList, authUser, isEditingProfile]);
 
   // Scope: Organizer sees their own conferences (by activeOrgId, activeProfile.id, or contactEmail)
   const orgConferences = useMemo(() => {
