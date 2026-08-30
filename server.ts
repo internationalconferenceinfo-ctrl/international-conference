@@ -1,3 +1,5 @@
+
+
 import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
@@ -10,6 +12,17 @@ import type { NextFunction, Request, Response } from "express";
 import { getIanaDateBoundaryTimestamp, resolveConferenceTimeZone } from "./src/shared/utils/timezoneUtils";
 
 dotenv.config();
+
+function sitemapSlugify(text: string): string {
+  if (!text) return "";
+
+  return String(text)
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, "")
+    .replace(/[\s_-]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
 
 const app = express();
 app.disable("x-powered-by");
@@ -1585,12 +1598,198 @@ app.post("/api/collaboration/submit", rateLimit("collaboration", 10, 60 * 60 * 1
   }
 });
 
-// Sitemap
-app.get("/sitemap.xml", (req, res) => {
+
+// Dynamic Sitemap
+app.get("/sitemap.xml", async (req, res) => {
   res.setHeader("Content-Type", "application/xml");
-  const appUrl = process.env.APP_URL || `https://${req.headers.host || "globalconferencehub.com"}`;
-  
-  const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
+
+  const appUrl =
+    process.env.APP_URL ||
+    `https://${req.headers.host || "internationalconference.info"}`;
+
+  try {
+    const urls = new Map<
+      string,
+      { changefreq: string; priority: string }
+    >();
+
+    const addUrl = (
+      path: string,
+      changefreq = "weekly",
+      priority = "0.7"
+    ) => {
+      if (!path) return;
+
+      const cleanPath = path.startsWith("/") ? path : `/${path}`;
+
+      urls.set(cleanPath, {
+        changefreq,
+        priority,
+      });
+    };
+
+    // Main public pages
+    addUrl("/", "daily", "1.0");
+    addUrl("/conferences", "daily", "0.9");
+    addUrl("/organizers", "weekly", "0.8");
+    addUrl("/categories", "weekly", "0.7");
+    addUrl("/about", "monthly", "0.5");
+
+    // Conferences
+    const { data: conferences } = await supabaseServerClient
+      .from("conferences")
+      .select("*");
+
+    for (const conference of conferences || []) {
+      const status = String(conference.status || "").toLowerCase();
+
+      const isDeactivated =
+        conference.is_deactivated === true ||
+        conference.isDeactivated === true;
+
+      // Sitemap must follow the same public visibility rule as User Portal
+      if (status !== "approved" || isDeactivated) {
+        continue;
+      }
+
+      const conferenceSlug =
+        String(conference.slug || "").trim() ||
+        sitemapSlugify(
+          conference.title ||
+          conference.conference_title ||
+          conference.name ||
+          ""
+        );
+
+      if (conferenceSlug) {
+        addUrl(
+          `/conference/${conferenceSlug}`,
+          "weekly",
+          "0.8"
+        );
+      }
+
+      // Topic
+      const topic =
+        conference.category ||
+        conference.topic ||
+        conference.category_name ||
+        "";
+
+      const topicSlug = sitemapSlugify(topic);
+
+      if (topicSlug) {
+        addUrl(`/${topicSlug}`, "weekly", "0.7");
+      }
+
+      // Country
+      const countrySlug = sitemapSlugify(
+        conference.country || ""
+      );
+
+      if (countrySlug) {
+        addUrl(`/${countrySlug}`, "weekly", "0.7");
+      }
+
+      // City
+      const citySlug = sitemapSlugify(
+        conference.city || ""
+      );
+
+      if (citySlug) {
+        addUrl(`/${citySlug}`, "weekly", "0.7");
+      }
+
+      // Country + City
+      if (countrySlug && citySlug) {
+        addUrl(
+          `/${countrySlug}/${citySlug}`,
+          "weekly",
+          "0.7"
+        );
+      }
+
+      // Country + Topic
+      if (countrySlug && topicSlug) {
+        addUrl(
+          `/${countrySlug}/${topicSlug}`,
+          "weekly",
+          "0.7"
+        );
+      }
+
+      // City + Topic
+     // Topic + City
+      if (topicSlug && citySlug) {
+        addUrl(
+          `/${topicSlug}/${citySlug}`,
+          "weekly",
+          "0.7"
+        );
+      }
+
+      // Country + City + Topic
+      if (countrySlug && citySlug && topicSlug) {
+        addUrl(
+          `/${countrySlug}/${citySlug}/${topicSlug}`,
+          "weekly",
+          "0.7"
+        );
+      }
+    }
+
+    // Organizers
+    const { data: organizers } = await supabaseServerClient
+      .from("organizers")
+      .select("*");
+
+    for (const organizer of organizers || []) {
+      if (
+        organizer.is_suspended === true ||
+        organizer.isSuspended === true
+      ) {
+        continue;
+      }
+
+      const organizerSlug =
+        String(organizer.slug || "").trim() ||
+        sitemapSlugify(
+          organizer.organization_name ||
+          organizer.organizationName ||
+          organizer.name ||
+          ""
+        );
+
+      if (organizerSlug) {
+        addUrl(
+          `/organizers/${organizerSlug}`,
+          "weekly",
+          "0.7"
+        );
+      }
+    }
+
+    const sitemapEntries = Array.from(urls.entries())
+      .map(
+        ([path, meta]) => `  <url>
+    <loc>${appUrl}${path}</loc>
+    <changefreq>${meta.changefreq}</changefreq>
+    <priority>${meta.priority}</priority>
+  </url>`
+      )
+      .join("\n");
+
+    const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${sitemapEntries}
+</urlset>`;
+
+    res.send(sitemap);
+  } catch (error) {
+    console.error("Sitemap generation failed:", error);
+
+    // Safe fallback sitemap
+    res.status(200).send(`<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>${appUrl}/</loc>
@@ -1602,23 +1801,8 @@ app.get("/sitemap.xml", (req, res) => {
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
-  <url>
-    <loc>${appUrl}/organizers</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>${appUrl}/categories</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>${appUrl}/about</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-</urlset>`;
-  res.send(sitemap);
+</urlset>`);
+  }
 });
 
 // Robots.txt
