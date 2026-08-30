@@ -176,6 +176,9 @@ const [conferenceDescriptions, setConferenceDescriptions] = useState({
   city_description:
     "Find upcoming academic conferences in {CITY}, {COUNTRY}.",
 
+  topic_country_description:
+  "Discover verified {TOPIC} conferences taking place in {COUNTRY}.",  
+
   combined_description:
     "Discover verified {TOPIC} conferences taking place in {CITY}, {COUNTRY}."
 });
@@ -309,6 +312,10 @@ useEffect(() => {
   city_description:
     row.city_description ||
     "Find upcoming academic conferences in {CITY}, {COUNTRY}.",
+  
+  topic_country_description:
+  row.topic_country_description ||
+  "Discover verified {TOPIC} conferences taking place in {COUNTRY}.",
 
   combined_description:
     row.combined_description ||
@@ -1224,6 +1231,13 @@ const filterDescription = useMemo(() => {
       conferenceDescriptions.combined_description
     );
   }
+
+// Topic + Country
+if (hasCategory && hasCountry) {
+  return replacePlaceholders(
+    conferenceDescriptions.topic_country_description
+  );
+}
 
   // City selected
   if (hasCity) {

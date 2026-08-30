@@ -191,6 +191,7 @@ interface ConferenceDescriptionContent {
   topic_description: string;
   country_description: string;
   city_description: string;
+  topic_country_description: string;
   combined_description: string;
   updated_at?: string;
 }
@@ -533,11 +534,11 @@ useEffect(() => {
  default_description:
   record.default_description ||
   "Discover verified, peer-reviewed, and high-impact academic conferences, research symposiums, and professional summits from around the world. All listed events undergo rigorous vetting by International Conference to ensure credential legitimacy, past record authenticity, and index authority.",
-  topic_description: record.topic_description || "",
-  country_description: record.country_description || "",
-  city_description: record.city_description || "",
-  combined_description: record.combined_description || "",
-  updated_at: record.updated_at
+topic_description: record.topic_description || "",
+country_description: record.country_description || "",
+city_description: record.city_description || "",
+topic_country_description: record.topic_country_description || "",
+combined_description: record.combined_description || "",
 };
         setConferenceDescription(loadedContent);
         setConferenceDescriptionOriginal(loadedContent);
@@ -1517,6 +1518,7 @@ const [conferenceDescription, setConferenceDescription] =
     topic_description: "",
     country_description: "",
     city_description: "",
+    topic_country_description: "",
     combined_description: ""
   });
 
@@ -1737,6 +1739,11 @@ const handleSaveConferenceDescription = async () => {
   if (!conferenceDescription.city_description.trim()) {
     showToast("City Description cannot be empty.");
     return;
+  }
+
+  if (!conferenceDescription.topic_country_description.trim()) {
+  showToast("Topic + Country Description cannot be empty.");
+  return;
   }
 
   if (!conferenceDescription.combined_description.trim()) {
@@ -3383,7 +3390,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
                           </th>
                         )}
                         <th className={`p-3 ${activeMenu === "APPROVED_CONFERENCES" ? "rounded-l-lg" : ""}`}>Conference Title</th>
-                        <th className="p-3">Topics</th>
+                        <th className="p-3">Organizer</th>
                         <th className="p-3">Location & Date</th>
                         <th className="p-3">Status</th>
                         <th className="p-3 text-right rounded-r-lg">Actions</th>
@@ -3452,7 +3459,11 @@ const [isSavingCredentials, setIsSavingCredentials] =
                                 </div>
                               </div>
                             </td>
-                            <td className="p-3 font-semibold text-slate-700">{conf.category}</td>
+                            <td className="p-3 font-semibold text-slate-700">
+                              {organizers.find((org) => org.id === conf.organizerId)?.organizationName ||
+                                conf.organizerId ||
+                                "Unknown Organizer"}
+                            </td>
                             <td className="p-3 text-slate-600">
                               {conf.city}, {conf.country}<br />
                               <span className="text-[10px] text-slate-400">{formatConferenceDate(conf.startDate)}</span>
@@ -6841,6 +6852,31 @@ const [isSavingCredentials, setIsSavingCredentials] =
                           })
                         }
                         placeholder="Example: Find upcoming academic conferences in {CITY}, {COUNTRY}."
+                        className={`w-full px-4 py-3 text-sm rounded-xl border outline-none leading-relaxed resize-y transition-all ${
+                          isEditingConferenceDescription
+                            ? "bg-white border-slate-300 focus:ring-2 focus:ring-blue-500"
+                            : "bg-slate-50 border-slate-200 text-slate-600"
+                        }`}
+                      />
+                    </div>
+
+                    {/* Topic + Country Description */}
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-slate-700">
+                        Topic + Country Description
+                      </label>
+
+                      <textarea
+                        rows={5}
+                        value={conferenceDescription.topic_country_description}
+                        disabled={!isEditingConferenceDescription}
+                        onChange={(e) =>
+                          setConferenceDescription({
+                            ...conferenceDescription,
+                            topic_country_description: e.target.value
+                          })
+                        }
+                        placeholder="Example: Discover verified {TOPIC} conferences taking place in {COUNTRY}."
                         className={`w-full px-4 py-3 text-sm rounded-xl border outline-none leading-relaxed resize-y transition-all ${
                           isEditingConferenceDescription
                             ? "bg-white border-slate-300 focus:ring-2 focus:ring-blue-500"
