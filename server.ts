@@ -1632,8 +1632,13 @@ app.get("/sitemap.xml", async (req, res) => {
     addUrl("/", "daily", "1.0");
     addUrl("/conferences", "daily", "0.9");
     addUrl("/organizers", "weekly", "0.8");
-    addUrl("/categories", "weekly", "0.7");
-    addUrl("/about", "monthly", "0.5");
+    addUrl("/about-us", "monthly", "0.6");
+    addUrl("/media-partner", "monthly", "0.6");
+    addUrl("/associates", "monthly", "0.6");
+    addUrl("/contact-us", "monthly", "0.5");
+    addUrl("/testimonials", "weekly", "0.5");
+    addUrl("/privacy-policy", "yearly", "0.3");
+    addUrl("/terms-of-service", "yearly", "0.3");
 
     // Conferences
     const { data: conferences } = await supabaseServerClient

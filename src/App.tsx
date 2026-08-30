@@ -1209,10 +1209,16 @@ const DEFAULT_CITIES: Array<{ name: string; country: string }> = [
     }
   }, [publicTab, authMode, selectedCategory, selectedCountry, selectedCity, selectedConference, selectedOrganizerId, activePortal, organizers]);
 
-  // Dynamically update document title (<title>) and meta description for SEO
+  // Dynamically update document title, meta description, and meta keywords for SEO
   useEffect(() => {
+    const currentYear = new Date().getFullYear();
+
     let title = "International Conference";
-    let description = "Discover, verify, and attend legitimate peer-reviewed academic conferences, research symposiums, and professional summits worldwide.";
+    let description =
+      "Discover, verify, and attend legitimate peer-reviewed academic conferences, research symposiums, and professional summits worldwide.";
+
+    let keywords =
+      "international conferences, upcoming international conferences, global conferences, academic conferences, research conferences";
 
     if (selectedOrganizerId) {
       const org = organizers.find((o) => o.id === selectedOrganizerId);
@@ -1241,10 +1247,16 @@ const DEFAULT_CITIES: Array<{ name: string; country: string }> = [
       description = "Create an account to submit and manage your international conferences.";
     } else {
       switch (publicTab) {
+
         case "HOME":
-          title = "International Conference";
-          description = "Discover verified international academic conferences, scientific symposiums, and research summits worldwide.";
-          break;
+        title = `International Conferences ${currentYear} | Upcoming Global International Conferences and Events`;
+
+        description =
+          "Find the latest international conferences covering diverse subjects and industries worldwide. Join global professionals and experts to exchange insights, discover emerging trends, build connections, and participate in valuable academic and professional conferences.";
+
+        keywords = `upcoming international conferences ${currentYear}, international conferences worldwide ${currentYear}, international conferences by country, international conferences by city, international conferences by topic, best international conferences, academic international conferences, international conferences for researchers, international conferences for students, international conferences for professionals, international conferences and seminars, international conferences and events, global international conferences and events, upcoming academic international conferences worldwide, international research conferences worldwide`;
+
+        break;
         case "ORGANIZERS":
           title = "Trusted Organizers | International Conference";
           description = "Browse verified academic institutions, scientific societies, professional organizations, universities, and research boards hosting conferences worldwide.";
@@ -1267,14 +1279,30 @@ const DEFAULT_CITIES: Array<{ name: string; country: string }> = [
             title = `Conferences in ${selectedCity}, ${selectedCountry} | International Conference`;
             description = `Browse upcoming academic and professional conferences taking place in ${selectedCity}, ${selectedCountry}.`;
           } else if (hasCat) {
-            title = `${selectedCategory} Conferences | International Conference`;
-            description = `Browse upcoming ${selectedCategory} academic and research conferences worldwide.`;
+            title = `Upcoming ${selectedCategory} International Conferences | Upcoming Conferences and Events`;
+
+            description =
+              `Browse upcoming international conferences on ${selectedCategory}, discover global opportunities, and find events that match your academic, research, or professional interests.`;
+
+            keywords =
+              `upcoming international conferences on ${selectedCategory}, list of ${selectedCategory} international conferences, ${selectedCategory} international conferences, upcoming international conferences on ${selectedCategory}, international conference on ${selectedCategory}, conferences in ${selectedCategory}, ${selectedCategory} international conferences`;
           } else if (hasCity) {
-            title = `${selectedCity} Conferences | International Conference`;
-            description = `Browse upcoming academic and professional conferences taking place in ${selectedCity}.`;
+            title = `International Conferences ${selectedCity} ${currentYear} | Global International Conferences and Events`;
+
+            description =
+              `Find international conferences in ${selectedCity} across various fields, including technology, medicine, business, education, science, and research. Explore upcoming events and expand your professional network.`;
+
+            keywords =
+              `upcoming international conferences in ${selectedCity} ${currentYear}, best international conferences in ${selectedCity}, international conferences in ${selectedCity} ${currentYear}, upcoming academic conferences in ${selectedCity}, international research conferences in ${selectedCity} ${currentYear}, free international conferences in ${selectedCity}, international conferences for students in ${selectedCity}, international conferences for researchers in ${selectedCity}, international conferences for professionals in ${selectedCity}, upcoming academic and international conferences in ${selectedCity}`;
           } else if (hasCountry) {
-            title = `${selectedCountry} Conferences | International Conference`;
-            description = `Browse upcoming academic and professional conferences taking place in ${selectedCountry}.`;
+            title = `International Conferences in ${selectedCountry} ${currentYear} | Find Conferences and Events`;
+
+            description =
+              `Browse international conferences in ${selectedCountry} and find Upcoming International Conferences and Events across diverse subjects, including science, technology, medicine, business, education, and research. Connect, learn, share ideas, and build global professional relationships.`;
+
+            keywords =
+              `upcoming international conferences in ${selectedCountry} ${currentYear}, best international conferences in ${selectedCountry}, international conferences in ${selectedCountry} ${currentYear}, academic international conferences in ${selectedCountry}, international research conferences in ${selectedCountry} ${currentYear}, upcoming academic conferences in ${selectedCountry}, international conferences by city in ${selectedCountry}, international conferences by topic in ${selectedCountry}, free international conferences in ${selectedCountry}, international conferences for students in ${selectedCountry}, international conferences for researchers in ${selectedCountry}, international conferences for professionals in ${selectedCountry}`;
+
           } else {
             title = "Conferences | International Conference";
             description = "Browse all audited academic conferences, research symposiums, and professional summits.";
@@ -1282,17 +1310,35 @@ const DEFAULT_CITIES: Array<{ name: string; country: string }> = [
           break;
         }
         case "ABOUT":
-          title = "About Us | International Conference";
-          description = "Learn more about International Conference, our mission, quality assurance, and academic verification standards.";
+          title = "About International Conferences | Global Academic & Professional Events";
+
+          description =
+            "Learn about international conferences, global events, and networking opportunities that connect professionals, researchers, academics, and organizations from around the world.";
+
+          keywords =
+            "about international conference, about international conferences, international conference, international conferences, global conferences, international conference platform, international conference events, upcoming international conferences, global events, worldwide conferences, academic conferences, scientific conferences, professional conferences, international events, conference networking, global networking opportunities, international conference information, conference events worldwide, international academic events, international research conferences, global professional events, conference opportunities, international event platform, global conference events";
+
           break;
         case "MEDIAPARTNER":
-          title = "Media Partner | International Conference";
-          description = "Partner with International Conference to promote verified scientific research and academic events.";
+          title = "Media Partners of International Conferences | Global Events";
+
+          description =
+            "Find media partners for international conferences and showcase your events to a wider audience through conference promotion, media coverage, and global networking opportunities.";
+
+          keywords =
+            "media partners of international conferences, international conference media partners, media partners for conferences, international conference media partnership, global conference media partners, conference media partners, media partnership for international conferences, international conference promotion, global conference promotion, conference event promotion, conference media coverage, international event media partners, global event media partners, academic conference media partners";
+
           break;
         case "ASSOCIATES":
-          title = "Our Associates | International Conference";
-          description = "Global association network and academic partners working with International Conference.";
-          break;
+        title = "Associates of International Conferences | Conference Partners";
+
+        description =
+          "Explore conference partners and associates of international conferences dedicated to supporting global events, industry connections, academic networking, and professional development.";
+
+        keywords =
+          "international conference associates, conference associates, international conference partners, conference partners, global conference associates, international event associates, conference association partners, academic conference associates, scientific conference associates, business conference associates, medical conference associates, professional conference associates, international event partners, global event partners, conference networking partners, conference collaboration partners, international conference collaboration, worldwide conference associates, conference support partners, international conference organizations, global conference network, conference industry partners, international event collaboration";
+
+        break;
         case "CONTACT":
           title = "Contact Us | International Conference";
           description = "Get in touch with the International Conference team for support, partnerships, or conference listings.";
@@ -1327,6 +1373,16 @@ const DEFAULT_CITIES: Array<{ name: string; country: string }> = [
       document.head.appendChild(metaDesc);
     }
     metaDesc.setAttribute("content", description);
+
+    
+    // Set meta keywords tag
+    let metaKeywords = document.querySelector('meta[name="keywords"]');
+    if (!metaKeywords) {
+      metaKeywords = document.createElement("meta");
+      metaKeywords.setAttribute("name", "keywords");
+      document.head.appendChild(metaKeywords);
+    }
+    metaKeywords.setAttribute("content", keywords);
   }, [
     selectedCategory,
     selectedCountry,
