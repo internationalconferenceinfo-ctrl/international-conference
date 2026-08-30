@@ -24,6 +24,231 @@ function sitemapSlugify(text: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
+type SeoMetadata = {
+  title: string;
+  description: string;
+  keywords: string;
+};
+
+function escapeHtmlAttribute(value: string): string {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function escapeHtmlText(value: string): string {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function injectSeoMetadata(
+  html: string,
+  metadata: SeoMetadata
+): string {
+  const safeTitle = escapeHtmlText(metadata.title);
+  const safeDescription = escapeHtmlAttribute(metadata.description);
+  const safeKeywords = escapeHtmlAttribute(metadata.keywords);
+
+  let output = html;
+
+  if (/<title>[\s\S]*?<\/title>/i.test(output)) {
+    output = output.replace(
+      /<title>[\s\S]*?<\/title>/i,
+      `<title>${safeTitle}</title>`
+    );
+  } else {
+    output = output.replace(
+      "</head>",
+      `<title>${safeTitle}</title>\n</head>`
+    );
+  }
+
+  if (/<meta\s+name=["']description["'][^>]*>/i.test(output)) {
+    output = output.replace(
+      /<meta\s+name=["']description["'][^>]*>/i,
+      `<meta name="description" content="${safeDescription}" />`
+    );
+  } else {
+    output = output.replace(
+      "</head>",
+      `<meta name="description" content="${safeDescription}" />\n</head>`
+    );
+  }
+
+  if (/<meta\s+name=["']keywords["'][^>]*>/i.test(output)) {
+    output = output.replace(
+      /<meta\s+name=["']keywords["'][^>]*>/i,
+      `<meta name="keywords" content="${safeKeywords}" />`
+    );
+  } else {
+    output = output.replace(
+      "</head>",
+      `<meta name="keywords" content="${safeKeywords}" />\n</head>`
+    );
+  }
+
+  return output;
+}
+
+async function getSeoMetadataForPath(
+  pathname: string
+): Promise<SeoMetadata | null> {
+  const currentYear = new Date().getFullYear();
+
+  const cleanPath =
+    "/" +
+    String(pathname || "/")
+      .split("?")[0]
+      .replace(/^\/+|\/+$/g, "");
+
+  // Home
+  if (cleanPath === "/") {
+    return {
+      title: `International Conferences ${currentYear} | Upcoming Global International Conferences and Events`,
+      description:
+        "Find the latest international conferences covering diverse subjects and industries worldwide. Join global professionals and experts to exchange insights, discover emerging trends, build connections, and participate in valuable academic and professional conferences.",
+      keywords: `upcoming international conferences ${currentYear}, international conferences worldwide ${currentYear}, international conferences by country, international conferences by city, international conferences by topic, best international conferences, academic international conferences, international conferences for researchers, international conferences for students, international conferences for professionals, international conferences and seminars, international conferences and events, global international conferences and events, upcoming academic international conferences worldwide, international research conferences worldwide`,
+    };
+  }
+
+  // Static pages
+  if (cleanPath === "/media-partner") {
+    return {
+      title:
+        "Media Partners of International Conferences | Global Events",
+      description:
+        "Find media partners for international conferences and showcase your events to a wider audience through conference promotion, media coverage, and global networking opportunities.",
+      keywords:
+        "media partners of international conferences, international conference media partners, media partners for conferences, international conference media partnership, global conference media partners, conference media partners, media partnership for international conferences, international conference promotion, global conference promotion, conference event promotion, conference media coverage, international event media partners, global event media partners, academic conference media partners",
+    };
+  }
+
+  if (cleanPath === "/associates") {
+    return {
+      title:
+        "Associates of International Conferences | Conference Partners",
+      description:
+        "Explore conference partners and associates of international conferences dedicated to supporting global events, industry connections, academic networking, and professional development.",
+      keywords:
+        "international conference associates, conference associates, international conference partners, conference partners, global conference associates, international event associates, conference association partners, academic conference associates, scientific conference associates, business conference associates, medical conference associates, professional conference associates, international event partners, global event partners, conference networking partners, conference collaboration partners, international conference collaboration, worldwide conference associates, conference support partners, international conference organizations, global conference network, conference industry partners, international event collaboration",
+    };
+  }
+
+  if (cleanPath === "/about-us") {
+    return {
+      title:
+        "About International Conferences | Global Academic & Professional Events",
+      description:
+        "Learn about international conferences, global events, and networking opportunities that connect professionals, researchers, academics, and organizations from around the world.",
+      keywords:
+        "about international conference, about international conferences, international conference, international conferences, global conferences, international conference platform, international conference events, upcoming international conferences, global events, worldwide conferences, academic conferences, scientific conferences, professional conferences, international events, conference networking, global networking opportunities, international conference information, conference events worldwide, international academic events, international research conferences, global professional events, conference opportunities, international event platform, global conference events",
+    };
+  }
+
+  // Single-slug dynamic pages:
+  // /japan
+  // /osaka
+  // /artificial-intelligence
+  const segments = cleanPath
+    .split("/")
+    .filter(Boolean);
+
+  if (segments.length === 1) {
+    const slug = segments[0];
+
+    const { data: conferences, error } =
+    await supabaseServerClient
+      .from("conferences")
+      .select("*");(
+          "category,topic,category_name,country,city,status,is_deactivated"
+        );
+
+    if (!error && Array.isArray(conferences)) {
+      const visibleConferences = conferences.filter((conference: any) => {
+        const status = String(
+          conference.status || ""
+        ).toLowerCase();
+
+        const isDeactivated =
+          conference.is_deactivated === true ||
+          conference.isDeactivated === true;
+
+        return status === "approved" && !isDeactivated;
+      });
+
+      const countryMatch = visibleConferences.find(
+        (conference: any) =>
+          sitemapSlugify(conference.country || "") === slug
+      );
+
+      if (countryMatch?.country) {
+        const country = String(countryMatch.country).trim();
+
+        return {
+          title: `International Conferences in ${country} ${currentYear} | Find Conferences and Events`,
+          description:
+            `Browse international conferences in ${country} and find Upcoming International Conferences and Events across diverse subjects, including science, technology, medicine, business, education, and research. Connect, learn, share ideas, and build global professional relationships.`,
+          keywords:
+            `upcoming international conferences in ${country} ${currentYear}, best international conferences in ${country}, international conferences in ${country} ${currentYear}, academic international conferences in ${country}, international research conferences in ${country} ${currentYear}, upcoming academic conferences in ${country}, international conferences by city in ${country}, international conferences by topic in ${country}, free international conferences in ${country}, international conferences for students in ${country}, international conferences for researchers in ${country}, international conferences for professionals in ${country}`,
+        };
+      }
+
+      const cityMatch = visibleConferences.find(
+        (conference: any) =>
+          sitemapSlugify(conference.city || "") === slug
+      );
+
+      if (cityMatch?.city) {
+        const city = String(cityMatch.city).trim();
+
+        return {
+          title: `International Conferences ${city} ${currentYear} | Global International Conferences and Events`,
+          description:
+            `Find international conferences in ${city} across various fields, including technology, medicine, business, education, science, and research. Explore upcoming events and expand your professional network.`,
+          keywords:
+            `upcoming international conferences in ${city} ${currentYear}, best international conferences in ${city}, international conferences in ${city} ${currentYear}, upcoming academic conferences in ${city}, international research conferences in ${city} ${currentYear}, free international conferences in ${city}, international conferences for students in ${city}, international conferences for researchers in ${city}, international conferences for professionals in ${city}, upcoming academic and international conferences in ${city}`,
+        };
+      }
+
+      const topicMatch = visibleConferences.find((conference: any) => {
+        const topic =
+          conference.category ||
+          conference.topic ||
+          conference.category_name ||
+          "";
+
+        return sitemapSlugify(topic) === slug;
+      });
+
+      if (topicMatch) {
+        const topic =
+          String(
+            topicMatch.category ||
+            topicMatch.topic ||
+            topicMatch.category_name ||
+            ""
+          ).trim();
+
+        if (topic) {
+          return {
+            title: `Upcoming ${topic} International Conferences | Upcoming Conferences and Events`,
+            description:
+              `Browse upcoming international conferences on ${topic}, discover global opportunities, and find events that match your academic, research, or professional interests.`,
+            keywords:
+              `upcoming international conferences on ${topic}, list of ${topic} international conferences, ${topic} international conferences, upcoming international conferences on ${topic}, international conference on ${topic}, conferences in ${topic}, ${topic} international conferences`,
+          };
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
 const app = express();
 app.disable("x-powered-by");
 app.set("trust proxy", 1);
@@ -2044,9 +2269,46 @@ async function startServer() {
         }
       },
     }));
-    app.get("*", (req, res) => {
-      res.sendFile(path.join(distPath, "index.html"));
-    });
+    app.get("*", async (req, res) => {
+  try {
+    const indexPath = path.join(distPath, "index.html");
+
+    let html = await fs.readFile(indexPath, "utf-8");
+
+    // Get server-side SEO metadata for the requested page
+    const seoMetadata = await getSeoMetadataForPath(req.path);
+
+    if (seoMetadata) {
+      html = injectSeoMetadata(html, seoMetadata);
+    } else {
+      // Fallback: keep homepage/default SEO year automatic
+      const currentYear = new Date().getFullYear();
+
+      html = html.replace(
+        /International Conferences 2026 \| Upcoming Global International Conferences and Events/g,
+        `International Conferences ${currentYear} | Upcoming Global International Conferences and Events`
+      );
+
+      html = html.replace(
+        /upcoming international conferences 2026/g,
+        `upcoming international conferences ${currentYear}`
+      );
+
+      html = html.replace(
+        /international conferences worldwide 2026/g,
+        `international conferences worldwide ${currentYear}`
+      );
+    }
+
+    res.setHeader("Content-Type", "text/html");
+    res.setHeader("Cache-Control", "no-cache");
+
+    res.send(html);
+  } catch (error) {
+    console.error("Failed to serve frontend:", error);
+    res.status(500).send("Failed to load application");
+  }
+});
   }
 
   app.listen(PORT, "0.0.0.0", () => {
