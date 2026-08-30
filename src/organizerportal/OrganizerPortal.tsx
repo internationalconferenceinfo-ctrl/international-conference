@@ -129,7 +129,9 @@ export default function OrganizerPortal({
       return !inactiveTopics.includes(cat.id) && !inactiveTopics.includes(cat.name);
     });
   }, [categories, inactiveTopics]);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
+  return typeof window !== "undefined" ? window.innerWidth >= 1024 : false;
+  });
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
     conference: false,
     profile: false,
@@ -449,14 +451,16 @@ export default function OrganizerPortal({
   // Profile completion wall if incomplete
   if (!isProfileComplete) {
     return (
-      <div className="h-screen w-screen overflow-y-auto bg-slate-100 flex items-center justify-center p-4">
-        <div className="max-w-2xl w-full bg-white rounded-3xl border border-gray-100 p-8 shadow-xl space-y-6 my-auto">
+      <div className="min-h-[100dvh] w-full overflow-x-hidden overflow-y-auto bg-slate-100 flex items-center justify-center p-3 sm:p-4">
+        <div className="max-w-2xl w-full bg-white rounded-xl sm:rounded-2xl md:rounded-3xl border border-gray-100 p-4 sm:p-6 md:p-8 shadow-xl space-y-5 sm:space-y-6 my-auto min-w-0">
           <div className="text-center space-y-2">
-            <div className="w-20 h-20 bg-[#37494E] rounded-2xl flex items-center justify-center mx-auto shadow-lg text-white">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 bg-[#37494E] rounded-xl sm:rounded-2xl flex items-center justify-center mx-auto shadow-lg text-white">
               <User className="h-10 w-10 text-blue-300" />
             </div>
-            <h2 className="font-display text-2xl font-black text-gray-900">Complete Your Organizer Profile</h2>
-            <p className="text-sm text-gray-500">
+            <h2 className="font-display text-xl sm:text-2xl font-black text-gray-900 leading-tight break-words">
+              Complete Your Organizer Profile
+            </h2>
+            <p className="text-xs sm:text-sm text-gray-500 leading-relaxed break-words">
               Before submitting conferences to Global Conference Hub, please complete your organization profile.
             </p>
           </div>
@@ -503,8 +507,8 @@ export default function OrganizerPortal({
             });
             showToast("Profile completed successfully!");
           }} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1 md:col-span-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 min-w-0"> 
+              <div className="space-y-1 md:col-span-2 min-w-0">
                 <label className="text-xs font-bold uppercase tracking-wider text-gray-500">Organization Name *</label>
                 <input
                   type="text"
@@ -512,7 +516,7 @@ export default function OrganizerPortal({
                   placeholder="e.g. MIT University Systems"
                   value={profileOrgName || ""}
                   onChange={(e) => setProfileOrgName(e.target.value)}
-                  className="w-full text-sm bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  className="w-full min-w-0 text-xs sm:text-sm bg-gray-50 border border-gray-200 rounded-xl px-3 sm:px-4 py-3 text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 />
               </div>
               <div className="space-y-1">
@@ -523,7 +527,7 @@ export default function OrganizerPortal({
                   placeholder="Dr. Sarah Jenkins"
                   value={profileContact || ""}
                   onChange={(e) => setProfileContact(e.target.value)}
-                  className="w-full text-sm bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  className="w-full min-w-0 text-xs sm:text-sm bg-gray-50 border border-gray-200 rounded-xl px-3 sm:px-4 py-3 text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 />
               </div>
               <div className="space-y-1">
@@ -555,7 +559,7 @@ export default function OrganizerPortal({
                     disabled={!profileCountry}
                     value={profileCity || ""}
                     onChange={(e) => setProfileCity(e.target.value)}
-                    className={`w-full text-sm border rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-colors ${
+                    className={`w-full min-w-0 text-xs sm:text-sm border rounded-xl px-3 sm:px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-colors ${
                       !profileCountry
                         ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
                         : "bg-gray-50 border-gray-200 text-gray-700 cursor-pointer"
@@ -574,11 +578,11 @@ export default function OrganizerPortal({
                     placeholder={profileCountry ? "Enter City Name" : "Select Country First"}
                     value={profileCity || ""}
                     onChange={(e) => setProfileCity(e.target.value)}
-                    className="w-full text-sm bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:bg-gray-100 disabled:text-gray-400"
+                    className="w-full min-w-0 text-xs sm:text-sm bg-gray-50 border border-gray-200 rounded-xl px-3 sm:px-4 py-3 text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:bg-gray-100 disabled:text-gray-400"
                   />
                 )}
               </div>
-              <div className="space-y-1 md:col-span-2">
+              <div className="space-y-1 md:col-span-2 min-w-0">
                 <label className="text-xs font-bold uppercase tracking-wider text-gray-500">Website Link *</label>
                 <input
                   type="text"
@@ -586,7 +590,7 @@ export default function OrganizerPortal({
                   placeholder="e.g. example.edu or https://institution.edu"
                   value={profileWebsite || ""}
                   onChange={(e) => setProfileWebsite(e.target.value)}
-                  className="w-full text-sm bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  className="w-full min-w-0 text-xs sm:text-sm bg-gray-50 border border-gray-200 rounded-xl px-3 sm:px-4 py-3 text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 />
               </div>
 
@@ -601,7 +605,7 @@ export default function OrganizerPortal({
                 isLogo={true}
               />
 
-              <div className="space-y-1 md:col-span-2">
+              <div className="space-y-1 md:col-span-2 min-w-0">
                 <label className="text-xs font-bold uppercase tracking-wider text-gray-500">About Organization *</label>
                 <textarea
                   required
@@ -609,7 +613,7 @@ export default function OrganizerPortal({
                   placeholder="Brief summary of your organization..."
                   value={profileAbout || ""}
                   onChange={(e) => setProfileAbout(e.target.value)}
-                  className="w-full text-sm bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none"
+                  className="w-full min-w-0 text-xs sm:text-sm bg-gray-50 border border-gray-200 rounded-xl px-3 sm:px-4 py-3 text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none"
                 />
               </div>
             </div>
@@ -643,28 +647,28 @@ export default function OrganizerPortal({
   };
 
   return (
-    <div className="h-screen w-screen overflow-hidden bg-slate-100 flex flex-col text-slate-800 font-sans">
+    <div className="h-[100dvh] w-full max-w-full overflow-hidden bg-slate-100 flex flex-col text-slate-800 font-sans">
       
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed top-20 right-6 z-50 bg-[#37494E] text-white px-5 py-3 rounded-2xl shadow-2xl border border-white/20 flex items-center gap-2 text-xs font-bold animate-bounce">
+        <div className="fixed top-16 sm:top-20 left-3 right-3 sm:left-auto sm:right-6 sm:max-w-sm z-50 bg-[#37494E] text-white px-4 sm:px-5 py-3 rounded-xl sm:rounded-2xl shadow-2xl border border-white/20 flex items-start gap-2 text-xs font-bold animate-bounce min-w-0">
           <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
-          <span>{toastMessage}</span>
+          <span className="min-w-0 break-words">{toastMessage}</span>
         </div>
       )}
 
       {/* 1. Dedicated Top Header Navbar */}
-      <header className="h-16 bg-[#37494E] text-white px-4 md:px-6 flex items-center justify-between shadow-md z-40 shrink-0 border-b border-[#2c3b3f]">
-        <div className="flex items-center gap-3">
+      <header className="h-14 sm:h-16 bg-[#37494E] text-white px-2.5 sm:px-4 md:px-6 flex items-center justify-between gap-2 shadow-md z-40 shrink-0 border-b border-[#2c3b3f] min-w-0">
+        <div className="flex items-center gap-1.5 sm:gap-3 min-w-0">
           <button
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="p-2 hover:bg-white/10 rounded-xl transition-colors cursor-pointer text-slate-200 hover:text-white"
+            className="w-9 h-9 sm:w-10 sm:h-10 p-0 flex items-center justify-center hover:bg-white/10 rounded-xl transition-colors cursor-pointer text-slate-200 hover:text-white shrink-0"
             title="Toggle Sidebar Menu"
           >
             <Menu className="h-5 w-5" />
           </button>
           <div className="flex items-center gap-2.5">
-            <div className="w-[80px] h-10 sm:w-[140px] sm:h-10 flex items-center justify-start shrink-0">
+            <div className="w-[72px] h-9 sm:w-[120px] sm:h-10 md:w-[140px] flex items-center justify-start shrink-0">
               <img
                 src="/company-logo.png"
                 alt="International Conference Logo"
@@ -672,7 +676,7 @@ export default function OrganizerPortal({
               />
             </div>
             <div>
-              <h1 className="text-xs sm:text-sm md:text-base font-extrabold tracking-wide text-white leading-tight font-display">
+              <h1 className="hidden min-[420px]:block text-[10px] sm:text-sm md:text-base font-extrabold tracking-wide text-white leading-tight font-display whitespace-nowrap">
                 Organizer Dashboard
               </h1>
             </div>
@@ -680,13 +684,13 @@ export default function OrganizerPortal({
         </div>
 
         {/* Right side controls */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
           {/* User profile preview badge */}
-          <div className="flex items-center gap-2 pl-2 border-l border-white/10">
+          <div className="flex items-center gap-2 sm:pl-2 sm:border-l sm:border-white/10">
             <img
               src={getCleanImageSrc(activeProfile?.logo, "https://images.unsplash.com/photo-1560179707-f14e90ef3623?auto=format&fit=crop&w=300&q=80")}
               alt={activeProfile?.organizationName || "Profile"}
-              className="h-8 w-8 rounded-full border border-white/30 object-contain bg-white"
+              className="h-7 w-7 sm:h-8 sm:w-8 rounded-full border border-white/30 object-contain bg-white shrink-0"
               onError={(e) => {
                 (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1560179707-f14e90ef3623?auto=format&fit=crop&w=300&q=80";
               }}
@@ -714,15 +718,15 @@ export default function OrganizerPortal({
         {isSidebarOpen && (
           <div
             onClick={() => setIsSidebarOpen(false)}
-            className="lg:hidden fixed inset-0 top-16 bg-slate-900/50 backdrop-blur-xs z-20 transition-opacity"
+            className="lg:hidden fixed inset-0 top-14 sm:top-16 bg-slate-900/55 backdrop-blur-xs z-20 transition-opacity"
           />
         )}
 
         {/* Left Sidebar Navigation */}
         <aside
           className={`
-            fixed lg:static top-16 bottom-0 left-0 z-30 h-[calc(100vh-4rem)] lg:h-full
-            ${isSidebarOpen ? "w-64 translate-x-0" : "-translate-x-full lg:translate-x-0 lg:w-16"}
+            fixed lg:static top-14 sm:top-16 bottom-0 left-0 z-30 h-[calc(100dvh-3.5rem)] sm:h-[calc(100dvh-4rem)] lg:h-full
+            ${isSidebarOpen ? "w-[min(17rem,86vw)] sm:w-64 translate-x-0" : "-translate-x-full lg:translate-x-0 lg:w-16"}
             bg-[#37494E] text-slate-200 shrink-0 transition-all duration-300 shadow-xl border-r border-[#2c3b3f] flex flex-col justify-between overflow-hidden
           `}
         >
@@ -899,12 +903,12 @@ export default function OrganizerPortal({
         </aside>
 
         {/* Main Content Area beside Sidebar */}
-        <main className="flex-1 flex flex-col min-w-0 overflow-y-auto overflow-x-hidden bg-slate-100 h-full">
+        <main className="flex-1 flex flex-col min-w-0 max-w-full overflow-y-auto overflow-x-hidden bg-slate-100 h-full">
           
           {/* Sticky Section Header */}
-          <div className="bg-white border-b border-slate-200 px-4 md:px-6 py-3 flex items-center justify-between shadow-2xs sticky top-0 z-20 shrink-0">
+          <div className="bg-white border-b border-slate-200 px-3 sm:px-4 md:px-6 py-2.5 sm:py-3 flex items-center justify-between gap-3 shadow-2xs sticky top-0 z-20 shrink-0 min-w-0">
             <div>
-              <h2 className="text-sm md:text-base font-bold font-display text-[#37494E]">
+              <h2 className="text-xs sm:text-sm md:text-base font-bold font-display text-[#37494E] leading-tight break-words">
                 {activeMenu === "DASHBOARD_OVERVIEW" && "Dashboard"}
                 {activeMenu === "ADD_CONFERENCE" && (editingConfId ? "Edit Conference Details" : "Add New Conference")}
                 {activeMenu === "APPROVED_CONFERENCES" && "Approved Conferences"}
@@ -918,10 +922,10 @@ export default function OrganizerPortal({
 
           {/* Pending Admin Activation Alert Banner */}
           {activeProfile && activeProfile.isSuspended && (
-            <div className="bg-amber-50 border-b border-amber-200 px-4 md:px-6 py-3 text-amber-900 text-xs font-semibold flex items-center justify-between gap-3 shrink-0">
-              <div className="flex items-center gap-2">
+            <div className="bg-amber-50 border-b border-amber-200 px-3 sm:px-4 md:px-6 py-3 text-amber-900 text-xs font-semibold flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 shrink-0 min-w-0">
+              <div className="flex items-start gap-2 min-w-0">
                 <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
-                <span>
+                <span className="min-w-0 break-words leading-relaxed">
                   <strong className="font-extrabold">Account Pending Activation:</strong> Your profile setup is complete and has been automatically sent to the Admin Portal. An administrator will activate your profile before your organizer account is publicly listed on the User Portal.
                 </span>
               </div>
@@ -929,16 +933,16 @@ export default function OrganizerPortal({
           )}
 
           {/* Content Body Container */}
-          <div className="p-4 md:p-6 space-y-6">
+          <div className="p-3 sm:p-4 md:p-5 lg:p-6 space-y-4 sm:space-y-5 md:space-y-6 min-w-0">
 
             {/* SECTION 1: DASHBOARD OVERVIEW */}
             {activeMenu === "DASHBOARD_OVERVIEW" && (
               <div className="space-y-6">
                 
                 {/* Welcome Card */}
-                <div className="bg-gradient-to-r from-[#37494E] to-[#2c3b3f] rounded-2xl p-6 text-white shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="bg-gradient-to-r from-[#37494E] to-[#2c3b3f] rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6 text-white shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 min-w-0">
                   <div className="space-y-1">
-                    <h2 className="text-xl font-black font-display tracking-tight text-white">
+                    <h2 className="text-lg sm:text-xl font-black font-display tracking-tight text-white leading-tight break-words">
                       Welcome back, {activeProfile?.organizationName || authUser?.name || "Organizer"}!
                     </h2>
                     <p className="text-xs text-slate-300">
@@ -948,13 +952,13 @@ export default function OrganizerPortal({
                 </div>
 
                 {/* Primary Metrics Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 min-[420px]:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                   <div
                     onClick={() => setActiveMenu("APPROVED_CONFERENCES")}
-                    className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs hover:shadow-md hover:-translate-y-1 hover:border-[#37494E] transition-all duration-300 hover-card-lift cursor-pointer"
+                    className="bg-white p-4 sm:p-5 rounded-xl sm:rounded-2xl border border-slate-200 shadow-xs hover:shadow-md hover:-translate-y-1 hover:border-[#37494E] transition-all duration-300 hover-card-lift cursor-pointer min-w-0"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-2xl font-black text-[#37494E]">{stats.total}</span>
+                      <span className="text-xl sm:text-2xl font-black text-[#37494E]">{stats.total}</span>
                       <div className="p-2.5 bg-slate-100 text-[#37494E] rounded-xl hover-icon-scale">
                         <FileText className="h-5 w-5" />
                       </div>
@@ -964,10 +968,10 @@ export default function OrganizerPortal({
 
                   <div
                     onClick={() => setActiveMenu("APPROVED_CONFERENCES")}
-                    className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs hover:shadow-md hover:-translate-y-1 hover:border-[#37494E] transition-all duration-300 hover-card-lift cursor-pointer"
+                    className="bg-white p-4 sm:p-5 rounded-xl sm:rounded-2xl border border-slate-200 shadow-xs hover:shadow-md hover:-translate-y-1 hover:border-[#37494E] transition-all duration-300 hover-card-lift cursor-pointer min-w-0"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-2xl font-black text-emerald-600">{stats.approved}</span>
+                      <span className="text-xl sm:text-2xl font-black text-emerald-600">{stats.approved}</span>
                       <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl hover-icon-scale">
                         <CheckCircle2 className="h-5 w-5" />
                       </div>
@@ -977,10 +981,10 @@ export default function OrganizerPortal({
 
                   <div
                     onClick={() => setActiveMenu("PENDING_CONFERENCES")}
-                    className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs hover:shadow-md hover:-translate-y-1 hover:border-[#37494E] transition-all duration-300 hover-card-lift cursor-pointer"
+                    className="bg-white p-4 sm:p-5 rounded-xl sm:rounded-2xl border border-slate-200 shadow-xs hover:shadow-md hover:-translate-y-1 hover:border-[#37494E] transition-all duration-300 hover-card-lift cursor-pointer min-w-0"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-2xl font-black text-amber-600">{stats.pending}</span>
+                      <span className="text-xl sm:text-2xl font-black text-amber-600">{stats.pending}</span>
                       <div className="p-2.5 bg-amber-50 text-amber-600 rounded-xl hover-icon-scale">
                         <Clock className="h-5 w-5" />
                       </div>
@@ -990,10 +994,10 @@ export default function OrganizerPortal({
 
                   <div
                     onClick={() => setActiveMenu("REJECTED_CONFERENCES")}
-                    className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs hover:shadow-md hover:-translate-y-1 hover:border-[#37494E] transition-all duration-300 hover-card-lift cursor-pointer"
+                    className="bg-white p-4 sm:p-5 rounded-xl sm:rounded-2xl border border-slate-200 shadow-xs hover:shadow-md hover:-translate-y-1 hover:border-[#37494E] transition-all duration-300 hover-card-lift cursor-pointer min-w-0"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-2xl font-black text-rose-600">{stats.rejected}</span>
+                      <span className="text-xl sm:text-2xl font-black text-rose-600">{stats.rejected}</span>
                       <div className="p-2.5 bg-rose-50 text-rose-600 rounded-xl hover-icon-scale">
                         <XCircle className="h-5 w-5" />
                       </div>
@@ -1003,28 +1007,28 @@ export default function OrganizerPortal({
                 </div>
 
                 {/* Recent Conferences Table */}
-                <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
-                  <div className="p-4 px-6 border-b border-slate-100 flex items-center justify-between">
-                    <h3 className="font-bold text-[#37494E] text-sm flex items-center gap-2">
+                <div className="bg-white rounded-xl sm:rounded-2xl border border-slate-200 overflow-hidden shadow-xs min-w-0">
+                  <div className="p-3 sm:p-4 sm:px-6 border-b border-slate-100 flex flex-col min-[420px]:flex-row min-[420px]:items-center justify-between gap-2 sm:gap-3">
+                    <h3 className="font-bold text-[#37494E] text-xs sm:text-sm flex items-center gap-2 leading-tight">
                       <Calendar className="h-4 w-4 text-blue-600" /> Recent Conferences
                     </h3>
                     <button
                       onClick={() => setActiveMenu("APPROVED_CONFERENCES")}
-                      className="text-xs font-bold text-[#37494E] hover:underline cursor-pointer"
+                      className="text-[11px] sm:text-xs font-bold text-[#37494E] hover:underline cursor-pointer self-start min-[420px]:self-auto"
                     >
                       View Approved ({stats.approved})
                     </button>
                   </div>
 
                   {orgConferences.length === 0 ? (
-                    <div className="text-center py-12">
+                    <div className="text-center px-4 py-10 sm:py-12 min-w-0">
                       <FileText className="h-12 w-12 text-slate-300 mx-auto mb-3" />
                       <p className="text-slate-600 font-bold text-sm">No conferences created yet</p>
-                      <p className="text-xs text-slate-400 mt-1">Click "Add Conference" in the sidebar to publish your first event.</p>
+                      <p className="text-xs text-slate-400 mt-1 leading-relaxed break-words max-w-md mx-auto">Click "Add Conference" in the sidebar to publish your first event.</p>
                     </div>
                   ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left text-xs border-collapse">
+                    <div className="w-full overflow-x-auto overscroll-x-contain">
+                      <table className="w-full min-w-[720px] text-left text-xs border-collapse">
                         <thead>
                           <tr className="bg-[#37494E] text-white font-bold uppercase tracking-wider text-[10px]">
                             <th className="p-3.5 pl-6 rounded-l-lg">Conference Title</th>
@@ -1036,12 +1040,12 @@ export default function OrganizerPortal({
                         <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
                           {orgConferences.slice(0, 5).map((conf, idx) => (
                             <tr key={conf.id ? `${conf.id}-${idx}` : `conf-dash-${idx}`} className="hover:bg-slate-50/80 transition-colors">
-                              <td className="p-3.5 pl-6">
+                              <td className="p-3 sm:p-3.5 pl-4 sm:pl-6">
                                 <div className="flex items-center gap-3">
                                   {conf.bannerImage ? (
-                                    <img src={conf.bannerImage} alt="" className="h-9 w-14 rounded-lg object-contain border border-slate-200 shrink-0" />
+                                    <img src={conf.bannerImage} alt="" className="h-8 w-12 sm:h-9 sm:w-14 rounded-lg object-contain border border-slate-200 shrink-0" />
                                   ) : (
-                                    <div className="h-9 w-14 rounded-lg bg-slate-100 flex items-center justify-center border border-slate-200 shrink-0 text-slate-400">
+                                    <div className="h-8 w-12 sm:h-9 sm:w-14 rounded-lg bg-slate-100 flex items-center justify-center border border-slate-200 shrink-0 text-slate-400">
                                       <ImageIcon className="h-4 w-4" />
                                     </div>
                                   )}
@@ -1050,9 +1054,9 @@ export default function OrganizerPortal({
                                   </span>
                                 </div>
                               </td>
-                              <td className="p-3.5">{conf.category}</td>
-                              <td className="p-3.5">{conf.city}, {conf.country}</td>
-                              <td className="p-3.5">
+                              <td className="p-3 sm:p-3.5">{conf.category}</td>
+                              <td className="p-3 sm:p-3.5">{conf.city}, {conf.country}</td>
+                              <td className="p-3 sm:p-3.5">
                                 <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
                                   conf.status === ConferenceStatus.Approved ? "bg-emerald-100 text-emerald-800" :
                                   conf.status === ConferenceStatus.PendingReview ? "bg-amber-100 text-amber-800" :
@@ -1076,32 +1080,32 @@ export default function OrganizerPortal({
 
             {/* SECTION 2: ADD / EDIT CONFERENCE FORM */}
             {activeMenu === "ADD_CONFERENCE" && (
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs p-6 space-y-6">
+             <div className="bg-white rounded-xl sm:rounded-2xl border border-slate-200 shadow-2xs p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-5 md:space-y-6 min-w-0">
                 <div className="flex items-center justify-between pb-4 border-b border-slate-100">
                   <div>
-                    <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                    <h3 className="text-sm sm:text-base font-bold text-slate-900 flex items-start sm:items-center gap-2 leading-tight break-words">
                       <PlusCircle className="h-5 w-5 text-blue-600" />
                       {editingConfId ? "Edit Conference Details" : "Submit New Conference"}
                     </h3>
-                    <p className="text-xs text-slate-500 mt-0.5">
+                    <p className="text-[11px] sm:text-xs text-slate-500 mt-1 leading-5 max-w-2xl">
                       Fill in the conference details below. Submitted conferences will be sent for administrator verification.
                     </p>
                   </div>
                   {editingConfId && (
                     <button
                       onClick={resetConferenceForm}
-                      className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-colors cursor-pointer"
+                      className="w-full sm:w-auto px-3 py-2 sm:py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-colors cursor-pointer shrink-0"
                     >
                       Cancel Editing
                     </button>
                   )}
                 </div>
 
-                <form onSubmit={(e) => handleConferenceFormSubmit(e, false)} className="space-y-6">
+                <form onSubmit={(e) => handleConferenceFormSubmit(e, false)} className="space-y-4 sm:space-y-5 md:space-y-6 min-w-0">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     
                     {/* Title */}
-                    <div className="space-y-1 md:col-span-2">
+                    <div className="space-y-1 md:col-span-2 min-w-0">
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-700">Conference Title *</label>
                       <input
                         type="text"
@@ -1275,7 +1279,7 @@ export default function OrganizerPortal({
                     </div>
 
                     {/* Description */}
-                    <div className="space-y-1 md:col-span-2">
+                    <div className="space-y-1 md:col-span-2 min-w-0">
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-700">Conference Overview & Call for Papers *</label>
                       <textarea
                         required
@@ -1283,19 +1287,20 @@ export default function OrganizerPortal({
                         placeholder="Provide detailed information regarding topics, keynote speakers, paper submission deadlines..."
                         value={formDescription || ""}
                         onChange={(e) => setFormDescription(e.target.value)}
-                        className="w-full text-sm bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none"
+                        className="w-full min-w-0 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl px-3 sm:px-4 py-3 text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none resize-y min-h-[130px]"
                       />
                     </div>
 
                   </div>
 
-                  <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+                  <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2 sm:gap-3 pt-4 border-t border-slate-100">
                     {!editingConfId && (
+
                       <button
                         type="button"
                         onClick={(e) => handleConferenceFormSubmit(e, true)}
                         disabled={isSubmittingForm}
-                        className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all cursor-pointer"
+                        className="w-full sm:w-auto px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all cursor-pointer"
                       >
                         Save as Draft
                       </button>
@@ -1303,7 +1308,7 @@ export default function OrganizerPortal({
                     <button
                       type="submit"
                       disabled={isSubmittingForm}
-                      className="px-6 py-2.5 bg-[#37494E] hover:bg-[#2c3b3f] text-white text-xs font-bold rounded-xl transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
+                      className="w-full sm:w-auto px-5 sm:px-6 py-2.5 bg-[#37494E] hover:bg-[#2c3b3f] text-white text-xs font-bold rounded-xl transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer"
                     >
                       <Send className="h-4 w-4" />
                       <span>{editingConfId ? "Update & Resubmit" : "Submit Conference"}</span>
@@ -1321,8 +1326,8 @@ export default function OrganizerPortal({
 
               return (
                 <div className="space-y-4">
-                  <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-amber-900 text-xs flex items-center justify-between">
-                    <div className="flex items-center gap-2">
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl sm:rounded-2xl p-3 sm:p-4 text-amber-900 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 min-w-0">
+                    <div className="flex items-start sm:items-center gap-2 min-w-0">
                       <Clock className="h-5 w-5 text-amber-600 shrink-0" />
                       <span>Conferences in this view are submitted and currently undergoing review by administrators before publication.</span>
                     </div>
@@ -1331,17 +1336,17 @@ export default function OrganizerPortal({
                     </span>
                   </div>
 
-                  <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-2xs">
+                  <div className="bg-white rounded-xl sm:rounded-2xl border border-slate-200 overflow-hidden shadow-2xs min-w-0">
                     {pendingConfs.length === 0 ? (
-                      <div className="p-12 text-center">
+                      <div className="px-4 py-10 sm:p-12 text-center min-w-0">
                         <Clock className="h-12 w-12 text-slate-300 mx-auto mb-3" />
                         <p className="text-slate-700 font-bold text-sm">No conferences pending review!</p>
-                        <p className="text-xs text-slate-400 mt-1">All your submitted conferences have been processed by administrators.</p>
+                        <p className="text-xs text-slate-400 mt-1 leading-relaxed break-words max-w-md mx-auto">All your submitted conferences have been processed by administrators.</p>
                       </div>
                     ) : (
                       <>
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-left text-xs">
+                        <div className="w-full overflow-x-auto overscroll-x-contain">
+                          <table className="w-full min-w-[720px] text-left text-xs border-collapse">
                             <thead className="bg-slate-50 text-slate-500 font-bold uppercase border-b border-slate-200">
                               <tr>
                                 <th className="p-4 pl-6">Conference Title</th>
@@ -1393,7 +1398,7 @@ export default function OrganizerPortal({
                           </table>
                         </div>
 
-                        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 border-t border-slate-100 text-xs text-slate-600 bg-slate-50/50">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 sm:p-4 border-t border-slate-100 text-xs text-slate-600 bg-slate-50/50 min-w-0">
                           <div>
                             Showing {pendingConfs.length === 0 ? 0 : (pendingPage - 1) * ORG_ITEMS_PER_PAGE + 1} to {Math.min(pendingPage * ORG_ITEMS_PER_PAGE, pendingConfs.length)} of {pendingConfs.length} conferences
                           </div>
@@ -1434,8 +1439,8 @@ export default function OrganizerPortal({
 
               return (
                 <div className="space-y-4">
-                  <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-emerald-900 text-xs flex items-center justify-between">
-                    <div className="flex items-center gap-2">
+                  <div className="bg-emerald-50 border border-emerald-200 rounded-xl sm:rounded-2xl p-3 sm:p-4 text-emerald-900 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 min-w-0">
+                    <div className="flex items-start sm:items-center gap-2 min-w-0">
                       <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
                       <span>Conferences in this view have been verified and published live to visitors.</span>
                     </div>
@@ -1444,17 +1449,17 @@ export default function OrganizerPortal({
                     </span>
                   </div>
 
-                  <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-2xs">
+                  <div className="bg-white rounded-xl sm:rounded-2xl border border-slate-200 overflow-hidden shadow-2xs min-w-0">
                     {approvedConfs.length === 0 ? (
-                      <div className="text-center py-16">
+                      <div className="text-center px-4 py-10 sm:py-16 min-w-0">
                         <CheckCircle2 className="h-12 w-12 text-slate-300 mx-auto mb-3" />
                         <p className="text-slate-700 font-bold text-sm">No approved conferences found</p>
-                        <p className="text-xs text-slate-400 mt-1">When your submitted conferences are approved by admin, they will appear here.</p>
+                       <p className="text-xs text-slate-400 mt-1 leading-relaxed break-words max-w-md mx-auto">When your submitted conferences are approved by admin, they will appear here.</p>
                       </div>
                     ) : (
                       <>
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-left text-xs border-collapse">
+                        <div className="w-full overflow-x-auto overscroll-x-contain">
+                          <table className="w-full min-w-[720px] text-left text-xs border-collapse">
                             <thead>
                               <tr className="bg-[#37494E] text-white font-bold uppercase tracking-wider text-[10px]">
                                 <th className="p-3.5 pl-6 rounded-l-lg">Conference</th>
@@ -1534,7 +1539,7 @@ export default function OrganizerPortal({
                           </table>
                         </div>
 
-                        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 border-t border-slate-100 text-xs text-slate-600 bg-slate-50/50">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 sm:p-4 border-t border-slate-100 text-xs text-slate-600 bg-slate-50/50 min-w-0">
                           <div>
                             Showing {approvedConfs.length === 0 ? 0 : (approvedPage - 1) * ORG_ITEMS_PER_PAGE + 1} to {Math.min(approvedPage * ORG_ITEMS_PER_PAGE, approvedConfs.length)} of {approvedConfs.length} conferences
                           </div>
@@ -1575,8 +1580,8 @@ export default function OrganizerPortal({
 
               return (
                 <div className="space-y-4">
-                  <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 text-rose-900 text-xs flex items-center justify-between">
-                    <div className="flex items-center gap-2">
+                  <div className="bg-rose-50 border border-rose-200 rounded-xl sm:rounded-2xl p-3 sm:p-4 text-rose-900 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 min-w-0">
+                    <div className="flex items-start sm:items-center gap-2 min-w-0">
                       <XCircle className="h-5 w-5 text-rose-600 shrink-0" />
                       <span>Conferences in this view require revision based on administrator feedback before they can be re-submitted.</span>
                     </div>
@@ -1587,17 +1592,17 @@ export default function OrganizerPortal({
 
                   <div className="space-y-4">
                     {rejectedConfs.length === 0 ? (
-                      <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center">
+                      <div className="bg-white rounded-xl sm:rounded-2xl border border-slate-200 p-6 sm:p-8 md:p-12 text-center min-w-0">
                         <CheckCircle2 className="h-12 w-12 text-emerald-400 mx-auto mb-3" />
                         <p className="text-slate-700 font-bold text-sm">No rejected conferences!</p>
-                        <p className="text-xs text-slate-400 mt-1">All your submitted conferences are either under review or approved.</p>
+                        <p className="text-xs text-slate-400 mt-1 leading-relaxed break-words max-w-md mx-auto">All your submitted conferences are either under review or approved.</p>
                       </div>
                     ) : (
                       <>
                         {paginated.map((conf, idx) => (
-                          <div key={conf.id ? `${conf.id}-${idx}` : `conf-rej-${idx}`} className="bg-white rounded-2xl border border-rose-200 p-5 shadow-2xs space-y-4">
+                          <div key={conf.id ? `${conf.id}-${idx}` : `conf-rej-${idx}`} className="bg-white rounded-xl sm:rounded-2xl border border-rose-200 p-3 sm:p-4 md:p-5 shadow-2xs space-y-3 sm:space-y-4 min-w-0">
                             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
-                              <div className="flex items-center gap-3">
+                              <div className="flex items-start sm:items-center gap-2.5 sm:gap-3 min-w-0">
                                 {conf.bannerImage ? (
                                   <img src={conf.bannerImage} alt="" className="h-12 w-20 rounded-xl object-contain border border-slate-200 shrink-0" />
                                 ) : (
@@ -1605,31 +1610,30 @@ export default function OrganizerPortal({
                                     <ImageIcon className="h-5 w-5" />
                                   </div>
                                 )}
-                                <div>
+                                <div className="min-w-0 flex-1">
                                   <h4 className="font-bold text-slate-900 text-sm">{conf.title}</h4>
                                   <p className="text-xs text-slate-500">{conf.category} • {conf.city}, {conf.country}</p>
                                 </div>
                               </div>
                               <button
                                 onClick={() => startEditConference(conf)}
-                                className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer flex items-center gap-1.5 shrink-0"
-                              >
+                                className="w-full sm:w-auto px-3.5 py-2 sm:py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-1.5 shrink-0">
                                 <Edit2 className="h-3.5 w-3.5" /> Edit & Resubmit
                               </button>
                             </div>
 
-                            <div className="bg-rose-50/70 border border-rose-100 rounded-xl p-3.5 text-xs text-rose-900 space-y-1">
+                            <div className="bg-rose-50/70 border border-rose-100 rounded-xl p-3 sm:p-3.5 text-xs text-rose-900 space-y-1.5 min-w-0">
                               <div className="font-bold flex items-center gap-1.5 text-rose-700">
                                 <AlertCircle className="h-4 w-4" /> Admin Review Feedback:
                               </div>
-                              <p className="text-slate-700 pl-5">
+                              <p className="text-slate-700 sm:pl-5 leading-5 break-words">
                                 Your submission was not approved. Please review the conference details before re-submitting.
                               </p>
                             </div>
                           </div>
                         ))}
 
-                        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 bg-white rounded-2xl border border-slate-200 text-xs text-slate-600">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 sm:p-4 bg-white rounded-xl sm:rounded-2xl border border-slate-200 text-xs text-slate-600 min-w-0">
                           <div>
                             Showing {rejectedConfs.length === 0 ? 0 : (rejectedPage - 1) * ORG_ITEMS_PER_PAGE + 1} to {Math.min(rejectedPage * ORG_ITEMS_PER_PAGE, rejectedConfs.length)} of {rejectedConfs.length} conferences
                           </div>
@@ -1670,12 +1674,12 @@ export default function OrganizerPortal({
 
               return (
                 <div className="space-y-4">
-                  <div className="bg-slate-100 border border-slate-300 rounded-2xl p-4 text-slate-800 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="bg-slate-100 border border-slate-300 rounded-xl sm:rounded-2xl p-3 sm:p-4 text-slate-800 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 min-w-0">
                     <div className="flex items-center gap-2">
                       <CheckCircle2 className="h-5 w-5 text-slate-600 shrink-0" />
                       <span>View all completed conferences. Completed conferences cannot be edited. Select single or multiple items to delete them.</span>
                     </div>
-                    <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                    <div className="w-full sm:w-auto flex flex-col min-[420px]:flex-row items-stretch min-[420px]:items-center gap-2 self-stretch sm:self-auto shrink-0">
                       {selectedCompletedIds.length > 0 && (
                         <button
                           onClick={async () => {
@@ -1689,7 +1693,7 @@ export default function OrganizerPortal({
                               showToast("Delete action cancelled.");
                             }
                           }}
-                          className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs cursor-pointer flex items-center gap-1.5 transition-colors shadow-2xs"
+                          className="w-full min-[420px]:w-auto px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs cursor-pointer flex items-center justify-center gap-1.5 transition-colors shadow-2xs"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                           Delete Selected ({selectedCompletedIds.length})
@@ -1709,7 +1713,7 @@ export default function OrganizerPortal({
                               showToast("Delete action cancelled.");
                             }
                           }}
-                          className="px-3 py-1.5 bg-rose-100 hover:bg-rose-200 text-rose-800 font-bold rounded-xl text-xs cursor-pointer flex items-center gap-1.5 transition-colors border border-rose-200"
+                          className="w-full min-[420px]:w-auto px-3 py-1.5 bg-rose-100 hover:bg-rose-200 text-rose-800 font-bold rounded-xl text-xs cursor-pointer flex items-center justify-center gap-1.5 transition-colors border border-rose-200"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                           Delete All
@@ -1718,17 +1722,17 @@ export default function OrganizerPortal({
                     </div>
                   </div>
 
-                  <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-2xs">
+                  <div className="bg-white rounded-xl sm:rounded-2xl border border-slate-200 overflow-hidden shadow-2xs min-w-0">
                     {completedConfs.length === 0 ? (
-                      <div className="text-center py-16">
+                      <div className="text-center px-4 py-10 sm:py-16 min-w-0">
                         <CheckCircle2 className="h-12 w-12 text-slate-300 mx-auto mb-3" />
                         <p className="text-slate-700 font-bold text-sm">No completed conferences found</p>
-                        <p className="text-xs text-slate-400 mt-1">When your active conferences pass their scheduled end date, they will automatically move here.</p>
+                        <p className="text-xs text-slate-400 mt-1 leading-relaxed break-words max-w-md mx-auto">When your active conferences pass their scheduled end date, they will automatically move here.</p>
                       </div>
                     ) : (
                       <>
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-left text-xs border-collapse">
+                        <div className="w-full overflow-x-auto overscroll-x-contain">
+                          <table className="w-full min-w-[760px] text-left text-xs border-collapse">
                             <thead>
                               <tr className="bg-[#37494E] text-white font-bold uppercase tracking-wider text-[10px]">
                                 <th className="p-3.5 pl-4 w-8 rounded-l-lg">
@@ -1825,12 +1829,12 @@ export default function OrganizerPortal({
                           </table>
                         </div>
 
-                        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 border-t border-slate-100 text-xs text-slate-600 bg-slate-50/50">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 sm:p-4 border-t border-slate-100 text-xs text-slate-600 bg-slate-50/50 min-w-0">
                           <div>
                             Showing {completedConfs.length === 0 ? 0 : (completedPage - 1) * ORG_ITEMS_PER_PAGE + 1} to {Math.min(completedPage * ORG_ITEMS_PER_PAGE, completedConfs.length)} of {completedConfs.length} conferences
                           </div>
                           {totalPages > 1 && (
-                            <div className="flex items-center gap-1.5">
+                            <div className="flex flex-wrap items-center justify-center gap-1.5">
                               <button
                                 onClick={() => setCompletedPage((p) => Math.max(1, p - 1))}
                                 disabled={completedPage === 1}
@@ -1858,7 +1862,7 @@ export default function OrganizerPortal({
               );
             })()}
 
-            {/* SECTION 5: ALL CONFERENCES & DRAFTS */}
+            {/* SECTION 5: ALL CONFERENCES & DRAFTS */}                          ``                               
             {activeMenu === "MANAGE_CONFERENCES" && (() => {
               const filteredConfs = orgConferences.filter((c) => !searchQuery || c.title.toLowerCase().includes(searchQuery.toLowerCase()));
               const totalPages = Math.max(1, Math.ceil(filteredConfs.length / ORG_ITEMS_PER_PAGE));
@@ -1866,25 +1870,25 @@ export default function OrganizerPortal({
 
               return (
                 <div className="space-y-4">
-                  <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-2xs">
-                    <div className="p-4 px-6 border-b border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <div className="bg-white rounded-xl sm:rounded-2xl border border-slate-200 overflow-hidden shadow-2xs min-w-0">
+                    <div className="p-3 sm:p-4 sm:px-6 border-b border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 min-w-0">
                       <h3 className="font-bold text-slate-800 text-sm">All My Conferences ({filteredConfs.length})</h3>
-                      <div className="flex items-center gap-2">
-                        <div className="relative">
+                      <div className="w-full sm:w-auto flex items-center gap-2">
+                        <div className="relative w-full sm:w-auto">
                           <Search className="h-3.5 w-3.5 text-slate-400 absolute left-3 top-2.5" />
                           <input
                             type="text"
                             placeholder="Search title..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="text-xs bg-slate-50 border border-slate-200 rounded-xl pl-8 pr-3 py-1.5 w-44 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            className="w-full sm:w-44 text-xs bg-slate-50 border border-slate-200 rounded-xl pl-8 pr-3 py-2 sm:py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
                           />
                         </div>
                       </div>
                     </div>
 
                     {filteredConfs.length === 0 ? (
-                      <div className="text-center py-16">
+                      <div className="text-center px-4 py-10 sm:py-16 min-w-0">
                         <FileText className="h-12 w-12 text-slate-300 mx-auto mb-3" />
                         <p className="text-slate-700 font-bold text-sm">No conferences created yet</p>
                         <button
@@ -1899,11 +1903,11 @@ export default function OrganizerPortal({
                       </div>
                     ) : (
                       <>
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-left text-xs border-collapse">
+                        <div className="w-full overflow-x-auto overscroll-x-contain"> 
+                          <table className="w-full min-w-[760px] text-left text-xs border-collapse">
                             <thead>
                               <tr className="bg-[#37494E] text-white font-bold uppercase tracking-wider text-[10px]">
-                                <th className="p-3.5 pl-6 rounded-l-lg">Conference Title</th>
+                                <th className="p-3 sm:p-3.5 pl-4 sm:pl-6 rounded-l-lg">Conference Title</th>
                                 <th className="p-3.5">Category</th>
                                 <th className="p-3.5 font-bold uppercase tracking-wider text-[10px] text-white">Dates</th>
                                 <th className="p-3.5">Status</th>
@@ -2029,7 +2033,7 @@ export default function OrganizerPortal({
                           </table>
                         </div>
 
-                        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 border-t border-slate-100 text-xs text-slate-600 bg-slate-50/50">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 sm:p-4 border-t border-slate-100 text-xs text-slate-600 bg-slate-50/50 min-w-0">
                           <div>
                             Showing {filteredConfs.length === 0 ? 0 : (managePage - 1) * ORG_ITEMS_PER_PAGE + 1} to {Math.min(managePage * ORG_ITEMS_PER_PAGE, filteredConfs.length)} of {filteredConfs.length} conferences
                           </div>
@@ -2064,16 +2068,16 @@ export default function OrganizerPortal({
 
             {/* SECTION 6: MANAGE PROFILE */}
             {activeMenu === "MANAGE_PROFILE" && (
-              <div className="space-y-6">
+              <div className="space-y-4 sm:space-y-5 md:space-y-6 min-w-0">
                 {/* Header Banner & Mode Selector */}
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
-                  <div className="relative h-48 bg-[#37494E]">
+                <div className="bg-white rounded-xl sm:rounded-2xl border border-slate-200 shadow-2xs overflow-hidden min-w-0">
+                  <div className="relative h-40 sm:h-48 bg-[#37494E]">
                     {activeProfile?.coverImage ? (
                       <img src={activeProfile.coverImage} alt="" className="h-full w-full object-contain opacity-60" />
                     ) : (
                       <div className="h-full w-full bg-[#37494E]" />
                     )}
-                    <div className="absolute top-4 right-4 flex items-center gap-2">
+                    <div className="absolute top-3 sm:top-4 right-3 sm:right-4 flex items-center gap-2 max-w-[calc(100%-1.5rem)]">
                       {!isEditingProfile ? (
                         <button
                           onClick={() => setIsEditingProfile(true)}
@@ -2090,25 +2094,27 @@ export default function OrganizerPortal({
                         </button>
                       )}
                     </div>
-                    <div className="absolute bottom-4 left-6 flex items-center gap-4">
+                    <div className="absolute bottom-3 sm:bottom-4 left-3 sm:left-6 right-3 sm:right-auto flex items-center gap-3 sm:gap-4 min-w-0">
                       {(() => {
                         const logoUrl = getCleanImageSrc(activeProfile?.logo, "https://images.unsplash.com/photo-1560179707-f14e90ef3623?auto=format&fit=crop&w=300&q=80");
                         return (
                           <img
                             src={logoUrl}
                             alt={activeProfile?.organizationName || "Logo"}
-                            className="h-16 w-16 rounded-2xl border-2 border-white object-contain bg-white shadow-md shrink-0"
+                            className="h-12 w-12 sm:h-16 sm:w-16 rounded-xl sm:rounded-2xl border-2 border-white object-contain bg-white shadow-md shrink-0"
                             onError={(e) => {
                               (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1560179707-f14e90ef3623?auto=format&fit=crop&w=300&q=80";
                             }}
                           />
                         );
                       })()}
-                      <div>
-                        <h3 className="text-xl font-bold text-white font-display leading-tight">
+                      <div className="min-w-0 flex-1">
+                        <h3 className="text-base sm:text-xl font-bold text-white font-display leading-tight break-words">
                           {activeProfile?.organizationName || "Organizer Profile"}
                         </h3>
-                        <p className="text-xs text-slate-200">{activeProfile?.city}, {activeProfile?.country}</p>
+                        <p className="text-[11px] sm:text-xs text-slate-200 break-words">
+                          {activeProfile?.city}, {activeProfile?.country}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -2116,9 +2122,9 @@ export default function OrganizerPortal({
 
                 {/* View Mode Summary Cards */}
                 {activeProfile && !isEditingProfile && (
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5 lg:gap-6 min-w-0">
                     {/* Card 1: Profile Information */}
-                    <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs p-6 space-y-4 lg:col-span-2">
+                    <div className="bg-white rounded-xl sm:rounded-2xl border border-slate-200 shadow-2xs p-4 sm:p-5 md:p-6 space-y-4 lg:col-span-2 min-w-0">
                       <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                         <h4 className="font-bold text-slate-900 text-sm flex items-center gap-2">
                           <Building2 className="h-4 w-4 text-blue-600" /> Profile Information
@@ -2134,12 +2140,12 @@ export default function OrganizerPortal({
                         </div>
                         <div>
                           <label className="font-bold uppercase tracking-wider text-slate-400 text-[10px]">Unique Profile URL</label>
-                          <div className="flex items-center gap-2 mt-1">
+                          <div className="flex items-center gap-2 mt-1 min-w-0 max-w-full">
                             <a
                               href={`/organizers/${activeProfile.slug || activeProfile.id}`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-blue-600 font-bold hover:underline text-xs flex items-center gap-1 cursor-pointer bg-blue-50/80 px-2.5 py-1 rounded-lg border border-blue-100 w-fit"
+                              className="text-blue-600 font-bold hover:underline text-xs flex items-center gap-1 cursor-pointer bg-blue-50/80 px-2.5 py-1 rounded-lg border border-blue-100 w-fit max-w-full min-w-0 break-all"
                               title="Click to view unique public organizer profile page"
                             >
                               <span>/organizers/{activeProfile.slug || activeProfile.id}</span>
@@ -2149,11 +2155,13 @@ export default function OrganizerPortal({
                         </div>
                         <div>
                           <label className="font-bold uppercase tracking-wider text-slate-400 text-[10px]">Location</label>
-                          <p className="text-slate-700 font-medium text-xs mt-0.5">📍 {activeProfile.city}, {activeProfile.country}</p>
+                          <p className="text-slate-700 font-medium text-xs mt-0.5 break-words min-w-0">
+                            📍 {activeProfile.city}, {activeProfile.country}
+                          </p>
                         </div>
                         <div>
                           <label className="font-bold uppercase tracking-wider text-slate-400 text-[10px]">About Organization</label>
-                          <p className="text-slate-600 leading-relaxed text-xs mt-1 whitespace-pre-line bg-slate-50 p-3.5 rounded-xl border border-slate-100">
+                          <p className="text-slate-600 leading-relaxed text-xs mt-1 whitespace-pre-line bg-slate-50 p-3 sm:p-3.5 rounded-xl border border-slate-100 break-words min-w-0 overflow-hidden">
                             {activeProfile.aboutOrganization || "No description provided."}
                           </p>
                         </div>
@@ -2161,10 +2169,10 @@ export default function OrganizerPortal({
                     </div>
 
                     {/* Right column: Contact Details & Social Media Links */}
-                    <div className="space-y-6">
+                    <div className="space-y-4 sm:space-y-5 lg:space-y-6 min-w-0">
                       {/* Card 2: Contact Details */}
-                      <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs p-6 space-y-4">
-                        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                      <div className="bg-white rounded-xl sm:rounded-2xl border border-slate-200 shadow-2xs p-4 sm:p-5 md:p-6 space-y-4 min-w-0">
+                        <div className="flex items-start sm:items-center justify-between gap-2 pb-3 border-b border-slate-100 min-w-0">
                           <h4 className="font-bold text-slate-900 text-sm flex items-center gap-2">
                             <Mail className="h-4 w-4 text-emerald-600" /> Contact Details
                           </h4>
@@ -2172,16 +2180,16 @@ export default function OrganizerPortal({
                         <div className="space-y-3 text-xs">
                           <div>
                             <label className="font-bold uppercase tracking-wider text-slate-400 text-[10px]">Contact Person</label>
-                            <p className="text-slate-800 font-semibold text-xs mt-0.5">{activeProfile.contactPerson}</p>
+                            <p className="text-slate-800 font-semibold text-xs mt-0.5 break-words min-w-0">{activeProfile.contactPerson}</p>
                           </div>
                           <div>
                             <label className="font-bold uppercase tracking-wider text-slate-400 text-[10px]">Official Email</label>
-                            <p className="text-slate-800 font-semibold text-xs mt-0.5">{activeProfile.email}</p>
+                            <p className="text-slate-800 font-semibold text-xs mt-0.5 break-all min-w-0">{activeProfile.email}</p>
                           </div>
                           {activeProfile.whatsapp && (
                             <div>
                               <label className="font-bold uppercase tracking-wider text-slate-400 text-[10px]">Phone / WhatsApp</label>
-                              <p className="text-slate-800 font-semibold text-xs mt-0.5">{activeProfile.whatsapp}</p>
+                              <p className="text-slate-800 font-semibold text-xs mt-0.5 break-all min-w-0">{activeProfile.whatsapp}</p>
                             </div>
                           )}
                           <div>
@@ -2191,7 +2199,7 @@ export default function OrganizerPortal({
                                 href={activeProfile.organizationWebsite}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="text-blue-600 hover:underline font-semibold block text-xs mt-0.5 truncate flex items-center gap-1"
+                                className="text-blue-600 hover:underline font-semibold text-xs mt-0.5 flex items-start gap-1 min-w-0 max-w-full break-all"
                               >
                                 <Globe className="h-3 w-3 shrink-0" /> {activeProfile.organizationWebsite}
                               </a>
@@ -2203,9 +2211,9 @@ export default function OrganizerPortal({
                       </div>
 
                       {/* Card 3: Social Media Links */}
-                      <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs p-6 space-y-4">
-                        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                          <h4 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                      <div className="bg-white rounded-xl sm:rounded-2xl border border-slate-200 shadow-2xs p-4 sm:p-5 md:p-6 space-y-4 min-w-0">
+                        <div className="flex items-start sm:items-center justify-between gap-2 pb-3 border-b border-slate-100 min-w-0">
+                         <h4 className="font-bold text-slate-900 text-xs sm:text-sm flex items-start sm:items-center gap-2 min-w-0 leading-tight">
                             <Globe className="h-4 w-4 text-purple-600" /> Social Media Links & Web Presence
                           </h4>
                         </div>
@@ -2298,8 +2306,8 @@ export default function OrganizerPortal({
 
                 {/* Edit Profile Form */}
                 {(isEditingProfile || !activeProfile) && (
-                  <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs p-6 space-y-6">
-                    <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                  <div className="bg-white rounded-xl sm:rounded-2xl border border-slate-200 shadow-2xs p-4 sm:p-5 md:p-6 space-y-5 sm:space-y-6 min-w-0">
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 pb-3 sm:pb-4 border-b border-slate-100 min-w-0">
                       <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
                         <Edit2 className="h-5 w-5 text-blue-600" /> Manage Profile & Social Media Details
                       </h3>
@@ -2351,15 +2359,15 @@ export default function OrganizerPortal({
                         <h4 className="font-bold text-slate-800 text-xs uppercase tracking-wider pb-1 border-b border-slate-100 flex items-center gap-2">
                           <Building2 className="h-4 w-4 text-blue-600" /> Profile Information
                         </h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-1 md:col-span-2">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 min-w-0">
+                          <div className="space-y-1 md:col-span-2 min-w-0">
                             <label className="font-bold uppercase tracking-wider text-slate-700">Organization Name *</label>
                             <input
                               type="text"
                               required
                               value={profileOrgName || ""}
                               onChange={(e) => setProfileOrgName(e.target.value)}
-                              className="w-full text-sm bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                              className="w-full min-w-0 text-xs sm:text-sm bg-gray-50 border border-gray-200 rounded-xl px-3 sm:px-4 py-3 text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                             />
                           </div>
 
@@ -2376,7 +2384,7 @@ export default function OrganizerPortal({
                                   .map((c) => c.name);
                                 setProfileCity(matchingCities[0] || "");
                               }}
-                              className="w-full text-sm bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                              className="w-full min-w-0 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl px-3 sm:px-4 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                             >
                               <option value="">Select Country</option>
                               {adminCountryOptions.map((c, idx) => (
@@ -2392,7 +2400,7 @@ export default function OrganizerPortal({
                               disabled={!profileCountry}
                               value={profileCity || ""}
                               onChange={(e) => setProfileCity(e.target.value)}
-                              className={`w-full text-sm border rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-colors ${
+                              className={`w-full min-w-0 text-xs sm:text-sm border rounded-xl px-3 sm:px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-colors ${
                                 !profileCountry
                                   ? "bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed"
                                   : "bg-slate-50 border-slate-200 text-slate-800 cursor-pointer"
@@ -2427,14 +2435,14 @@ export default function OrganizerPortal({
                             isLogo={false}
                           />
 
-                          <div className="space-y-1 md:col-span-2">
+                          <div className="space-y-1 md:col-span-2 min-w-0">
                             <label className="font-bold uppercase tracking-wider text-slate-700">About Organization *</label>
                             <textarea
                               required
                               rows={4}
                               value={profileAbout || ""}
                               onChange={(e) => setProfileAbout(e.target.value)}
-                              className="w-full text-sm bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none"
+                              className="w-full min-w-0 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl px-3 sm:px-4 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none"
                             />
                           </div>
                         </div>
@@ -2445,7 +2453,7 @@ export default function OrganizerPortal({
                         <h4 className="font-bold text-slate-800 text-xs uppercase tracking-wider pb-1 border-b border-slate-100 flex items-center gap-2">
                           <Mail className="h-4 w-4 text-emerald-600" /> Contact Details
                         </h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 min-w-0">
                           <div className="space-y-1">
                             <label className="font-bold uppercase tracking-wider text-slate-700">Contact Person *</label>
                             <input
@@ -2453,7 +2461,7 @@ export default function OrganizerPortal({
                               required
                               value={profileContact || ""}
                               onChange={(e) => setProfileContact(e.target.value)}
-                              className="w-full text-sm bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                              className="w-full min-w-0 text-xs sm:text-sm bg-gray-50 border border-gray-200 rounded-xl px-3 sm:px-4 py-3 text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                             />
                           </div>
 
@@ -2463,7 +2471,7 @@ export default function OrganizerPortal({
                               type="text"
                               value={profileWebsite || ""}
                               onChange={(e) => setProfileWebsite(e.target.value)}
-                              className="w-full text-sm bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                              className="w-full min-w-0 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl px-3 sm:px-4 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                               placeholder="e.g. example.com or https://www.example.com"
                             />
                           </div>
@@ -2478,7 +2486,7 @@ export default function OrganizerPortal({
                           </h4>
                           <span className="text-[11px] text-slate-500 font-medium">All social media fields are optional</span>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 min-w-0">
                           <div className="space-y-1">
                             <label className="font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
                               <Twitter className="h-3.5 w-3.5 text-sky-500" /> Twitter / X Profile URL
@@ -2611,19 +2619,19 @@ export default function OrganizerPortal({
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+                      <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2 sm:gap-3 pt-4 border-t border-slate-100">
                         {activeProfile && (
                           <button
                             type="button"
                             onClick={() => setIsEditingProfile(false)}
-                            className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+                            className="w-full sm:w-auto px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer text-center"
                           >
                             Cancel
                           </button>
                         )}
                         <button
                           type="submit"
-                          className="px-5 py-2.5 bg-[#37494E] hover:bg-[#2c3b3f] text-white text-xs font-bold rounded-xl transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
+                          className="w-full sm:w-auto px-5 py-2.5 bg-[#37494E] hover:bg-[#2c3b3f] text-white text-xs font-bold rounded-xl transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer"
                         >
                           <Save className="h-4 w-4" /> Save Profile Details
                         </button>
@@ -2639,14 +2647,16 @@ export default function OrganizerPortal({
       </div>
 
       {viewingCompletedConference && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 space-y-6 shadow-2xl border border-slate-200">
-            <div className="flex items-start justify-between border-b border-slate-100 pb-4">
-              <div>
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+          <div className="bg-white rounded-xl sm:rounded-2xl max-w-2xl w-full max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] overflow-y-auto p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 shadow-2xl border border-slate-200 min-w-0">
+            <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-3 sm:pb-4 min-w-0">
+              <div className="min-w-0 flex-1">
                 <span className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 text-slate-800 mb-2">
                   Completed Conference
                 </span>
-                <h3 className="text-lg font-bold text-[#37494E] leading-tight">{viewingCompletedConference.title}</h3>
+                <h3 className="text-base sm:text-lg font-bold text-[#37494E] leading-tight break-words">
+                  {viewingCompletedConference.title}
+                </h3>
                 {viewingCompletedConference.shortTitle && (
                   <p className="text-xs font-semibold text-slate-500 mt-0.5">({viewingCompletedConference.shortTitle})</p>
                 )}
@@ -2708,7 +2718,7 @@ export default function OrganizerPortal({
                   href={viewingCompletedConference.conferenceWebsite}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-blue-600 hover:underline flex items-center gap-1 font-semibold"
+                  className="text-blue-600 hover:underline flex items-start gap-1 font-semibold break-all min-w-0"
                 >
                   {viewingCompletedConference.conferenceWebsite} <ExternalLink className="h-3 w-3 inline" />
                 </a>
@@ -2720,7 +2730,7 @@ export default function OrganizerPortal({
                 <p className="text-[10px] font-bold uppercase text-slate-400">Contact Email</p>
                 <a
                   href={`mailto:${viewingCompletedConference.contactEmail}`}
-                  className="text-blue-600 hover:underline font-semibold"
+                  className="text-blue-600 hover:underline font-semibold break-all"
                 >
                   {viewingCompletedConference.contactEmail}
                 </a>
@@ -2729,12 +2739,12 @@ export default function OrganizerPortal({
 
             <div className="text-xs space-y-1.5">
               <p className="text-[10px] font-bold uppercase text-slate-400">Description / Call For Papers</p>
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-slate-700 whitespace-pre-line leading-relaxed max-h-48 overflow-y-auto">
+              <div className="bg-slate-50 p-3 sm:p-4 rounded-xl border border-slate-100 text-slate-700 whitespace-pre-line leading-relaxed break-words max-h-48 overflow-y-auto min-w-0">
                 {viewingCompletedConference.description || "No description provided."}
               </div>
             </div>
 
-            <div className="flex items-center justify-end pt-3 border-t border-slate-100">
+            <div className="flex items-center justify-stretch sm:justify-end pt-3 border-t border-slate-100">
               <button
                 onClick={async () => {
                   if (!confirm(`Are you sure you want to permanently delete completed conference "${viewingCompletedConference.title}"?`)) {
@@ -2745,7 +2755,7 @@ export default function OrganizerPortal({
                   setViewingCompletedConference(null);
                   showToast(`Conference "${viewingCompletedConference.title}" deleted successfully.`);
                 }}
-                className="px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl transition-colors cursor-pointer flex items-center gap-1.5"
+                className="w-full sm:w-auto px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-1.5"
               >
                 <Trash2 className="h-3.5 w-3.5" /> Delete
               </button>

@@ -241,7 +241,9 @@ export default function AdminPortal({
   onClearNotifications,
 }: AdminPortalProps) {
   const [activeMenu, setActiveMenu] = useState<MenuKey>("DASHBOARD_OVERVIEW");
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
+  return typeof window !== "undefined" ? window.innerWidth >= 1024 : false;
+});
 
   // Expanded menu accordion groups
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
@@ -2029,18 +2031,18 @@ const [isSavingCredentials, setIsSavingCredentials] =
   };
 
   return (
-    <div className="h-screen w-screen overflow-hidden bg-slate-100 flex flex-col text-slate-800 font-sans">
+    <div className="h-[100dvh] w-full max-w-full overflow-hidden bg-slate-100 flex flex-col text-slate-800 font-sans">
       
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed top-20 right-6 z-50 bg-[#37494E] text-white px-5 py-3 rounded-2xl shadow-2xl border border-white/20 flex items-center gap-2 text-xs font-bold animate-bounce">
+        <div className="fixed top-16 sm:top-20 left-3 right-3 sm:left-auto sm:right-6 sm:max-w-sm z-50 bg-[#37494E] text-white px-4 sm:px-5 py-3 rounded-xl sm:rounded-2xl shadow-2xl border border-white/20 flex items-start gap-2 text-xs font-bold animate-bounce min-w-0">
           <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
-          <span>{toastMessage}</span>
+          <span className="min-w-0 break-words">{toastMessage}</span>
         </div>
       )}
 
       {/* 1. Fixed Top Navbar Header */}
-      <header className="h-16 bg-[#37494E] text-white px-4 md:px-6 flex items-center justify-between shadow-md z-40 shrink-0 border-b border-[#2c3b3f]">
+      <header className="h-16 bg-[#37494E] text-white px-3 sm:px-4 md:px-6 flex items-center justify-between gap-2 shadow-md z-40 shrink-0 border-b border-[#2c3b3f] min-w-0">
         <div className="flex items-center gap-3">
           <button
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -2452,24 +2454,24 @@ const [isSavingCredentials, setIsSavingCredentials] =
         </aside>
 
         {/* Main Content Area beside Sidebar */}
-        <main className="flex-1 flex flex-col min-w-0 overflow-y-auto overflow-x-hidden bg-slate-100 h-full">
+        <main className="flex-1 flex flex-col min-w-0 max-w-full overflow-y-auto overflow-x-hidden bg-slate-100 h-full">
           
           {/* Section Header */}
-          <div className="bg-white border-b border-slate-200 px-4 md:px-6 py-3 flex items-center justify-between shadow-2xs sticky top-0 z-20 shrink-0">
-            <h2 className="text-sm md:text-base font-bold font-display text-[#37494E]">
+          <div className="bg-white border-b border-slate-200 px-3 sm:px-4 md:px-6 py-3 flex items-center justify-between gap-2 shadow-2xs sticky top-0 z-20 shrink-0 min-w-0">
+            <h2 className="text-xs sm:text-sm md:text-base font-bold font-display text-[#37494E] leading-tight break-words min-w-0">
               {activeMenu.replace(/_/g, " ")}
             </h2>
           </div>
 
           {/* Content Body Container */}
-          <div className="p-4 md:p-6 space-y-6">
+          <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-5 md:space-y-6 min-w-0">
 
           {/* SECTION 1: DASHBOARD OVERVIEW */}
           {activeMenu === "DASHBOARD_OVERVIEW" && (
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-5 md:space-y-6 min-w-0">
               {/* Summary Metrics Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs hover:shadow-md hover:-translate-y-1 hover:border-[#37494E] transition-all duration-300 hover-card-lift cursor-pointer">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 min-w-0">
+                <div className="bg-white p-4 sm:p-5 rounded-xl sm:rounded-2xl min-w-0 border border-slate-200 shadow-xs hover:shadow-md hover:-translate-y-1 hover:border-[#37494E] transition-all duration-300 hover-card-lift cursor-pointer">
                   <div className="flex items-center justify-between">
                     <span className="text-2xl font-black text-[#37494E]">{summaryMetrics.totalOrgs}</span>
                     <div className="p-2.5 bg-slate-100 rounded-xl text-[#37494E] hover-icon-scale"><Users className="h-5 w-5" /></div>
@@ -2477,7 +2479,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
                   <p className="text-xs font-bold text-slate-500 mt-2">Total Organizers</p>
                 </div>
 
-                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs hover:shadow-md hover:-translate-y-1 hover:border-[#37494E] transition-all duration-300 hover-card-lift cursor-pointer">
+                <div className="bg-white p-4 sm:p-5 rounded-xl sm:rounded-2xl min-w-0 border border-slate-200 shadow-xs hover:shadow-md hover:-translate-y-1 hover:border-[#37494E] transition-all duration-300 hover-card-lift cursor-pointer">
                   <div className="flex items-center justify-between">
                     <span className="text-2xl font-black text-blue-600">{summaryMetrics.totalConfs}</span>
                     <div className="p-2.5 bg-blue-50 rounded-xl text-blue-600 hover-icon-scale"><FileText className="h-5 w-5" /></div>
@@ -2485,7 +2487,8 @@ const [isSavingCredentials, setIsSavingCredentials] =
                   <p className="text-xs font-bold text-slate-500 mt-2">Total Conferences</p>
                 </div>
 
-                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs hover:shadow-md hover:-translate-y-1 hover:border-[#37494E] transition-all duration-300 hover-card-lift cursor-pointer">
+                <div className="bg-white p-4 sm:p-5 rounded-xl sm:rounded-2xl min-w-0 border border-slate-200 shadow-xs hover:shadow-md hover:-translate-y-1 hover:border-[#37494E] transition-all duration-300 hover-card-lift cursor-pointer">
+
                   <div className="flex items-center justify-between">
                     <span className="text-2xl font-black text-amber-600">{summaryMetrics.pendingConfs}</span>
                     <div className="p-2.5 bg-amber-50 rounded-xl text-amber-600 hover-icon-scale"><Clock className="h-5 w-5" /></div>
@@ -2493,7 +2496,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
                   <p className="text-xs font-bold text-slate-500 mt-2">Pending Conferences</p>
                 </div>
 
-                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs hover:shadow-md hover:-translate-y-1 hover:border-[#37494E] transition-all duration-300 hover-card-lift cursor-pointer">
+                <div className="bg-white p-4 sm:p-5 rounded-xl sm:rounded-2xl min-w-0 border border-slate-200 shadow-xs hover:shadow-md hover:-translate-y-1 hover:border-[#37494E] transition-all duration-300 hover-card-lift cursor-pointer">
                   <div className="flex items-center justify-between">
                     <span className="text-2xl font-black text-emerald-600">{summaryMetrics.approvedConfs}</span>
                     <div className="p-2.5 bg-emerald-50 rounded-xl text-emerald-600 hover-icon-scale"><CheckCircle2 className="h-5 w-5" /></div>
@@ -2501,7 +2504,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
                   <p className="text-xs font-bold text-slate-500 mt-2">Approved Conferences</p>
                 </div>
 
-                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs hover:shadow-md hover:-translate-y-1 hover:border-[#37494E] transition-all duration-300 hover-card-lift cursor-pointer">
+                <div className="bg-white p-4 sm:p-5 rounded-xl sm:rounded-2xl min-w-0 border border-slate-200 shadow-xs hover:shadow-md hover:-translate-y-1 hover:border-[#37494E] transition-all duration-300 hover-card-lift cursor-pointer">
                   <div className="flex items-center justify-between">
                     <span className="text-2xl font-black text-purple-600">{summaryMetrics.mediaPartnerReqs}</span>
                     <div className="p-2.5 bg-purple-50 rounded-xl text-purple-600 hover-icon-scale"><Award className="h-5 w-5" /></div>
@@ -2509,7 +2512,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
                   <p className="text-xs font-bold text-slate-500 mt-2">Media Partner Requests</p>
                 </div>
 
-                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs hover:shadow-md hover:-translate-y-1 hover:border-[#37494E] transition-all duration-300 hover-card-lift cursor-pointer">
+                <div className="bg-white p-4 sm:p-5 rounded-xl sm:rounded-2xl min-w-0 border border-slate-200 shadow-xs hover:shadow-md hover:-translate-y-1 hover:border-[#37494E] transition-all duration-300 hover-card-lift cursor-pointer">
                   <div className="flex items-center justify-between">
                     <span className="text-2xl font-black text-indigo-600">{summaryMetrics.associateReqs}</span>
                     <div className="p-2.5 bg-indigo-50 rounded-xl text-indigo-600 hover-icon-scale"><Building className="h-5 w-5" /></div>
@@ -2517,7 +2520,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
                   <p className="text-xs font-bold text-slate-500 mt-2">Associate Requests</p>
                 </div>
 
-                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs hover:shadow-md hover:-translate-y-1 hover:border-[#37494E] transition-all duration-300 hover-card-lift cursor-pointer">
+                <div className="bg-white p-4 sm:p-5 rounded-xl sm:rounded-2xl min-w-0 border border-slate-200 shadow-xs hover:shadow-md hover:-translate-y-1 hover:border-[#37494E] transition-all duration-300 hover-card-lift cursor-pointer">
                   <div className="flex items-center justify-between">
                     <span className="text-2xl font-black text-rose-600">{summaryMetrics.feedbackCount}</span>
                     <div className="p-2.5 bg-rose-50 rounded-xl text-rose-600 hover-icon-scale"><MessageSquare className="h-5 w-5" /></div>
@@ -2525,7 +2528,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
                   <p className="text-xs font-bold text-slate-500 mt-2">Feedback Count</p>
                 </div>
 
-                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs hover:shadow-md hover:-translate-y-1 hover:border-[#37494E] transition-all duration-300 hover-card-lift cursor-pointer">
+                <div className="bg-white p-4 sm:p-5 rounded-xl sm:rounded-2xl min-w-0 border border-slate-200 shadow-xs hover:shadow-md hover:-translate-y-1 hover:border-[#37494E] transition-all duration-300 hover-card-lift cursor-pointer">
                   <div className="flex items-center justify-between">
                     <span className="text-2xl font-black text-teal-600">{summaryMetrics.subscriberCount}</span>
                     <div className="p-2.5 bg-teal-50 rounded-xl text-teal-600 hover-icon-scale"><Mail className="h-5 w-5" /></div>
@@ -2535,9 +2538,9 @@ const [isSavingCredentials, setIsSavingCredentials] =
               </div>
 
               {/* Quick Actions & Audit Stream */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
-                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5 lg:gap-6 min-w-0">
+                <div className="lg:col-span-2 bg-white p-4 sm:p-5 md:p-6 rounded-xl sm:rounded-2xl border border-slate-200 shadow-xs space-y-4 min-w-0">
+                  <div className="flex flex-col min-[420px]:flex-row min-[420px]:items-center justify-between gap-2 border-b border-slate-100 pb-3 min-w-0">
                     <h3 className="font-bold text-sm text-[#37494E] flex items-center gap-2">
                       <Clock className="h-4 w-4 text-amber-500" /> Pending Conference Queue
                     </h3>
@@ -2559,7 +2562,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
                         .slice(0, 4)
                         .map((conf, confIdx) => (
                           <div key={conf.id ? `${conf.id}-${confIdx}` : `pending-conf-${confIdx}`} className="p-4 bg-slate-50 rounded-xl border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                            <div className="flex items-center gap-3.5">
+                            <div className="flex items-start gap-3.5 min-w-0">
                               <img
                                 src={getCleanImageSrc(conf.bannerImage, "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=800&q=80")}
                                 alt={conf.title}
@@ -2569,7 +2572,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
                                   (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=800&q=80";
                                 }}
                               />
-                              <div>
+                              <div className="min-w-0">
                                 <span className="text-[10px] font-bold text-blue-600 uppercase bg-blue-50 px-2 py-0.5 rounded-full">{conf.category}</span>
                                 <a
                                   href={`/conference/${getConferenceSlug(conf, conferences)}`}
@@ -2581,13 +2584,13 @@ const [isSavingCredentials, setIsSavingCredentials] =
                                   <span>{conf.title}</span>
                                   <ExternalLink className="h-3 w-3 text-slate-400 group-hover:text-blue-600 shrink-0" />
                                 </a>
-                                <p className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-1">
+                                <p className="text-[11px] text-slate-500 mt-0.5 flex items-start gap-1 break-words min-w-0">
                                   <MapPin className="h-3 w-3" /> {conf.city}, {conf.country} • {formatConferenceDate(conf.startDate)}
                                 </p>
                               </div>
                             </div>
 
-                            <div className="flex items-center gap-2 shrink-0">
+                            <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
                               <button
                                 onClick={() => {
                                   onApproveConference(conf.id);
@@ -2613,19 +2616,26 @@ const [isSavingCredentials, setIsSavingCredentials] =
                   )}
                 </div>
 
-                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+                <div className="bg-white p-4 sm:p-5 md:p-6 rounded-xl sm:rounded-2xl border border-slate-200 shadow-xs space-y-4 min-w-0">
+
                   <h3 className="font-bold text-sm text-[#37494E] flex items-center gap-2 border-b border-slate-100 pb-3">
                     <Activity className="h-4 w-4 text-blue-500" /> Recent System Audit Logs
                   </h3>
                   <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1 text-xs custom-scrollbar">
                     {auditLogs.slice(0, 6).map((log, logIdx) => (
-                      <div key={log.id ? `${log.id}-${logIdx}` : `audit-log-${logIdx}`} className="p-3 bg-slate-50 rounded-xl border border-slate-150 space-y-1">
-                        <div className="flex items-center justify-between">
-                          <span className="font-bold text-[#37494E]">{log.action}</span>
+                      <div key={log.id ? `${log.id}-${logIdx}` : `audit-log-${logIdx}`} className="p-3 bg-slate-50 rounded-xl border border-slate-150 space-y-1 min-w-0">
+                        <div className="flex flex-col min-[420px]:flex-row min-[420px]:items-center justify-between gap-1 min-w-0">
+                          <span className="font-bold text-[#37494E] break-words min-w-0">{log.action}</span>
                           <span className="text-[10px] text-slate-400">{new Date(log.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                         </div>
-                        <p className="text-[11px] text-slate-600">{typeof log.details === "string" ? log.details : JSON.stringify(log.details ?? "")}</p>
-                        <span className="text-[9px] font-bold text-slate-400 block uppercase">By: {log.actor} ({log.role})</span>
+                        <p className="text-[11px] text-slate-600 break-words">
+                          {typeof log.details === "string"
+                            ? log.details
+                            : JSON.stringify(log.details ?? "")}
+                        </p>
+                        <span className="text-[9px] font-bold text-slate-400 block uppercase break-words">
+                        By: {log.actor} ({log.role})
+                      </span>
                       </div>
                     ))}
                   </div>
@@ -2636,9 +2646,9 @@ const [isSavingCredentials, setIsSavingCredentials] =
 
           {/* 13. ADMIN PROFILE MANAGEMENT VIEW */}
           {activeMenu === "ADMIN_PROFILE" && (
-            <div className="max-w-4xl mx-auto space-y-6">
-              <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-xs border border-slate-200">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-5 mb-6">
+            <div className="max-w-4xl w-full mx-auto space-y-4 sm:space-y-6 min-w-0">
+              <div className="bg-white rounded-xl sm:rounded-2xl md:rounded-3xl p-4 sm:p-6 md:p-8 shadow-xs border border-slate-200 min-w-0">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4 sm:pb-5 mb-4 sm:mb-6 min-w-0">
                   <div>
                     <h2 className="text-xl font-extrabold text-[#37494E]">Super Admin Profile</h2>
                     <p className="text-xs text-slate-500 mt-1"> Manage your Super Admin display name and profile photo.</p>
@@ -2650,7 +2660,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
 
                 <form onSubmit={handleSaveAdminProfile} className="space-y-6">
                   {/* Avatar Upload / Preview */}
-                  <div className="flex flex-col sm:flex-row items-center gap-6 p-5 bg-slate-50 rounded-2xl border border-slate-100">
+                  <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 p-4 sm:p-5 bg-slate-50 rounded-xl sm:rounded-2xl border border-slate-100 min-w-0">
                     {adminProfile.avatar ? (
                       <img 
                         src={adminProfile.avatar} 
@@ -2686,7 +2696,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-end pt-4 border-t border-slate-100">
+                  <div className="flex items-center justify-end pt-4 border-t border-slate-100 min-w-0">
                     <button
                       type="submit"
                       disabled={isSavingProfile}
@@ -2699,7 +2709,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
                 </form>
               </div>
 
-              <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-xs border border-slate-200">
+              <div className="bg-white rounded-xl sm:rounded-2xl md:rounded-3xl p-4 sm:p-6 md:p-8 shadow-xs border border-slate-200 min-w-0">
                 <div className="border-b border-slate-100 pb-5 mb-6">
                   <h2 className="text-xl font-extrabold text-[#37494E]">Public Contact Us Details</h2>
                   <p className="text-xs text-slate-500 mt-1">
@@ -2768,11 +2778,11 @@ const [isSavingCredentials, setIsSavingCredentials] =
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-end pt-4 border-t border-slate-100">
+                  <div className="flex items-center justify-end pt-4 border-t border-slate-100 min-w-0">
                     <button
                       type="submit"
                       disabled={isSavingPublicContact}
-                      className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                      className="w-full sm:w-auto px-4 sm:px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                     >
                       {isSavingPublicContact ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                       <span>{isSavingPublicContact ? "Updating Contact Us..." : "Save Public Contact Details"}</span>
@@ -2785,14 +2795,14 @@ const [isSavingCredentials, setIsSavingCredentials] =
 
           {/* 14. ADMIN PASSWORD CHANGE VIEW */}
           {activeMenu === "ADMIN_PASSWORD" && (
-            <div className="max-w-xl mx-auto space-y-6">
-              <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-xs border border-slate-200">
-                <div className="flex items-center gap-3 border-b border-slate-100 pb-5 mb-6">
+            <div className="max-w-xl w-full mx-auto space-y-4 sm:space-y-6 min-w-0">
+              <div className="bg-white rounded-xl sm:rounded-2xl md:rounded-3xl p-4 sm:p-6 md:p-8 shadow-xs border border-slate-200 min-w-0">
+                <div className="flex items-start sm:items-center gap-3 border-b border-slate-100 pb-4 sm:pb-5 mb-4 sm:mb-6 min-w-0">
                   <div className="p-3 bg-amber-50 rounded-2xl text-amber-600">
                     <Key className="h-6 w-6" />
                   </div>
-                  <div>
-                    <h2 className="text-xl font-extrabold text-[#37494E]">Admin Login Credentials</h2>
+                  <div className="min-w-0">
+                    <h2 className="text-lg sm:text-xl font-extrabold text-[#37494E] break-words">Admin Login Credentials</h2>
                     <p className="text-xs text-slate-500 mt-0.5">Update your Super Admin access key with secure server-side verification.</p>
                   </div>
                 </div>
@@ -2932,14 +2942,14 @@ const [isSavingCredentials, setIsSavingCredentials] =
 
           {/* 15. DATABASE RESET & SYSTEM PURGE VIEW */}
           {activeMenu === "DATABASE_RESET" && (
-            <div className="max-w-3xl mx-auto space-y-6">
-              <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-xs border-2 border-rose-200">
-                <div className="flex items-center gap-3.5 border-b border-rose-100 pb-5 mb-6">
+            <div className="max-w-3xl w-full mx-auto space-y-4 sm:space-y-6 min-w-0">
+              <div className="bg-white rounded-xl sm:rounded-2xl md:rounded-3xl p-4 sm:p-6 md:p-8 shadow-xs border-2 border-rose-200 min-w-0">
+                <div className="flex items-start sm:items-center gap-3.5 border-b border-rose-100 pb-4 sm:pb-5 mb-4 sm:mb-6 min-w-0">
                   <div className="p-3 bg-rose-100 text-rose-700 rounded-2xl">
                     <AlertTriangle className="h-7 w-7" />
                   </div>
                   <div>
-                    <p className="text-xs text-rose-600 font-semibold mt-0.5">Delete one section or reset the full application database</p>
+                    <p className="text-xs text-rose-600 font-semibold mt-0.5 break-words">Delete one section or reset the full application database</p>
                   </div>
                 </div>
 
@@ -3002,7 +3012,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
 
           {/* SECTION 2: MANAGE ORGANIZERS */}
           {activeMenu === "MANAGE_ORGANIZERS" && (
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-5">
+            <div className="bg-white rounded-xl sm:rounded-2xl border border-slate-200 shadow-xs p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-5 min-w-0">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
                 <div>
                   <h3 className="text-base font-bold text-[#37494E]">Organizer Management</h3>
@@ -3018,7 +3028,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
               </div>
 
               {/* Controls */}
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200 min-w-0">
                 <div className="relative w-full sm:w-72">
                   <Search className="h-4 w-4 absolute left-3 top-2.5 text-slate-400" />
                   <input
@@ -3030,11 +3040,11 @@ const [isSavingCredentials, setIsSavingCredentials] =
                   />
                 </div>
 
-                <div className="flex items-center gap-2 w-full sm:w-auto">
+                <div className="flex items-center gap-2 w-full sm:w-auto min-w-0">
                   <select
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
-                    className="bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-700 cursor-pointer"
+                    className="w-full sm:w-auto min-w-0 bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-700 cursor-pointer"
                   >
                     <option value="All">All Statuses</option>
                     <option value="Verified">Verified Only</option>
@@ -3061,7 +3071,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
 
                 if (filteredOrgs.length === 0) {
                   return (
-                    <div className="text-center py-12 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                    <div className="text-center px-4 py-10 sm:py-12 bg-slate-50 rounded-xl sm:rounded-2xl border border-dashed border-slate-200 min-w-0">
                       <Users className="h-10 w-10 text-slate-300 mx-auto mb-2" />
                       <p className="text-sm font-bold text-slate-600">No Organizers Found</p>
                       <p className="text-xs text-slate-400 mt-1">
@@ -3072,14 +3082,14 @@ const [isSavingCredentials, setIsSavingCredentials] =
                 }
 
                 return (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 min-w-0">
                     {filteredOrgs.map((org, orgIdx) => {
                       const pubCount = conferences.filter((c) => c.organizerId === org.id && c.status === ConferenceStatus.Approved).length;
 
                       return (
                         <div
                           key={org.id ? `${org.id}-${orgIdx}` : `org-mgmt-${orgIdx}`}
-                          className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between space-y-4"
+                          className="bg-white border border-slate-200 rounded-xl sm:rounded-2xl p-4 sm:p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between space-y-4 min-w-0"
                         >
                           <div className="space-y-3">
                             <div className="flex items-start justify-between gap-3">
@@ -3139,7 +3149,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
                             </div>
                           </div>
 
-                          <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-1.5">
+                          <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 min-w-0">
                             <button
                               onClick={() => setViewingOrgDetails(org)}
                               className="px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-xl text-xs cursor-pointer transition-colors flex items-center gap-1"
@@ -3221,7 +3231,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
             );
 
             return (
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-5">
+              <div className="bg-white rounded-xl sm:rounded-2xl border border-slate-200 shadow-xs p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-5 min-w-0">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
                   <div>
                     <h3 className="text-base font-bold text-[#37494E]">
@@ -3243,9 +3253,9 @@ const [isSavingCredentials, setIsSavingCredentials] =
 
                 {/* Filters & Bulk Operations Bar */}
                 {(activeMenu === "MANAGE_CONFERENCES" || activeMenu === "COMPLETED_CONFERENCES") && (
-                  <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
-                    <div className="flex items-center gap-2 w-full sm:w-auto">
-                      <div className="relative flex-1 sm:w-64">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200 min-w-0">
+                    <div className="w-full min-[480px]:w-auto min-w-0 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-700">
+                      <div className="relative w-full sm:w-64 sm:flex-none">
                         <Search className="h-4 w-4 absolute left-3 top-2.5 text-slate-400" />
                         <input
                           type="text"
@@ -3258,7 +3268,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
                       <select
                         value={categoryFilter}
                         onChange={(e) => setCategoryFilter(e.target.value)}
-                        className="bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-700"
+                        className="w-full min-[480px]:w-auto min-w-0 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-700"
                       >
                         <option value="All">All Topics</option>
                         {categories.map((cat, idx) => (
@@ -3291,7 +3301,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
                     )}
 
                     {activeMenu === "COMPLETED_CONFERENCES" && (
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                         {selectedCompletedIds.length > 0 && (
                           <button
                             onClick={async () => {
@@ -3338,8 +3348,8 @@ const [isSavingCredentials, setIsSavingCredentials] =
                 )}
 
                 {/* Table */}
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs border-collapse">
+                <div className="w-full overflow-x-auto overscroll-x-contain">
+                  <table className="w-full min-w-[900px] text-left text-xs border-collapse">
                     <thead>
                       <tr className="bg-[#37494E] text-white font-bold uppercase tracking-wider text-[10px]">
                         {activeMenu === "MANAGE_CONFERENCES" && (
@@ -3609,7 +3619,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
                 </div>
 
                 {/* Pagination Controls */}
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-slate-100 text-xs text-slate-600">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 border-t border-slate-100 text-xs text-slate-600 min-w-0">
                   <div>
                     Showing {filteredAdminConferences.length === 0 ? 0 : (currentPage - 1) * ADMIN_ITEMS_PER_PAGE + 1} to {Math.min(currentPage * ADMIN_ITEMS_PER_PAGE, filteredAdminConferences.length)} of {filteredAdminConferences.length} conferences
                   </div>
@@ -3641,7 +3651,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
 
           {/* SECTION 3C: EVENT FORM */}
           {activeMenu === "EVENT_FORM" && (
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-6 max-w-4xl mx-auto">
+            <div className="bg-white rounded-xl sm:rounded-2xl border border-slate-200 shadow-xs p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 max-w-4xl w-full mx-auto min-w-0">
               <div className="border-b border-slate-100 pb-4">
                 <h3 className="text-base font-bold text-[#37494E]">
                   Create New Conference Event
@@ -3674,7 +3684,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
                 }}
                 className="space-y-4 text-xs font-medium"
               >
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 min-w-0">
                   <div className="space-y-1">
                     <label className="font-bold text-slate-700">Full Conference Title *</label>
                     <input
@@ -3848,17 +3858,17 @@ const [isSavingCredentials, setIsSavingCredentials] =
                   />
                 </div>
 
-                <div className="flex justify-end gap-3 pt-4">
+                <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3 pt-4">
                   <button
                     type="button"
                     onClick={() => setActiveMenu("MANAGE_CONFERENCES")}
-                    className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl cursor-pointer"
+                    className="w-full sm:w-auto px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-6 py-2.5 bg-[#37494E] hover:bg-[#2b3a3e] text-white font-bold rounded-xl cursor-pointer shadow-md"
+                    className="w-full sm:w-auto px-6 py-2.5 bg-[#37494E] hover:bg-[#2b3a3e] text-white font-bold rounded-xl cursor-pointer shadow-md"
                   >
                     Save & Publish Event
                   </button>
@@ -3869,7 +3879,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
 
           {/* SECTION 4: MEDIA PARTNERS & ASSOCIATES */}
           {activeMenu === "MANAGE_MEDIA_PARTNERS" && (
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-6">
+            <div className="bg-white rounded-xl sm:rounded-2xl border border-slate-200 shadow-xs p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 min-w-0">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 pb-4">
                 <div>
                   <h3 className="text-base font-bold text-[#37494E]">Manage Media Partners</h3>
@@ -3885,7 +3895,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
               </div>
 
               {mediaPartners.length === 0 ? (
-                <div className="text-center py-12 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                <div className="text-center px-4 py-10 sm:py-12 bg-slate-50 rounded-xl sm:rounded-2xl border border-dashed border-slate-200 min-w-0">
                   <Globe className="h-10 w-10 text-slate-300 mx-auto mb-2" />
                   <p className="text-sm font-bold text-slate-600">No Media Partners Submitted</p>
                   <p className="text-xs text-slate-400 mt-1">Submitted media partners will appear here for review.</p>
@@ -3895,7 +3905,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
                   {mediaPartners.map((mp, mpIdx) => (
                     <div
                       key={mp.id || `mp-${mpIdx}`}
-                      className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs hover:shadow-md transition-shadow flex flex-col justify-between space-y-4"
+                      className="bg-white rounded-xl sm:rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-xs hover:shadow-md transition-shadow flex flex-col justify-between space-y-4 min-w-0"
                     >
                       <div className="space-y-3">
                         {/* Header: Logo, Name, Status */}
@@ -4006,7 +4016,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
           )}
 
           {activeMenu === "MANAGE_ASSOCIATES" && (
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-6">
+            <div className="bg-white rounded-xl sm:rounded-2xl border border-slate-200 shadow-xs p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 min-w-0">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 pb-4">
                 <div>
                   <h3 className="text-base font-bold text-[#37494E]">Manage Our Associates</h3>
@@ -4023,7 +4033,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
               </div>
 
               {associates.length === 0 ? (
-                <div className="text-center py-12 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                <div className="text-center px-4 py-10 sm:py-12 bg-slate-50 rounded-xl sm:rounded-2xl border border-dashed border-slate-200 min-w-0">
                   <Building className="h-10 w-10 text-slate-300 mx-auto mb-2" />
                   <p className="text-sm font-bold text-slate-600">No Associates Submitted</p>
                   <p className="text-xs text-slate-400 mt-1">Submitted associates will appear here for review.</p>
@@ -4033,7 +4043,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
                   {associates.map((assoc, assocIdx) => (
                     <div
                       key={assoc.id || `assoc-${assocIdx}`}
-                      className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs hover:shadow-md transition-shadow flex flex-col justify-between space-y-4"
+                      className="bg-white rounded-xl sm:rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-xs hover:shadow-md transition-shadow flex flex-col justify-between space-y-4 min-w-0"
                     >
                       <div className="space-y-3">
                         {/* Header: Logo, Name, Status */}
@@ -4144,7 +4154,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
 
           {/* SECTION 5: HOME - BANNERS & BANNER MANAGEMENT */}
           {(activeMenu === "ADD_BANNER" || activeMenu === "MANAGE_BANNERS") && (
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-6">
+            <div className="bg-white rounded-xl sm:rounded-2xl border border-slate-200 shadow-xs p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 min-w-0">
               {/* Section Header */}
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-100 pb-4">
                 <div>
@@ -4156,7 +4166,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
                     Add up to 5 homepage banners and control their display position.
                   </p>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="w-full md:w-auto flex flex-wrap items-center gap-2 min-w-0">
                   <span className="text-xs font-bold px-3 py-1 bg-slate-100 text-slate-700 rounded-full border border-slate-200">
                     Total: {banners.length} / 5
                   </span>
@@ -4375,9 +4385,10 @@ const [isSavingCredentials, setIsSavingCredentials] =
                       setActiveMenu("MANAGE_BANNERS");
                     }
                   }}
-                  className="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-4 text-xs animate-fadeIn shadow-inner"
+                  className="bg-slate-50 p-3 sm:p-4 md:p-5 rounded-xl sm:rounded-2xl border border-slate-200 space-y-4 text-xs animate-fadeIn shadow-inner min-w-0"
                 >
-                  <div className="flex items-center justify-between border-b border-slate-200/80 pb-3">
+                  <div className="w-full sm:w-auto px-6 py-2 bg-[#37494E] hover:bg-[#2c3b3f] text-white font-bold rounded-xl cursor-pointer shadow-sm flex items-center justify-center gap-1.5">
+                  
                     <h4 className="font-bold text-sm text-[#37494E] flex items-center gap-2">
                       <Plus className="h-4 w-4 text-blue-600" />
                       <span>Add & Configure New Banner</span>
@@ -4515,7 +4526,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
                     </div>
                   )}
 
-                  <div className="flex justify-end gap-2 pt-3 border-t border-slate-200/80">
+                  <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-3 border-t border-slate-200/80">
                     <button
                       type="button"
                       onClick={() => {
@@ -4525,13 +4536,13 @@ const [isSavingCredentials, setIsSavingCredentials] =
                         setNewBannerDescText("");
                         setNewBannerOrder("");
                       }}
-                      className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl cursor-pointer"
+                      className="w-full sm:w-auto px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl cursor-pointer"
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
-                      className="px-6 py-2 bg-[#37494E] hover:bg-[#2c3b3f] text-white font-bold rounded-xl cursor-pointer shadow-sm flex items-center gap-1.5"
+                      className="w-full sm:w-auto px-6 py-2 bg-[#37494E] hover:bg-[#2c3b3f] text-white font-bold rounded-xl cursor-pointer shadow-sm flex items-center justify-center gap-1.5"
                     >
                       <Save className="h-4 w-4" />
                       <span>Save Banner</span>
@@ -4542,8 +4553,8 @@ const [isSavingCredentials, setIsSavingCredentials] =
 
               {/* Edit Associate Modal */}
               {editingAssociate && (
-                <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
-                  <div className="bg-white rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl border border-slate-200 text-xs">
+                <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto animate-fadeIn">
+                  <div className="bg-white rounded-xl sm:rounded-2xl max-w-lg w-full max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] overflow-y-auto p-3 sm:p-4 md:p-6 space-y-4 shadow-2xl border border-slate-200 text-xs min-w-0">
                     <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                       <h4 className="font-bold text-base text-[#37494E] flex items-center gap-2">
                         <Edit3 className="h-4 w-4 text-blue-600" />
@@ -4569,7 +4580,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
                         />
                       </div>
 
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 min-w-0">
                         <div>
                           <label className="block font-bold text-slate-700 mb-1">Title</label>
                           <input
@@ -4605,7 +4616,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
                         />
                       </div>
 
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 min-w-0">
                         <div>
                           <label className="block font-bold text-slate-700 mb-1">Website URL</label>
                           <input
@@ -4640,11 +4651,11 @@ const [isSavingCredentials, setIsSavingCredentials] =
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                    <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2 pt-3 border-t border-slate-100">
                       <button
                         type="button"
                         onClick={() => setEditingAssociate(null)}
-                        className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl cursor-pointer"
+                        className="w-full sm:w-auto px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl cursor-pointer"
                       >
                         Cancel
                       </button>
@@ -4662,7 +4673,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
                           setEditingAssociate(null);
                           showToast("Associate updated successfully!");
                         }}
-                        className="px-5 py-2 bg-[#37494E] hover:bg-[#2c3b3f] text-white font-bold rounded-xl cursor-pointer shadow-xs"
+                        className="w-full sm:w-auto px-5 py-2 bg-[#37494E] hover:bg-[#2c3b3f] text-white font-bold rounded-xl cursor-pointer shadow-xs"
                       >
                         Save Changes
                       </button>
@@ -4673,8 +4684,8 @@ const [isSavingCredentials, setIsSavingCredentials] =
 
               {/* Edit Media Partner Modal */}
               {editingPartner && (
-                <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
-                  <div className="bg-white rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl border border-slate-200 text-xs">
+                <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto animate-fadeIn">
+                  <div className="bg-white rounded-xl sm:rounded-2xl max-w-lg w-full max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] overflow-y-auto p-3 sm:p-4 md:p-6 space-y-4 shadow-2xl border border-slate-200 text-xs min-w-0">
                     <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                       <h4 className="font-bold text-base text-[#37494E] flex items-center gap-2">
                         <Edit3 className="h-4 w-4 text-blue-600" />
@@ -4700,7 +4711,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
                         />
                       </div>
 
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 min-w-0">
                         <div>
                           <label className="block font-bold text-slate-700 mb-1">Title</label>
                           <input
@@ -4736,7 +4747,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
                         />
                       </div>
 
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 min-w-0">
                         <div>
                           <label className="block font-bold text-slate-700 mb-1">Website URL</label>
                           <input
@@ -4771,11 +4782,11 @@ const [isSavingCredentials, setIsSavingCredentials] =
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                    <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2 pt-3 border-t border-slate-100">
                       <button
                         type="button"
                         onClick={() => setEditingPartner(null)}
-                        className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl cursor-pointer"
+                        className="w-full sm:w-auto px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl cursor-pointer"
                       >
                         Cancel
                       </button>
@@ -4793,7 +4804,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
                           setEditingPartner(null);
                           showToast("Media Partner updated successfully!");
                         }}
-                        className="px-5 py-2 bg-[#37494E] hover:bg-[#2c3b3f] text-white font-bold rounded-xl cursor-pointer shadow-xs"
+                        className="w-full sm:w-auto px-5 py-2 bg-[#37494E] hover:bg-[#2c3b3f] text-white font-bold rounded-xl cursor-pointer shadow-xs"
                       >
                         Save Changes
                       </button>
@@ -4804,13 +4815,13 @@ const [isSavingCredentials, setIsSavingCredentials] =
 
               {/* Banners Cards Display (Sorted by Place Number) */}
               {banners.length === 0 ? (
-                <div className="text-center py-12 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                <div className="text-center px-4 py-10 sm:py-12 bg-slate-50 rounded-xl sm:rounded-2xl border border-dashed border-slate-200 min-w-0">
                   <Globe className="h-10 w-10 text-slate-300 mx-auto mb-2" />
                   <p className="text-sm font-bold text-slate-600">No Banners Added</p>
                   <p className="text-xs text-slate-400 mt-1">Click "Add Banner" to upload your first homepage banner.</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-5 min-w-0">
                   {[...banners]
                     .sort(
                       (a, b) =>
@@ -4822,7 +4833,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
                       return (
                         <div
                           key={b.id}
-                          className="bg-white rounded-2xl border border-slate-200 transition-all duration-200 overflow-hidden flex flex-col justify-between shadow-xs hover:shadow-md"
+                          className="bg-white rounded-xl sm:rounded-2xl border border-slate-200 transition-all duration-200 overflow-hidden flex flex-col justify-between shadow-xs hover:shadow-md min-w-0"
                         >
                           <div>
                             {/* Banner Image & Top Badges */}
@@ -4968,7 +4979,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
 
           {/* SECTION 6: LOCATION MANAGEMENT (Countries & Cities) */}
           {(activeMenu === "ADD_COUNTRY" || activeMenu === "MANAGE_COUNTRIES" || activeMenu === "ADD_CITY" || activeMenu === "MANAGE_CITIES") && (
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-6">
+            <div className="bg-white rounded-xl sm:rounded-2xl border border-slate-200 shadow-xs p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 min-w-0">
               {/* Header */}
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 pb-4">
                 <div>
@@ -4977,7 +4988,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
                     Add and permanently delete countries and cities. Deleting a country also permanently deletes all cities under it.
                   </p>
                 </div>
-                <div className="flex items-center gap-2 flex-wrap">
+                <div className="w-full sm:w-auto flex flex-wrap items-center gap-2 min-w-0">
                   <span className="text-xs font-semibold px-3 py-1 bg-slate-100 text-slate-700 rounded-full border border-slate-200">
                     {countriesList.length} Countries • {citiesList.length} Cities
                   </span>
@@ -5166,15 +5177,15 @@ const [isSavingCredentials, setIsSavingCredentials] =
                       />
                     </div>
                   </div>
-                  <div className="flex justify-end gap-2 pt-1">
+                  <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-1">
                     <button
                       type="button"
                       onClick={() => setShowAddCityForm(false)}
-                      className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl cursor-pointer"
+                      className="w-full sm:w-auto px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl cursor-pointer"
                     >
                       Cancel
                     </button>
-                    <button type="submit" className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl cursor-pointer shadow-xs">
+                    <button type="submit" className="w-full sm:w-auto px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl cursor-pointer shadow-xs">
                       Save City
                     </button>
                   </div>
@@ -5349,7 +5360,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
   </div>
 
   {/* Country Actions */}
-  <div className="flex items-center gap-2 shrink-0">
+  <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
 
     {/* Add City */}
     <button
@@ -5613,7 +5624,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
 
           {/* SECTION 7: TOPIC MANAGEMENT */}
           {(activeMenu === "ADD_TOPICS" || activeMenu === "MANAGE_TOPICS") && (
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-6">
+            <div className="bg-white rounded-xl sm:rounded-2xl border border-slate-200 shadow-xs p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 min-w-0">
               {/* Header */}
               <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 border-b border-slate-100 pb-5">
                 <div>
@@ -5777,7 +5788,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
                     );
                   }
                 }}
-                  className="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-4 text-xs animate-fadeIn"
+                  className="bg-slate-50 p-3 sm:p-4 md:p-5 rounded-xl sm:rounded-2xl border border-slate-200 space-y-4 text-xs animate-fadeIn min-w-0"
                 >
                   <h4 className="font-bold text-sm text-[#37494E] flex items-center gap-2">
                     <Plus className="h-4 w-4 text-emerald-600" />
@@ -5796,15 +5807,15 @@ const [isSavingCredentials, setIsSavingCredentials] =
                     />
                   </div>
 
-                  <div className="flex justify-end gap-2 pt-2 border-t border-slate-200/80">
+                  <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-2 border-t border-slate-200/80">
                     <button
                       type="button"
                       onClick={() => setShowAddTopicForm(false)}
-                      className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl cursor-pointer"
+                      className="w-full sm:w-auto px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl cursor-pointer"
                     >
                       Cancel
                     </button>
-                    <button type="submit" className="px-5 py-2 bg-[#37494E] hover:bg-[#2c3b3f] text-white font-bold rounded-xl cursor-pointer shadow-xs">
+                    <button type="submit" className="w-full sm:w-auto px-5 py-2 bg-[#37494E] hover:bg-[#2c3b3f] text-white font-bold rounded-xl cursor-pointer shadow-xs">
                       Save Topic
                     </button>
                   </div>
@@ -5812,7 +5823,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
               )}
 
               {/* Search and Status Filter Controls */}
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200 min-w-0">
                 <div className="relative w-full sm:w-72">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                   <input
@@ -5871,7 +5882,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
 
                 if (filtered.length === 0) {
                   return (
-                    <div className="text-center py-10 bg-slate-50 rounded-2xl border border-dashed border-slate-200 space-y-2">
+                    <div className="text-center px-4 py-10 bg-slate-50 rounded-xl sm:rounded-2xl border border-dashed border-slate-200 space-y-2 min-w-0">
                       <Tag className="h-8 w-8 text-slate-400 mx-auto" />
                       <p className="text-sm font-bold text-slate-700">
                           No topics found
@@ -5886,8 +5897,8 @@ const [isSavingCredentials, setIsSavingCredentials] =
 
                 return (
                   <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-2xs">
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left text-xs">
+                    <div className="w-full overflow-x-auto overscroll-x-contain">
+                      <table className="w-full min-w-[640px] text-left text-xs">
                         <thead className="bg-slate-50 text-slate-500 font-bold uppercase border-b border-slate-200">
                           <tr>
                             <th className="p-3.5 pl-6 w-16">#</th>
@@ -5964,7 +5975,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
 
           {/* SECTION 8: FEEDBACK MANAGEMENT */}
           {(activeMenu === "APPROVED_FEEDBACK" || activeMenu === "MANAGE_FEEDBACK") && (
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-6">
+            <div className="bg-white rounded-xl sm:rounded-2xl border border-slate-200 shadow-xs p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 min-w-0">
               {/* Header */}
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-100 pb-4">
                 <div>
@@ -6045,7 +6056,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
               </div>
 
               {/* Filters and Search Bar */}
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200 min-w-0">
                 <div className="relative w-full sm:w-72">
                   <Search className="h-4 w-4 text-slate-400 absolute left-3 top-2.5" />
                   <input
@@ -6090,7 +6101,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
 
                 if (filtered.length === 0) {
                   return (
-                    <div className="text-center py-10 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                    <div className="text-center px-4 py-10 bg-slate-50 rounded-xl sm:rounded-2xl border border-dashed border-slate-200 min-w-0">
                       <MessageSquare className="h-10 w-10 text-slate-300 mx-auto mb-2" />
                       <p className="text-sm font-bold text-slate-600">No Feedback Found</p>
                       <p className="text-xs text-slate-400 mt-1">
@@ -6103,13 +6114,13 @@ const [isSavingCredentials, setIsSavingCredentials] =
                 }
 
                 return (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 min-w-0">
                     {filtered.map((fb, fbIdx) => {
 
                       return (
-                        <div key={fb.id ? `${fb.id}-${fbIdx}` : `fb-item-${fbIdx}`} className="p-4 border border-slate-200 rounded-xl bg-slate-50/50 space-y-3 text-xs shadow-2xs hover:border-slate-300 transition-all">
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-2.5">
+                        <div key={fb.id ? `${fb.id}-${fbIdx}` : `fb-item-${fbIdx}`} className="p-3 sm:p-4 border border-slate-200 rounded-xl bg-slate-50/50 space-y-3 text-xs shadow-2xs hover:border-slate-300 transition-all min-w-0">
+                          <div className="flex flex-col min-[420px]:flex-row min-[420px]:items-center justify-between gap-2 min-w-0">
+                            <div className="flex items-center gap-2.5 min-w-0">
                               {fb.image ? (
                                 <img src={fb.image} alt={fb.name} className="w-9 h-9 rounded-full object-contain border border-slate-200" />
                               ) : (
@@ -6117,7 +6128,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
                                   {fb.name?.charAt(0) || "U"}
                                 </div>
                               )}
-                              <div>
+                              <div className="min-w-0">
                                 <h4 className="font-bold text-slate-900 text-xs">{fb.name}</h4>
                                 <div className="flex items-center gap-2 text-[10px] text-slate-400 font-medium">
                                   <span>{fb.date}</span>
@@ -6218,7 +6229,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
 
           {/* About Us Management */}
 {activeMenu === "ABOUT_INFO" && (
-  <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-6">
+  <div className="bg-white rounded-xl sm:rounded-2xl border border-slate-200 shadow-xs p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 min-w-0">
 
     {/* Header */}
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
@@ -6239,7 +6250,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
             setAboutUsOriginal({ ...aboutUsContent });
             setIsEditingAboutUs(true);
           }}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer transition-all shadow-sm"
+          className="w-full sm:w-auto justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer transition-all shadow-sm"
         >
           <Edit3 className="h-4 w-4" />
           Edit
@@ -6249,14 +6260,14 @@ const [isSavingCredentials, setIsSavingCredentials] =
 
     {/* Loading */}
     {isLoadingAboutUs ? (
-      <div className="py-16 flex flex-col items-center justify-center text-slate-500">
+      <div className="px-4 py-10 sm:py-16 flex flex-col items-center justify-center text-slate-500 text-center min-w-0">
         <RefreshCw className="h-7 w-7 animate-spin text-blue-600 mb-3" />
         <p className="text-xs font-semibold">
           Loading About Us content...
         </p>
       </div>
     ) : (
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6 min-w-0">
 
         {/* Mission Badge + Title */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -6390,7 +6401,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
 
           {/* Stat 1 */}
-          <div className="bg-blue-50 border border-blue-100 rounded-2xl p-5 space-y-4">
+          <div className="bg-blue-50 border border-blue-100 rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-5 space-y-4 min-w-0">
             <p className="text-xs font-extrabold text-blue-900 uppercase tracking-wider">
               Statistic 1
             </p>
@@ -6436,7 +6447,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
 
 
           {/* Stat 2 */}
-          <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-5 space-y-4">
+          <div className="bg-emerald-50 border border-emerald-100 rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-5 space-y-4 min-w-0">
             <p className="text-xs font-extrabold text-emerald-900 uppercase tracking-wider">
               Statistic 2
             </p>
@@ -6532,13 +6543,13 @@ const [isSavingCredentials, setIsSavingCredentials] =
 
               {/* Edit Mode Buttons */}
               {isEditingAboutUs && (
-                <div className="flex items-center justify-end gap-3 pt-5 border-t border-slate-100">
+                <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2 sm:gap-3 pt-5 border-t border-slate-100">
 
                   <button
                     type="button"
                     disabled={isSavingAboutUs}
                     onClick={handleCancelAboutUsEdit}
-                    className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold cursor-pointer disabled:opacity-50"
+                    className="w-full sm:w-auto px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold cursor-pointer disabled:opacity-50"
                   >
                     Cancel
                   </button>
@@ -6547,7 +6558,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
                     type="button"
                     disabled={isSavingAboutUs}
                     onClick={handleSaveAboutUs}
-                    className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer shadow-sm disabled:opacity-50"
+                    className="w-full sm:w-auto px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 cursor-pointer shadow-sm disabled:opacity-50"
                   >
                     {isSavingAboutUs ? (
                       <RefreshCw className="h-4 w-4 animate-spin" />
@@ -6571,7 +6582,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
       
         {/* Home Main Description Management */}
           {activeMenu === "HOME_DESCRIPTION" && (
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-6">
+            <div className="bg-white rounded-xl sm:rounded-2xl border border-slate-200 shadow-xs p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 min-w-0">
 
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
                 <div>
@@ -6591,7 +6602,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
                       setHomeDescriptionOriginal({ ...homeDescription });
                       setIsEditingHomeDescription(true);
                     }}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer transition-all shadow-sm"
+                    className="w-full sm:w-auto justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer transition-all shadow-sm"
                   >
                     <Edit3 className="h-4 w-4" />
                     Edit
@@ -6600,7 +6611,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
               </div>
 
               {isLoadingHomeDescription ? (
-                <div className="py-16 flex flex-col items-center justify-center text-slate-500">
+                <div className="px-4 py-10 sm:py-16 flex flex-col items-center justify-center text-slate-500 text-center min-w-0">
                   <RefreshCw className="h-7 w-7 animate-spin text-blue-600 mb-3" />
 
                   <p className="text-xs font-semibold">
@@ -6635,13 +6646,13 @@ const [isSavingCredentials, setIsSavingCredentials] =
                   </div>
 
                   {isEditingHomeDescription && (
-                    <div className="flex items-center justify-end gap-3 pt-5 border-t border-slate-100">
+                    <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2 sm:gap-3 pt-5 border-t border-slate-100">
 
                       <button
                         type="button"
                         disabled={isSavingHomeDescription}
                         onClick={handleCancelHomeDescriptionEdit}
-                        className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold cursor-pointer disabled:opacity-50"
+                        className="w-full sm:w-auto px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold cursor-pointer disabled:opacity-50"
                       >
                         Cancel
                       </button>
@@ -6650,7 +6661,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
                         type="button"
                         disabled={isSavingHomeDescription}
                         onClick={handleSaveHomeDescription}
-                        className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer shadow-sm disabled:opacity-50"
+                        className="w-full sm:w-auto px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 cursor-pointer shadow-sm disabled:opacity-50"
                       >
                         {isSavingHomeDescription ? (
                           <RefreshCw className="h-4 w-4 animate-spin" />
@@ -6674,7 +6685,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
 
           {/* Conference Description Management */}
             {activeMenu === "CONFERENCE_DESCRIPTION" && (
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-6">
+              <div className="bg-white rounded-xl sm:rounded-2xl border border-slate-200 shadow-xs p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 min-w-0">
 
                 {/* Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
@@ -6695,7 +6706,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
                         setConferenceDescriptionOriginal({ ...conferenceDescription });
                         setIsEditingConferenceDescription(true);
                       }}
-                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer transition-all shadow-sm"
+                      className="w-full sm:w-auto justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer transition-all shadow-sm"
                     >
                       <Edit3 className="h-4 w-4" />
                       Edit
@@ -6729,14 +6740,14 @@ const [isSavingCredentials, setIsSavingCredentials] =
                 </div>
 
                 {isLoadingConferenceDescription ? (
-                  <div className="py-16 flex flex-col items-center justify-center text-slate-500">
+                  <div className="px-4 py-10 sm:py-16 flex flex-col items-center justify-center text-slate-500 text-center min-w-0">
                     <RefreshCw className="h-7 w-7 animate-spin text-blue-600 mb-3" />
                     <p className="text-xs font-semibold">
                       Loading Conference Description...
                     </p>
                   </div>
                 ) : (
-                  <div className="space-y-6">
+                  <div className="space-y-4 sm:space-y-6 min-w-0">
 
                     {/* Default Description */}
 <div className="space-y-2">
@@ -6865,13 +6876,13 @@ const [isSavingCredentials, setIsSavingCredentials] =
 
                     {/* Buttons */}
                     {isEditingConferenceDescription && (
-                      <div className="flex items-center justify-end gap-3 pt-5 border-t border-slate-100">
+                      <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2 sm:gap-3 pt-5 border-t border-slate-100">
 
                         <button
                           type="button"
                           disabled={isSavingConferenceDescription}
                           onClick={handleCancelConferenceDescriptionEdit}
-                          className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold cursor-pointer disabled:opacity-50"
+                          className="w-full sm:w-auto px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold cursor-pointer disabled:opacity-50"
                         >
                           Cancel
                         </button>
@@ -6880,7 +6891,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
                           type="button"
                           disabled={isSavingConferenceDescription}
                           onClick={handleSaveConferenceDescription}
-                          className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer shadow-sm disabled:opacity-50"
+                          className="w-full sm:w-auto px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 cursor-pointer shadow-sm disabled:opacity-50"
                         >
                           {isSavingConferenceDescription ? (
                             <RefreshCw className="h-4 w-4 animate-spin" />
@@ -6904,7 +6915,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
 
 
           {activeMenu === "SUBSCRIBER_EMAILS" && (
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-5">
+            <div className="bg-white rounded-xl sm:rounded-2xl border border-slate-200 shadow-xs p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-5 min-w-0">
               {/* Top Header */}
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-100 pb-4">
                 <div>
@@ -6969,7 +6980,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
               </div>
 
               {/* Search & Bulk Operations Bar */}
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200 min-w-0">
                 <div className="relative w-full sm:w-80">
                   <Search className="h-4 w-4 text-slate-400 absolute left-3 top-2.5" />
                   <input
@@ -7101,7 +7112,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
 
                 if (filtered.length === 0) {
                   return (
-                    <div className="text-center py-12 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                    <div className="text-center px-4 py-10 sm:py-12 bg-slate-50 rounded-xl sm:rounded-2xl border border-dashed border-slate-200 min-w-0">
                       <Mail className="h-10 w-10 text-slate-300 mx-auto mb-2" />
                       <p className="text-sm font-bold text-slate-600">
                         {subSearchQuery ? "No Subscribers Found" : "No Subscribers Yet"}
@@ -7118,8 +7129,8 @@ const [isSavingCredentials, setIsSavingCredentials] =
                 const allFilteredSelected = filtered.length > 0 && filtered.every((s) => selectedSubIds.includes(s.id || s.email));
 
                 return (
-                  <div className="overflow-x-auto border border-slate-200 rounded-xl shadow-2xs">
-                    <table className="w-full text-left text-xs border-collapse">
+                  <div className="w-full overflow-x-auto overscroll-x-contain border border-slate-200 rounded-xl shadow-2xs">
+                    <table className="w-full min-w-[720px] text-left text-xs border-collapse">
                       <thead>
                         <tr className="bg-[#37494E] text-white font-bold uppercase tracking-wider text-[10px]">
                           <th className="p-3 w-10 text-center">
@@ -7207,10 +7218,11 @@ const [isSavingCredentials, setIsSavingCredentials] =
 
           {/* Conference details preview */}
           {viewingConfDetails && (
-            <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-              <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 space-y-6 shadow-2xl border border-slate-200">
-                <div className="flex items-start justify-between border-b border-slate-100 pb-4">
-                  <div>
+            <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+              <div className="bg-white rounded-xl sm:rounded-2xl max-w-2xl w-full max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] overflow-y-auto p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 shadow-2xl border border-slate-200 min-w-0">
+
+                <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-4 min-w-0">
+                  <div className="min-w-0">
                     <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold mb-2 ${
                       isConferenceCompleted(viewingConfDetails)
                         ? "bg-slate-200 text-slate-800"
@@ -7218,7 +7230,9 @@ const [isSavingCredentials, setIsSavingCredentials] =
                     }`}>
                       {isConferenceCompleted(viewingConfDetails) ? "Completed Conference" : "Pending Conference Review"}
                     </span>
-                    <h3 className="text-lg font-bold text-[#37494E] leading-tight">{viewingConfDetails.title}</h3>
+                    <h3 className="text-base sm:text-lg font-bold text-[#37494E] leading-tight break-words">
+                      {viewingConfDetails.title}
+                      </h3>
                     {viewingConfDetails.shortTitle && (
                       <p className="text-xs font-semibold text-slate-500 mt-0.5">({viewingConfDetails.shortTitle})</p>
                     )}
@@ -7280,9 +7294,9 @@ const [isSavingCredentials, setIsSavingCredentials] =
                       href={viewingConfDetails.conferenceWebsite}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-blue-600 hover:underline flex items-center gap-1 font-semibold"
+                      className="text-blue-600 hover:underline flex items-start gap-1 font-semibold break-all min-w-0"
                     >
-                      {viewingConfDetails.conferenceWebsite} <ExternalLink className="h-3 w-3 inline" />
+                      {viewingConfDetails.conferenceWebsite} <ExternalLink className="h-3 w-3 shrink-0 mt-0.5" />
                     </a>
                   </div>
                 )}
@@ -7292,7 +7306,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
                     <p className="text-[10px] font-bold uppercase text-slate-400">Contact Email</p>
                     <a
                       href={`mailto:${viewingConfDetails.contactEmail}`}
-                      className="text-blue-600 hover:underline font-semibold"
+                      className="text-blue-600 hover:underline font-semibold break-all"
                     >
                       {viewingConfDetails.contactEmail}
                     </a>
@@ -7355,10 +7369,10 @@ const [isSavingCredentials, setIsSavingCredentials] =
 
           {/* View Details Modal for Organizers */}
           {viewingOrgDetails && (
-            <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-              <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 sm:p-8 space-y-6 shadow-2xl border border-slate-200">
-                <div className="flex items-start justify-between border-b border-slate-100 pb-4">
-                  <div className="flex items-center gap-3">
+            <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+              <div className="bg-white rounded-xl sm:rounded-2xl md:rounded-3xl max-w-2xl w-full max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] overflow-y-auto p-3 sm:p-4 md:p-6 lg:p-8 space-y-4 sm:space-y-6 shadow-2xl border border-slate-200 min-w-0">
+                <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-4 min-w-0">
+                  <div className="flex items-center gap-3 min-w-0">
                     {(() => {
                       const logoUrl = getCleanImageSrc(viewingOrgDetails.logo);
                       return logoUrl ? (
@@ -7376,11 +7390,11 @@ const [isSavingCredentials, setIsSavingCredentials] =
                         </div>
                       );
                     })()}
-                    <div>
-                      <h3 className="text-lg font-extrabold text-[#37494E] leading-tight">
+                    <div className="min-w-0">
+                      <h3 className="text-base sm:text-lg font-bold text-[#37494E] leading-tight break-words">
                         {viewingOrgDetails.organizationName || "Unnamed Organization"}
                       </h3>
-                      <p className="text-xs text-slate-500 font-medium mt-0.5">{viewingOrgDetails.email}</p>
+                      <p className="text-xs text-slate-500 font-medium mt-0.5 break-all">{viewingOrgDetails.email}</p>
                     </div>
                   </div>
                   <button
@@ -7437,9 +7451,9 @@ const [isSavingCredentials, setIsSavingCredentials] =
                         href={viewingOrgDetails.organizationWebsite}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline font-bold flex items-center gap-1"
+                        className="text-blue-600 hover:underline font-bold flex items-start gap-1 break-all min-w-0"
                       >
-                        {viewingOrgDetails.organizationWebsite} <ExternalLink className="h-3.5 w-3.5 inline" />
+                        {viewingOrgDetails.organizationWebsite} <ExternalLink className="h-3.5 w-3.5 shrink-0 mt-0.5" />
                       </a>
                     ) : (
                       <p className="text-slate-400 italic">No website provided</p>

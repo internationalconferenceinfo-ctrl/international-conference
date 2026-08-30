@@ -2834,11 +2834,14 @@ const filterDescription = useMemo(() => {
 
       {/* About Us Section */}
       {tab === "ABOUT" && (
-        <section id="about" className="scroll-mt-24 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+        <section
+          id="about"
+          className="scroll-mt-24 grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-12 items-center min-w-0"
+        >
           <div className="space-y-6">
             <div className="space-y-2">
               <span className="text-xs font-bold uppercase tracking-wider text-blue-600">{dynamicAboutUs.missionBadge}</span>
-              <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight font-display">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight font-display leading-tight break-words">
                 {dynamicAboutUs.title}
               </h1>
             </div>
@@ -2849,7 +2852,7 @@ const filterDescription = useMemo(() => {
               {dynamicAboutUs.paragraph2}
             </p>
 
-            <div className="grid grid-cols-2 gap-6 pt-4 border-t border-slate-100">
+            <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-4 sm:gap-6 pt-4 border-t border-slate-100">
               <div className="space-y-1">
                 <div className="text-2xl font-extrabold text-blue-600">{dynamicAboutUs.stat1Value}</div>
                 <p className="text-xs text-slate-400 font-bold uppercase">{dynamicAboutUs.stat1Label}</p>
@@ -2861,7 +2864,7 @@ const filterDescription = useMemo(() => {
             </div>
           </div>
 
-          <div className="relative rounded-3xl overflow-hidden shadow-lg">
+          <div className="relative rounded-2xl sm:rounded-3xl overflow-hidden shadow-lg min-w-0">
             <img
               src={dynamicAboutUs.imageUrl}
               alt="About Conference Hall"
@@ -2878,13 +2881,13 @@ const filterDescription = useMemo(() => {
         <section id="contact" className="scroll-mt-24">
           <div className="flex flex-col lg:flex-row items-stretch gap-6 md:gap-8 w-full">
             {/* Left Side (40% Width) - Contact Information */}
-            <div className="w-full lg:w-[40%] shrink-0 bg-[#37494E] text-white rounded-3xl p-6 sm:p-8 md:p-9 shadow-md flex flex-col justify-between space-y-6 border border-[#2b3a3e]">
+            <div className="w-full lg:w-[40%] min-w-0 shrink-0 bg-[#37494E] text-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 lg:p-9 shadow-md flex flex-col justify-between gap-5 sm:gap-6 border border-[#2b3a3e]">
               {/* Header */}
               <div className="space-y-2">
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/10 border border-white/20 rounded-full text-slate-100 font-bold text-[10px] uppercase tracking-wider">
                   <Mail className="h-3.5 w-3.5 text-slate-200" /> Get In Touch
                 </div>
-                <h1 className="text-2xl sm:text-3xl font-extrabold font-display text-white">Contact Information</h1>
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold font-display text-white leading-tight">Contact Information</h1>
                 <p className="text-slate-200 text-xs sm:text-sm font-medium leading-relaxed">
                   Have questions, issues, or feedback? Get in touch with our operations center.
                 </p>
@@ -2968,12 +2971,12 @@ const filterDescription = useMemo(() => {
             </div>
 
             {/* Right Side (60% Width) - Collaboration Portal / Registration Form */}
-            <div className="w-full lg:w-[60%] flex-1 bg-white border border-slate-200/80 rounded-3xl p-6 sm:p-8 md:p-9 shadow-sm flex flex-col justify-between space-y-4">
+            <div className="w-full lg:w-[60%] min-w-0 flex-1 bg-white border border-slate-200/80 rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 lg:p-9 shadow-sm flex flex-col justify-between gap-4">
               <div className="space-y-1 pb-3 border-b border-slate-100">
                 <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-50 border border-blue-100 rounded-full text-blue-600 font-bold text-[10px] uppercase tracking-wider">
                   <Handshake className="h-3.5 w-3.5" /> Collaboration Portal
                 </div>
-                <h3 className="text-xl sm:text-2xl font-extrabold text-slate-900 font-display">
+                <h3 className="text-lg sm:text-xl md:text-2xl font-extrabold text-slate-900 font-display leading-tight break-words">
                   Collaboration Portal / Registration Form
                 </h3>
                 <p className="text-xs text-slate-500 font-medium">
@@ -3143,13 +3146,13 @@ const filterDescription = useMemo(() => {
         );
 
         return (
-          <section id="media-partner" className="scroll-mt-24 space-y-8">
+          <section id="media-partner" className="scroll-mt-24 space-y-5 sm:space-y-6 md:space-y-8 min-w-0">
             {/* Header block */}
             <div className="max-w-3xl space-y-4">
               <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-50 border border-blue-100 rounded-full text-blue-600 font-bold text-[10px] uppercase tracking-wider">
                 <Globe className="h-3.5 w-3.5" /> Media Distribution & Outreach
               </div>
-              <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight font-display">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight font-display leading-tight">
                 Media Partners
               </h1>
               <p className="text-slate-600 leading-relaxed font-medium">
@@ -3164,11 +3167,11 @@ const filterDescription = useMemo(() => {
             </div>
 
             {/* Partners Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
+            <div className="grid grid-cols-1 min-[480px]:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-5 lg:gap-6">
               {paginatedPartners.map((partner, pIdx) => (
                 <div
                   key={partner.id ? `${partner.id}-${pIdx}` : `partner-${pIdx}`}
-                  className={`bg-white border border-slate-200/80 rounded-2xl p-3.5 sm:p-5 shadow-xs hover:shadow-md ${partner.borderHover} transition-all flex flex-col h-full justify-between`}
+                  className={`bg-white border border-slate-200/80 rounded-xl sm:rounded-2xl p-4 sm:p-5 shadow-xs hover:shadow-md ${partner.borderHover} transition-all flex flex-col h-full min-w-0 justify-between`}
                 >
                   <div>
                     {/* Logo */}
@@ -3256,7 +3259,7 @@ const filterDescription = useMemo(() => {
             )}
 
             {/* Collaborate Callout Box */}
-            <div className="bg-[#37494E] text-white rounded-3xl p-8 shadow-lg flex flex-col md:flex-row items-center justify-between gap-6 border border-[#2b3a3e]">
+            <div className="bg-[#37494E] text-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 shadow-lg flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 sm:gap-6 border border-[#2b3a3e]">
               <div className="space-y-2 max-w-xl">
                 <h3 className="text-xl font-bold font-display">Are you a scientific publisher, press network, or journal partner?</h3>
                 <p className="text-slate-200 text-xs font-medium leading-relaxed">
@@ -3268,8 +3271,7 @@ const filterDescription = useMemo(() => {
                   if (onTabChange) onTabChange("CONTACT");
                   window.scrollTo({ top: 0, behavior: "smooth" });
                 }}
-                className="bg-white hover:bg-slate-100 text-[#37494E] hover:text-[#2b3a3e] font-bold px-6 py-3 rounded-xl text-xs transition-all flex items-center gap-1 shrink-0 cursor-pointer shadow-md"
-              >
+                className="w-full md:w-auto bg-white hover:bg-slate-100 text-[#37494E] hover:text-[#2b3a3e] font-bold px-5 sm:px-6 py-3 rounded-xl text-xs transition-all flex items-center justify-center gap-1 shrink-0 cursor-pointer shadow-md">
                 Collaborate With Us <ArrowRight className="h-4 w-4" />
               </button>
             </div>
@@ -3287,13 +3289,13 @@ const filterDescription = useMemo(() => {
         );
 
         return (
-          <section id="associates" className="scroll-mt-24 space-y-8">
+          <section id="associates" className="scroll-mt-24 space-y-5 sm:space-y-6 md:space-y-8 min-w-0">
             {/* Header block */}
             <div className="max-w-3xl space-y-4">
               <div className="inline-flex items-center gap-2 px-3 py-1 bg-indigo-50 border border-indigo-100 rounded-full text-indigo-600 font-bold text-[10px] uppercase tracking-wider">
                 <Users className="h-3.5 w-3.5" /> Trusted Global Network
               </div>
-              <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight font-display">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight font-display leading-tight">
                 Our Associates
               </h1>
               <p className="text-slate-600 leading-relaxed font-medium">
@@ -3308,11 +3310,11 @@ const filterDescription = useMemo(() => {
             </div>
 
             {/* Associates Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
+            <div className="grid grid-cols-1 min-[480px]:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-5 lg:gap-6">
               {paginatedAssociates.map((assoc, aIdx) => (
                 <div
                   key={assoc.id ? `${assoc.id}-${aIdx}` : `assoc-${aIdx}`}
-                  className={`bg-white border border-slate-200/80 rounded-2xl p-3.5 sm:p-5 shadow-xs hover:shadow-md ${assoc.borderHover} transition-all flex flex-col h-full justify-between`}
+                  className={`bg-white border border-slate-200/80 rounded-xl sm:rounded-2xl p-4 sm:p-5 shadow-xs hover:shadow-md ${assoc.borderHover} transition-all flex flex-col h-full min-w-0 justify-between`}
                 >
                   <div>
                     {/* Logo */}
@@ -4088,7 +4090,7 @@ const filterDescription = useMemo(() => {
 
       <AnimatePresence>
         {isFeedbackModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-md">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/75 backdrop-blur-md overflow-y-auto">
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -4096,7 +4098,7 @@ const filterDescription = useMemo(() => {
               className="bg-[#37494E] border border-white/20 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden text-white"
             >
               {/* Header */}
-              <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between bg-slate-900/40">
+              <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-white/10 flex items-center justify-between gap-3 bg-slate-900/40 sticky top-0 z-10">
                 <div className="flex items-center gap-2.5">
                   <div className="p-2 bg-amber-400/15 rounded-xl border border-amber-400/30 text-amber-300">
                     <MessageSquare className="h-4 w-4" />
@@ -4115,7 +4117,7 @@ const filterDescription = useMemo(() => {
               </div>
 
               {/* Form Body */}
-              <form onSubmit={handleUserFeedbackSubmit} className="p-6 space-y-4">
+              <form onSubmit={handleUserFeedbackSubmit} className="p-4 sm:p-6 space-y-4">
                 {userFeedbackSubmitted && (
                   <div className="p-3.5 bg-emerald-500/20 border border-emerald-500/30 rounded-xl text-emerald-300 text-xs font-bold flex items-center gap-2 animate-fadeIn">
                     <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
@@ -4216,7 +4218,7 @@ const filterDescription = useMemo(() => {
                 </div>
 
                 {/* Actions */}
-                <div className="pt-2 flex items-center justify-end gap-3 border-t border-white/10">
+             <div className="pt-3 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2 sm:gap-3 border-t border-white/10">
                   <button
                     type="button"
                     onClick={() => setIsFeedbackModalOpen(false)}
