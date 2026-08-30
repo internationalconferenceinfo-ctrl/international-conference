@@ -1137,18 +1137,24 @@ export default function OrganizerPortal({
                       </select>
                     </div>
 
-                    {/* Banner Image Uploader */}
-                    <ImageUploaderField
-                      label="Conference Banner Image (Optional)"
-                      value={formBannerImage || ""}
-                      onChange={setFormBannerImage}
-                      placeholder="https://images.unsplash.com/photo-..."
-                      maxWidth={1200}
-                      maxHeight={600}
-                      aspectHint="High resolution banner recommended (e.g. 1200x500)"
-                      isLogo={false}
-                      isBanner={true}
-                    />
+                    {/* Conference Banner Image URL */}
+                    <div className="space-y-1 min-w-0">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                        Conference Banner Image URL (Optional)
+                      </label>
+
+                      <input
+                        type="url"
+                        value={formBannerImage || ""}
+                        onChange={(e) => setFormBannerImage(e.target.value)}
+                        placeholder="https://example.com/conference-banner.jpg"
+                        className="w-full min-w-0 text-sm bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                      />
+
+                      <p className="text-[11px] text-slate-500">
+                        Paste a direct high-resolution image URL. Recommended size: 1200 × 500 px or larger.
+                      </p>
+                    </div>
 
                     {/* Dates */}
                     <div className="space-y-1">

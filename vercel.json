@@ -8,13 +8,21 @@
     }
   },
   "rewrites": [
-    {
-      "source": "/api/:path*",
-      "destination": "/api"
-    },
-    {
-      "source": "/:path*",
-      "destination": "/index.html"
-    }
-  ]
+  {
+    "source": "/api/:path*",
+    "destination": "/api"
+  },
+  {
+    "source": "/sitemap.xml",
+    "destination": "/api"
+  },
+  {
+    "source": "/robots.txt",
+    "destination": "/api"
+  },
+  {
+    "source": "/:path*",
+    "destination": "/index.html"
+  }
+]
 }
