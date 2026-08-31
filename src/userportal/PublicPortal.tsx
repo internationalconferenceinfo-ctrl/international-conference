@@ -853,7 +853,27 @@ const approvedMediaPartnersList = useMemo(() => {
           }
         });
 
-        return Array.from(countrySet).sort((a, b) => a.localeCompare(b));
+        return Array.from(countrySet).sort((a, b) => {
+        const aCount = approvedConferences.filter(
+          (conf) =>
+            String(conf.country || "").trim().toLowerCase() ===
+            a.trim().toLowerCase()
+        ).length;
+
+        const bCount = approvedConferences.filter(
+          (conf) =>
+            String(conf.country || "").trim().toLowerCase() ===
+            b.trim().toLowerCase()
+        ).length;
+
+        // Highest conference count first
+        if (aCount !== bCount) {
+          return bCount - aCount;
+        }
+
+        // Same count → alphabetical
+        return a.localeCompare(b);
+      });
       }, [approvedConferences, inactiveCountries]);
 
   // Search states for country, city, and topic cards
@@ -905,11 +925,34 @@ const allFilterCities = useMemo(() => {
     }
   }
 
-  return Array.from(cityMap.values()).sort(
-    (a, b) =>
-      a.cityName.localeCompare(b.cityName) ||
-      a.countryName.localeCompare(b.countryName)
+  return Array.from(cityMap.values()).sort((a, b) => {
+  const aCount = approvedConferences.filter(
+    (conf) =>
+      String(conf.city || "").trim().toLowerCase() ===
+        a.cityName.trim().toLowerCase() &&
+      String(conf.country || "").trim().toLowerCase() ===
+        a.countryName.trim().toLowerCase()
+  ).length;
+
+  const bCount = approvedConferences.filter(
+    (conf) =>
+      String(conf.city || "").trim().toLowerCase() ===
+        b.cityName.trim().toLowerCase() &&
+      String(conf.country || "").trim().toLowerCase() ===
+        b.countryName.trim().toLowerCase()
+  ).length;
+
+  // Highest conference count first
+  if (aCount !== bCount) {
+    return bCount - aCount;
+  }
+
+  // Same count → city name, then country name
+  return (
+    a.cityName.localeCompare(b.cityName) ||
+    a.countryName.localeCompare(b.countryName)
   );
+});
 }, [approvedConferences, inactiveCities, inactiveCountries]);
 
   // Filtered cities list based on citySearchQuery
@@ -991,8 +1034,34 @@ const allFilterCategories = useMemo(() => {
   });
 
   return Array.from(topicSet)
-    .filter(Boolean)
-    .sort((a, b) => a.localeCompare(b));
+  .filter(Boolean)
+  .sort((a, b) => {
+    const aCount = approvedConferences.filter((conf) => {
+      const topicName = topicsMapping[conf.category] || conf.category;
+
+      return (
+        String(topicName || "").trim().toLowerCase() ===
+        a.trim().toLowerCase()
+      );
+    }).length;
+
+    const bCount = approvedConferences.filter((conf) => {
+      const topicName = topicsMapping[conf.category] || conf.category;
+
+      return (
+        String(topicName || "").trim().toLowerCase() ===
+        b.trim().toLowerCase()
+      );
+    }).length;
+
+    // Highest conference count first
+    if (aCount !== bCount) {
+      return bCount - aCount;
+    }
+
+    // Same count → alphabetical
+    return a.localeCompare(b);
+  });
 }, [approvedConferences, inactiveTopics, categories]);
 
   // Filtered topics list based on topicSearchQuery
@@ -1012,12 +1081,11 @@ const allFilterCategories = useMemo(() => {
     return Boolean(org.isVerified || completedCount >= 101);
   };
 
-  // Home organizers: only organizers having at least 1 approved/live conference
+ // Home organizers: only organizers having at least 1 approved/live conference
+// Highest number of approved conferences appears first
 const trustedOrganizersList = useMemo(() => {
-  const activeWithConference = organizers.filter((org) => {
-    if (org.isSuspended) return false;
-
-    return approvedConferences.some((conf) => {
+  const getPublishedConferenceCount = (org: OrganizerProfile) => {
+    return approvedConferences.filter((conf) => {
       const sameOrganizerId = conf.organizerId === org.id;
 
       const sameEmail =
@@ -1027,33 +1095,67 @@ const trustedOrganizersList = useMemo(() => {
           org.email!.trim().toLowerCase();
 
       return sameOrganizerId || sameEmail;
+    }).length;
+  };
+
+  return organizers
+    .filter((org) => {
+      if (org.isSuspended) return false;
+
+      // Home Trusted Organizers should only show organizers
+      // that currently have at least one approved/live conference
+      return getPublishedConferenceCount(org) > 0;
+    })
+    .sort((a, b) => {
+      const aCount = getPublishedConferenceCount(a);
+      const bCount = getPublishedConferenceCount(b);
+
+      // Highest conference count first
+      if (aCount !== bCount) {
+        return bCount - aCount;
+      }
+
+      // If both have the same count, sort alphabetically
+      return String(a.organizationName || "").localeCompare(
+        String(b.organizationName || "")
+      );
     });
-  });
-
-  return activeWithConference.sort((a, b) => {
-    const aTrusted = getIsOrganizerTrusted(a) ? 1 : 0;
-    const bTrusted = getIsOrganizerTrusted(b) ? 1 : 0;
-
-    if (aTrusted !== bTrusted) {
-      return bTrusted - aTrusted;
-    }
-
-    return String(a.organizationName || "").localeCompare(
-      String(b.organizationName || "")
-    );
-  });
-}, [organizers, approvedConferences, conferences]);
+}, [organizers, approvedConferences]);
 
     // All active organizers - for full Organizers page
+    // Sort by highest number of approved conferences first
     const allPublicOrganizersList = useMemo(() => {
+      const getPublishedConferenceCount = (org: OrganizerProfile) => {
+        return approvedConferences.filter((conf) => {
+          const sameOrganizerId = conf.organizerId === org.id;
+
+          const sameEmail =
+            Boolean(conf.contactEmail) &&
+            Boolean(org.email) &&
+            conf.contactEmail!.trim().toLowerCase() ===
+              org.email!.trim().toLowerCase();
+
+          return sameOrganizerId || sameEmail;
+        }).length;
+      };
+
       return organizers
         .filter((org) => !org.isSuspended)
-        .sort((a, b) =>
-          String(a.organizationName || "").localeCompare(
+        .sort((a, b) => {
+          const aCount = getPublishedConferenceCount(a);
+          const bCount = getPublishedConferenceCount(b);
+
+          // Highest number of conferences first
+          if (aCount !== bCount) {
+            return bCount - aCount;
+          }
+
+          // If conference counts are equal, sort alphabetically
+          return String(a.organizationName || "").localeCompare(
             String(b.organizationName || "")
-          )
-        );
-    }, [organizers]);
+          );
+        });
+    }, [organizers, approvedConferences]);
 
   const organizersScrollRef = useRef<HTMLDivElement>(null);
 

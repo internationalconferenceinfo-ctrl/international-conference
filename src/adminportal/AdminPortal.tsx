@@ -1,9 +1,17 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { adminFetch } from "../shared/utils/adminSession";
 import { 
-  saveToSupabase, fetchFromSupabase, subscribeToSupabase, deleteFromSupabase, 
-  getSupabaseClient, uploadBannerImageToSupabase, deleteBannerImageFromSupabase,
-  saveRecordToSupabase, deleteRecordFromSupabase
+  saveToSupabase,
+  fetchFromSupabase,
+  fetchCityCountByCountryFromSupabase,
+  fetchCitiesByCountryFromSupabase,
+  subscribeToSupabase,
+  deleteFromSupabase, 
+  getSupabaseClient,
+  uploadBannerImageToSupabase,
+  deleteBannerImageFromSupabase,
+  saveRecordToSupabase,
+  deleteRecordFromSupabase
 } from "../database/supabase";
 import { 
   Check, X, ShieldAlert, Award, ShieldCheck, Flag, Ban, 
@@ -254,23 +262,172 @@ export default function AdminPortal({
   };
 
   // Shared state sourced from Supabase
-  const [mediaPartners, setMediaPartners] = useState<MediaPartner[]>([]);
-  const [associates, setAssociates] = useState<Associate[]>([]);
-  const [bannerTitles, setBannerTitles] = useState<TextItem[]>([]);
-  const [bannerDescs, setBannerDescs] = useState<TextItem[]>([]);
-  const [bannerContents, setBannerContents] = useState<BannerContentItem[]>([]);
+// Shared state sourced from Supabase
+const [mediaPartners, setMediaPartners] = useState<MediaPartner[]>([]);
+const [associates, setAssociates] = useState<Associate[]>([]);
+const [bannerTitles, setBannerTitles] = useState<TextItem[]>([]);
+const [bannerDescs, setBannerDescs] = useState<TextItem[]>([]);
+const [bannerContents, setBannerContents] = useState<BannerContentItem[]>([]);
 
-  const countriesList = countriesListProp || [];
+// Location Excel bulk upload progress
+const [isLocationUploadOpen, setIsLocationUploadOpen] = useState(false);
+const [isLocationUploading, setIsLocationUploading] = useState(false);
+const [locationUploadProgress, setLocationUploadProgress] = useState(0);
+const [locationUploadStatus, setLocationUploadStatus] = useState("");
+const [locationUploadProcessed, setLocationUploadProcessed] = useState(0);
+const [locationUploadTotal, setLocationUploadTotal] = useState(0);
 
-  const setCountriesList = async (val: string[] | ((prev: string[]) => string[])) => {
-    const next = typeof val === "function" ? val(countriesList) : val;
-    if (onUpdateCountries) {
-      onUpdateCountries(next);
+const [locationUploadResult, setLocationUploadResult] = useState<{
+  countriesAdded: number;
+  citiesAdded: number;
+  duplicateCountries: number;
+  duplicateCities: number;
+  rowsSkipped: number;
+} | null>(null);
+
+const countriesList = countriesListProp || [];
+
+const setCountriesList = async (
+  val: string[] | ((prev: string[]) => string[])
+) => {
+  const next =
+    typeof val === "function"
+      ? val(countriesList)
+      : val;
+
+  if (onUpdateCountries) {
+    onUpdateCountries(next);
+  }
+
+  await saveToSupabase("countries", next);
+};
+// Cities are loaded country-by-country for large location databases.
+// This prevents millions of cities from being kept in browser memory.
+const [adminCitiesByCountry, setAdminCitiesByCountry] = useState<
+  Record<string, Array<{ name: string; country: string }>>
+>({});
+
+const [adminCitiesLoading, setAdminCitiesLoading] = useState<
+  Record<string, boolean>
+>({});
+
+const [adminCityCounts, setAdminCityCounts] = useState<
+  Record<string, number>
+>({});
+
+const loadAdminCityCountForCountry = async (
+  country: string
+) => {
+  const normalizedCountry = String(country || "")
+    .trim()
+    .toUpperCase();
+
+  if (!normalizedCountry) return;
+
+  if (
+    Object.prototype.hasOwnProperty.call(
+      adminCityCounts,
+      normalizedCountry
+    )
+  ) {
+    return;
+  }
+
+  try {
+    const count =
+      await fetchCityCountByCountryFromSupabase(
+        normalizedCountry
+      );
+
+    setAdminCityCounts((prev) => ({
+      ...prev,
+      [normalizedCountry]: count
+    }));
+  } catch (error) {
+    console.error(
+      `Failed to load city count for ${normalizedCountry}:`,
+      error
+    );
+  }
+};
+
+useEffect(() => {
+  if (!countriesList.length) return;
+
+  const loadCounts = async () => {
+    for (const country of countriesList) {
+      const normalizedCountry = String(country || "")
+        .trim()
+        .toUpperCase();
+
+      if (!normalizedCountry) continue;
+
+      if (
+        Object.prototype.hasOwnProperty.call(
+          adminCityCounts,
+          normalizedCountry
+        )
+      ) {
+        continue;
+      }
+
+      await loadAdminCityCountForCountry(
+        normalizedCountry
+      );
     }
-    await saveToSupabase("countries", next);
   };
 
-  const citiesList = citiesListProp || [];
+  void loadCounts();
+}, [countriesList]);
+
+const loadAdminCitiesForCountry = async (
+  country: string
+) => {
+  const normalizedCountry = String(country || "")
+    .trim()
+    .toUpperCase();
+
+  if (!normalizedCountry) return;
+
+  // Already loaded in this Admin session.
+  if (adminCitiesByCountry[normalizedCountry]) {
+    return;
+  }
+
+  setAdminCitiesLoading((prev) => ({
+    ...prev,
+    [normalizedCountry]: true
+  }));
+
+  try {
+    const rows =
+      await fetchCitiesByCountryFromSupabase(
+        normalizedCountry
+      );
+
+    setAdminCitiesByCountry((prev) => ({
+      ...prev,
+      [normalizedCountry]: rows
+    }));
+  } catch (error) {
+    console.error(
+      `Failed to load cities for ${normalizedCountry}:`,
+      error
+    );
+
+    setAdminCitiesByCountry((prev) => ({
+      ...prev,
+      [normalizedCountry]: []
+    }));
+  } finally {
+    setAdminCitiesLoading((prev) => ({
+      ...prev,
+      [normalizedCountry]: false
+    }));
+  }
+};
+
+const citiesList = citiesListProp || [];
 
   const setCitiesList = async (val: Array<{ name: string; country: string }> | ((prev: Array<{ name: string; country: string }>) => Array<{ name: string; country: string }>)) => {
     const next = typeof val === "function" ? val(citiesList) : val;
@@ -711,304 +868,668 @@ combined_description: record.combined_description || "",
         );
       };
 
-      const handleExcelFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
+      const handleExcelFileUpload = async (
+  e: React.ChangeEvent<HTMLInputElement>
+) => {
+  const file = e.target.files?.[0];
 
-      if (!file) return;
+  if (!file) return;
 
-      const reader = new FileReader();
+  if (isLocationUploading) {
+  showToast(
+    "A location upload is already in progress. Please wait for it to finish."
+  );
 
-      reader.onload = async (evt) => {
-        try {
-          const XLSX = await import("xlsx");
+  e.target.value = "";
+  return;
+}
 
-          const buffer = evt.target?.result;
+  // Allow the same file to be selected again later
+  e.target.value = "";
 
-          if (!buffer) {
-            showToast("Unable to read Excel file.");
-            return;
-          }
+  // Open live upload popup
+  setIsLocationUploadOpen(true);
+  setIsLocationUploading(true);
+  setLocationUploadProgress(2);
+  setLocationUploadStatus("Reading Excel file...");
+  setLocationUploadProcessed(0);
+  setLocationUploadTotal(0);
+  setLocationUploadResult(null);
 
-          const workbook = XLSX.read(buffer, {
-            type: "array"
-          });
+  // Give React time to display the popup before heavy work starts
+  await new Promise<void>((resolve) =>
+    setTimeout(resolve, 50)
+  );
 
-          if (!workbook.SheetNames.length) {
-            showToast("Excel file contains no sheets.");
-            return;
-          }
+  try {
+    const XLSX = await import("xlsx");
 
-          const sheetName = workbook.SheetNames[0];
-          const worksheet = workbook.Sheets[sheetName];
+    setLocationUploadProgress(5);
+    setLocationUploadStatus("Loading Excel workbook...");
 
-          if (!worksheet) {
-            showToast("Unable to read the first Excel sheet.");
-            return;
-          }
+    const buffer = await file.arrayBuffer();
 
-          const rows = XLSX.utils.sheet_to_json<Record<string, any>>(
-            worksheet,
-            {
-              defval: "",
-              raw: false
-            }
-          );
+    const workbook = XLSX.read(buffer, {
+      type: "array"
+    });
 
-          if (!rows || rows.length === 0) {
-            showToast(
-              "Excel file is empty or no usable rows were found."
-            );
-            return;
-          }
+    if (!workbook.SheetNames.length) {
+      throw new Error("Excel file contains no sheets.");
+    }
 
-          // Existing data maps
-          const countryMap = new Map<string, string>();
+    const sheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
 
-          countriesList.forEach((country) => {
-            const name =
-              typeof country === "string"
-                ? country.trim()
-                : String(
-                    (country as any)?.name ||
-                      (country as any)?.id ||
-                      ""
-                  ).trim();
+    if (!worksheet) {
+      throw new Error(
+        "Unable to read the first Excel sheet."
+      );
+    }
 
-            if (name) {
-              countryMap.set(
-                name.toUpperCase(),
-                name.toUpperCase()
-              );
-            }
-          });
+    setLocationUploadProgress(10);
+    setLocationUploadStatus("Reading location rows...");
 
-          const cityMap = new Map<
-            string,
-            { name: string; country: string }
-          >();
+    const rows =
+      XLSX.utils.sheet_to_json<Record<string, any>>(
+        worksheet,
+        {
+          defval: "",
+          raw: false
+        }
+      );
 
-          citiesList.forEach((city) => {
-            const cityName = String(
-              city?.name || ""
-            )
-              .trim()
-              .toUpperCase();
+    if (!rows.length) {
+      throw new Error(
+        "Excel file is empty or no usable rows were found."
+      );
+    }
 
-            const countryName = String(
-              city?.country || ""
-            )
-              .trim()
-              .toUpperCase();
+    setLocationUploadTotal(rows.length);
+    setLocationUploadStatus(
+      `Preparing ${rows.length.toLocaleString()} Excel rows...`
+    );
 
-            if (cityName && countryName) {
-              cityMap.set(
-                `${countryName}:::${cityName}`,
-                {
-                  name: cityName,
-                  country: countryName
-                }
-              );
-            }
-          });
+    // Existing countries
+    const countryMap = new Map<string, string>();
 
-          const originalCountryCount = countryMap.size;
-          const originalCityCount = cityMap.size;
-
-          let currentCountry = "";
-
-          let skippedRows = 0;
-
-          // Helper: split multiple cities inside one Excel cell
-          const splitCities = (value: any): string[] => {
-            const raw = String(value ?? "").trim();
-
-            if (!raw) return [];
-
-            return raw
-              .split(/[,;|\n\r]+/)
-              .map((city) =>
-                city.trim().toUpperCase()
-              )
-              .filter(Boolean);
-          };
-
-          rows.forEach((row) => {
-            const keys = Object.keys(row);
-
-            if (keys.length === 0) {
-              skippedRows++;
-              return;
-            }
-
-            // Detect Country column
-            const countryKey = keys.find((key) => {
-              const normalized = key
-                .trim()
-                .toLowerCase();
-
-              return (
-                normalized === "country" ||
-                normalized.includes("country name") ||
-                normalized.includes("country")
-              );
-            });
-
-            // Supports City, Cities, City 1, City 2, City1, City2...
-            const cityKeys = keys.filter((key) => {
-              const normalized = key
-                .trim()
-                .toLowerCase();
-
-              return (
-                normalized === "city" ||
-                normalized === "cities" ||
-                normalized.includes("city") ||
-                normalized.includes("cities")
-              );
-            });
-
-            // If headers are simply Column A / Column B
-            const fallbackCountryKey =
-              countryKey || keys[0];
-
-            let fallbackCityKeys = cityKeys;
-
-            if (
-              fallbackCityKeys.length === 0 &&
-              keys.length > 1
-            ) {
-              fallbackCityKeys = keys.slice(1);
-            }
-
-            const countryCell = String(
-              row[fallbackCountryKey] || ""
+    countriesList.forEach((country) => {
+      const name =
+        typeof country === "string"
+          ? country.trim()
+          : String(
+              (country as any)?.name ||
+                (country as any)?.id ||
+                ""
             ).trim();
 
-            // If Country exists on this row, remember it.
-            // If Country cell is blank, continue using previous country.
-            if (countryCell) {
-              currentCountry =
-                countryCell.toUpperCase();
+      if (!name) return;
 
-              countryMap.set(
-                currentCountry,
-                currentCountry
+      const normalized = name.toUpperCase();
+
+      countryMap.set(normalized, normalized);
+    });
+
+    // Existing cities
+    const cityMap = new Map<
+      string,
+      {
+        name: string;
+        country: string;
+      }
+    >();
+
+    citiesList.forEach((city) => {
+      const cityName = String(
+        city?.name || ""
+      )
+        .trim()
+        .toUpperCase();
+
+      const countryName = String(
+        city?.country || ""
+      )
+        .trim()
+        .toUpperCase();
+
+      if (!cityName || !countryName) return;
+
+      cityMap.set(
+        `${countryName}:::${cityName}`,
+        {
+          name: cityName,
+          country: countryName
+        }
+      );
+    });
+
+    /*
+ * Load existing cities from Supabase for every country
+ * present in the Excel file.
+ *
+ * This allows the importer to distinguish:
+ * - genuinely new cities
+ * - cities already stored in the database
+ */
+setLocationUploadStatus(
+  "Checking existing locations in database..."
+);
+
+const excelCountries = new Set<string>();
+
+rows.forEach((row) => {
+  const keys = Object.keys(row);
+
+  if (!keys.length) return;
+
+  const countryKey =
+    keys.find((key) =>
+      key
+        .trim()
+        .toLowerCase()
+        .includes("country")
+    ) || keys[0];
+
+  const countryName = String(
+    row[countryKey] || ""
+  )
+    .trim()
+    .toUpperCase();
+
+  if (countryName) {
+    excelCountries.add(countryName);
+  }
+});
+
+for (const country of excelCountries) {
+  const existingCities =
+    await fetchCitiesByCountryFromSupabase(
+      country
+    );
+
+  existingCities.forEach((city) => {
+    const cityName = String(
+      city?.name || ""
+    )
+      .trim()
+      .toUpperCase();
+
+    const countryName = String(
+      city?.country || country
+    )
+      .trim()
+      .toUpperCase();
+
+    if (!cityName) return;
+
+    cityMap.set(
+      `${countryName}:::${cityName}`,
+      {
+        name: cityName,
+        country: countryName
+      }
+    );
+  });
+}
+
+    const originalCountryCount =
+      countryMap.size;
+
+    const originalCityCount =
+      cityMap.size;
+
+    const existingCountryNames =
+      new Set(countryMap.keys());
+
+    const existingCityKeys =
+      new Set(cityMap.keys());
+
+   let currentCountry = "";
+    let skippedRows = 0;
+
+    let duplicateCountries = 0;
+    let duplicateCities = 0;
+
+    const duplicateCountryNames =
+      new Set<string>();
+
+    const duplicateCityKeys =
+    new Set<string>();
+
+    const splitCities = (
+      value: any
+    ): string[] => {
+      const raw = String(
+        value ?? ""
+      ).trim();
+
+      if (!raw) return [];
+
+      return raw
+        .split(/[,;|\n\r]+/)
+        .map((city) =>
+          city.trim().toUpperCase()
+        )
+        .filter(Boolean);
+    };
+
+    /*
+     * Process rows in chunks.
+     *
+     * This prevents a very large Excel file from
+     * freezing the Admin Portal for a long time.
+     */
+    const PROCESS_BATCH_SIZE = 500;
+
+    for (
+      let startIndex = 0;
+      startIndex < rows.length;
+      startIndex += PROCESS_BATCH_SIZE
+    ) {
+      const endIndex = Math.min(
+        startIndex + PROCESS_BATCH_SIZE,
+        rows.length
+      );
+
+      const rowBatch = rows.slice(
+        startIndex,
+        endIndex
+      );
+
+      rowBatch.forEach((row) => {
+        const keys = Object.keys(row);
+
+        if (!keys.length) {
+          skippedRows++;
+          return;
+        }
+
+        // Find Country column
+        const countryKey = keys.find(
+          (key) => {
+            const normalized = key
+              .trim()
+              .toLowerCase();
+
+            return (
+              normalized === "country" ||
+              normalized.includes(
+                "country name"
+              ) ||
+              normalized.includes("country")
+            );
+          }
+        );
+
+        // Find every city column:
+        // City, Cities, City1, City2, City 1...
+        const cityKeys = keys.filter(
+          (key) => {
+            const normalized = key
+              .trim()
+              .toLowerCase();
+
+            return (
+              normalized === "city" ||
+              normalized === "cities" ||
+              normalized.includes("city") ||
+              normalized.includes("cities")
+            );
+          }
+        );
+
+        const fallbackCountryKey =
+          countryKey || keys[0];
+
+        let fallbackCityKeys =
+          cityKeys;
+
+        if (
+          fallbackCityKeys.length === 0 &&
+          keys.length > 1
+        ) {
+          fallbackCityKeys =
+            keys.slice(1);
+        }
+
+        const countryCell = String(
+          row[fallbackCountryKey] || ""
+        ).trim();
+
+        /*
+         * A new Country value changes the active country.
+         * Blank Country cells continue using the country
+         * from the previous row.
+         */
+        if (countryCell) {
+          currentCountry =
+            countryCell.toUpperCase();
+
+          if (
+            countryMap.has(currentCountry)
+          ) {
+            duplicateCountryNames.add(
+              currentCountry
+            );
+          }
+
+          countryMap.set(
+            currentCountry,
+            currentCountry
+          );
+        }
+
+        // No country has been found yet
+        if (!currentCountry) {
+          skippedRows++;
+          return;
+        }
+
+        const citiesFromRow: string[] =
+          [];
+
+        fallbackCityKeys.forEach(
+          (key) => {
+            citiesFromRow.push(
+              ...splitCities(row[key])
+            );
+          }
+        );
+
+        // Remove duplicate city values inside this row
+        const uniqueRowCities =
+          Array.from(
+            new Set(citiesFromRow)
+          );
+
+        uniqueRowCities.forEach(
+          (cityName) => {
+            if (!cityName) return;
+
+            const uniqueCityKey =
+              `${currentCountry}:::${cityName}`;
+
+            if (
+              cityMap.has(uniqueCityKey)
+            ) {
+              duplicateCityKeys.add(
+                uniqueCityKey
               );
-            }
-
-            // Cannot add cities if no country has ever been found
-            if (!currentCountry) {
-              skippedRows++;
               return;
             }
 
-            const citiesFromRow: string[] = [];
-
-            fallbackCityKeys.forEach((key) => {
-              citiesFromRow.push(
-                ...splitCities(row[key])
-              );
-            });
-
-            // Remove duplicates inside same Excel row
-            const uniqueRowCities = Array.from(
-              new Set(citiesFromRow)
-            );
-
-            uniqueRowCities.forEach((cityName) => {
-              if (!cityName) return;
-
-              const cityKey =
-                `${currentCountry}:::${cityName}`;
-
-              cityMap.set(cityKey, {
+            cityMap.set(
+              uniqueCityKey,
+              {
                 name: cityName,
-                country: currentCountry
-              });
-            });
-          });
-
-          const finalCountries =
-            Array.from(countryMap.values()).sort(
-              (a, b) =>
-                a.localeCompare(b, undefined, {
-                  sensitivity: "base"
-                })
-            );
-
-          const finalCities =
-            Array.from(cityMap.values()).sort(
-              (a, b) => {
-                const countryCompare =
-                  a.country.localeCompare(
-                    b.country,
-                    undefined,
-                    {
-                      sensitivity: "base"
-                    }
-                  );
-
-                if (countryCompare !== 0) {
-                  return countryCompare;
-                }
-
-                return a.name.localeCompare(
-                  b.name,
-                  undefined,
-                  {
-                    sensitivity: "base"
-                  }
-                );
+                country:
+                  currentCountry
               }
             );
-
-          const addedCountries =
-            finalCountries.length -
-            originalCountryCount;
-
-          const addedCities =
-            finalCities.length -
-            originalCityCount;
-
-          // Save once only after entire file is processed
-          await setCountriesList(
-            finalCountries
-          );
-
-          await setCitiesList(
-            finalCities
-          );
-
-          triggerBroadcastSync();
-
-          showToast(
-            `Excel upload complete: ${addedCountries} new countries and ${addedCities} new cities added.${skippedRows > 0 ? ` ${skippedRows} blank/invalid rows skipped.` : ""}`
-          );
-        } catch (error) {
-          console.error(
-            "Location Excel upload failed:",
-            error
-          );
-
-          showToast(
-            "Excel upload failed. Please check the file format and try again."
-          );
-        }
-      };
-
-      reader.onerror = () => {
-        showToast(
-          "Unable to read the selected Excel file."
+          }
         );
-      };
+      });
 
-      reader.readAsArrayBuffer(file);
+      const processed =
+        endIndex;
 
-      // Allows uploading same file again if needed
-      e.target.value = "";
-    };
+      setLocationUploadProcessed(
+        processed
+      );
 
-     
+      /*
+       * Excel processing uses progress 10% → 70%.
+       */
+      const processingProgress =
+        10 +
+        Math.round(
+          (processed / rows.length) * 60
+        );
+
+      setLocationUploadProgress(
+        Math.min(
+          processingProgress,
+          70
+        )
+      );
+
+      setLocationUploadStatus(
+        `Processing locations... ${processed.toLocaleString()} / ${rows.length.toLocaleString()} rows`
+      );
+
+      // Allow browser to redraw the progress popup
+        await new Promise<void>(
+          (resolve) =>
+            setTimeout(resolve, 0)
+        );
+        }
+
+        duplicateCountries =
+          duplicateCountryNames.size;
+
+        duplicateCities =
+          duplicateCityKeys.size;
+
+        setLocationUploadProgress(72);
+        setLocationUploadStatus(
+          "Preparing countries for upload..."
+        );
+    const finalCountries =
+      Array.from(
+        countryMap.values()
+      ).sort((a, b) =>
+        a.localeCompare(
+          b,
+          undefined,
+          {
+            sensitivity: "base"
+          }
+        )
+      );
+
+    const finalCities =
+      Array.from(
+        cityMap.values()
+      ).sort((a, b) => {
+        const countryCompare =
+          a.country.localeCompare(
+            b.country,
+            undefined,
+            {
+              sensitivity: "base"
+            }
+          );
+
+        if (
+          countryCompare !== 0
+        ) {
+          return countryCompare;
+        }
+
+        return a.name.localeCompare(
+          b.name,
+          undefined,
+          {
+            sensitivity: "base"
+          }
+        );
+      });
+
+  const newCountries =
+  finalCountries.filter(
+    (country) =>
+      !existingCountryNames.has(
+        String(country)
+          .trim()
+          .toUpperCase()
+      )
+  );
+
+const newCities =
+  finalCities.filter((city) => {
+    const countryName = String(
+      city?.country || ""
+    )
+      .trim()
+      .toUpperCase();
+
+    const cityName = String(
+      city?.name || ""
+    )
+      .trim()
+      .toUpperCase();
+
+    return !existingCityKeys.has(
+      `${countryName}:::${cityName}`
+    );
+  });
+
+const addedCountries =
+  newCountries.length;
+
+const addedCities =
+  newCities.length;
+
+    /*
+     * Database save.
+     *
+     * We will improve the database side batching
+     * in the next step after this frontend
+     * progress version is validated.
+     */
+    setLocationUploadProgress(72);
+setLocationUploadStatus(
+  "Uploading countries to database..."
+);
+
+let countriesSaved = true;
+
+if (newCountries.length > 0) {
+  countriesSaved = await saveToSupabase(
+    "countries",
+    newCountries,
+    (processed, total) => {
+      const progress =
+        total > 0
+          ? 72 +
+            Math.round(
+              (processed / total) * 8
+            )
+          : 80;
+
+      setLocationUploadProgress(
+        Math.min(progress, 80)
+      );
+
+      setLocationUploadStatus(
+        `Uploading countries... ${processed.toLocaleString()} / ${total.toLocaleString()}`
+      );
+    }
+  );
+}
+
+if (!countriesSaved) {
+  throw new Error(
+    "Country database upload failed."
+  );
+}
+
+if (onUpdateCountries) {
+  onUpdateCountries(finalCountries);
+}
+
+setLocationUploadProgress(80);
+setLocationUploadStatus(
+  "Uploading cities to database..."
+);
+
+let citiesSaved = true;
+
+if (newCities.length > 0) {
+  citiesSaved = await saveToSupabase(
+    "cities",
+    newCities,
+    (processed, total) => {
+      const progress =
+        total > 0
+          ? 80 +
+            Math.round(
+              (processed / total) * 17
+            )
+          : 97;
+
+      setLocationUploadProgress(
+        Math.min(progress, 97)
+      );
+
+      setLocationUploadStatus(
+        `Uploading cities... ${processed.toLocaleString()} / ${total.toLocaleString()}`
+      );
+    }
+  );
+}
+
+if (!citiesSaved) {
+  throw new Error(
+    "City database upload failed."
+  );
+}
+
+setAdminCitiesByCountry({});
+setAdminCitiesLoading({});
+
+setLocationUploadProgress(97);
+    setLocationUploadStatus(
+      "Finalizing location database..."
+    );
+
+    triggerBroadcastSync();
+
+    setLocationUploadProcessed(
+      rows.length
+    );
+
+    setLocationUploadResult({
+    countriesAdded:
+      addedCountries,
+    citiesAdded:
+      addedCities,
+    duplicateCountries,
+    duplicateCities,
+    rowsSkipped: skippedRows
+  });
+
+    setLocationUploadProgress(100);
+    setLocationUploadStatus(
+      "Location upload completed successfully!"
+    );
+
+    setIsLocationUploading(false);
+
+    showToast(
+      `Excel upload complete: ${addedCountries} new countries and ${addedCities} new cities added.`
+    );
+  } catch (error) {
+    console.error(
+      "Location Excel upload failed:",
+      error
+    );
+
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Excel upload failed.";
+
+    setLocationUploadStatus(
+      message
+    );
+
+    setIsLocationUploading(false);
+
+    showToast(
+      "Excel upload failed. Please check the file and try again."
+    );
+  }
+};
 
         // Excel Bulk Upload and Demo File Download Handlers for Topic & Discipline Management
       const downloadDemoTopicsExcel = async () => {
@@ -2039,68 +2560,281 @@ const [isSavingCredentials, setIsSavingCredentials] =
 
   return (
     <div className="h-[100dvh] w-full max-w-full overflow-hidden bg-slate-100 flex flex-col text-slate-800 font-sans">
-      
-      {/* Toast Notification */}
-      {toastMessage && (
-        <div className="fixed top-16 sm:top-20 left-3 right-3 sm:left-auto sm:right-6 sm:max-w-sm z-50 bg-[#37494E] text-white px-4 sm:px-5 py-3 rounded-xl sm:rounded-2xl shadow-2xl border border-white/20 flex items-start gap-2 text-xs font-bold animate-bounce min-w-0">
-          <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
-          <span className="min-w-0 break-words">{toastMessage}</span>
-        </div>
-      )}
+        
+        {/* Toast Notification */}
+        {toastMessage && (
+          <div className="fixed top-16 sm:top-20 left-3 right-3 sm:left-auto sm:right-6 sm:max-w-sm z-50 bg-[#37494E] text-white px-4 sm:px-5 py-3 rounded-xl sm:rounded-2xl shadow-2xl border border-white/20 flex items-start gap-2 text-xs font-bold animate-bounce min-w-0">
+            <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
+            <span className="min-w-0 break-words">{toastMessage}</span>
+          </div>
+        )}
 
-      {/* 1. Fixed Top Navbar Header */}
-      <header className="h-16 bg-[#37494E] text-white px-3 sm:px-4 md:px-6 flex items-center justify-between gap-2 shadow-md z-40 shrink-0 border-b border-[#2c3b3f] min-w-0">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-slate-200 transition-colors cursor-pointer"
-            title="Toggle Sidebar Menu"
-          >
-            <Menu className="h-5 w-5" />
-          </button>
-          <div className="flex items-center gap-2.5">
-            <div className="w-[80px] h-10 sm:w-[140px] sm:h-10 flex items-center justify-start shrink-0">
-              <img
-                src="/company-logo.png"
-                alt="International Conference Logo"
-                className="w-full h-full object-contain"
-              />
-            </div>
-            <div>
-              <h1 className="text-xs sm:text-sm md:text-base font-extrabold tracking-wide text-white leading-tight font-display">
-                Admin Dashboard
-              </h1>
+                {/* Location Excel Live Upload Progress Modal */}
+        {isLocationUploadOpen && (
+          <div className="fixed inset-0 z-[100] bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden">
+
+              {/* Header */}
+              <div className="bg-[#37494E] px-6 py-5 text-white">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-2xl bg-white/10 flex items-center justify-center">
+                    {isLocationUploading ? (
+                      <RefreshCw className="w-5 h-5 animate-spin" />
+                    ) : locationUploadProgress === 100 ? (
+                      <CheckCircle2 className="w-6 h-6 text-emerald-300" />
+                    ) : (
+                      <AlertCircle className="w-6 h-6 text-amber-300" />
+                    )}
+                  </div>
+
+                  <div>
+                    <h3 className="text-base sm:text-lg font-extrabold">
+                      Location Excel Upload
+                    </h3>
+
+                    <p className="text-xs text-slate-300 mt-0.5">
+                      {isLocationUploading
+                        ? "Please wait while your location data is processed."
+                        : locationUploadProgress === 100
+                          ? "Import completed successfully."
+                          : "Import stopped before completion."}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Body */}
+              <div className="p-6">
+
+                {/* Current Status */}
+                <div className="mb-5">
+                  <div className="flex items-center justify-between gap-3 mb-2">
+                    <span className="text-xs font-bold text-slate-700">
+                      {locationUploadStatus || "Preparing upload..."}
+                    </span>
+
+                    <span className="text-sm font-black text-[#37494E]">
+                      {locationUploadProgress}%
+                    </span>
+                  </div>
+
+                  {/* Progress Bar */}
+                  <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
+                    <div
+                      className="h-full bg-[#37494E] rounded-full transition-all duration-300"
+                      style={{
+                        width: `${Math.max(
+                          0,
+                          Math.min(100, locationUploadProgress)
+                        )}%`
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Row Progress */}
+                {locationUploadTotal > 0 && (
+                  <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 mb-5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-slate-500">
+                        Excel rows processed
+                      </span>
+
+                      <span className="text-sm font-extrabold text-slate-800">
+                        {locationUploadProcessed.toLocaleString()}
+                        {" / "}
+                        {locationUploadTotal.toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Uploading message */}
+                {isLocationUploading && (
+                  <div className="flex items-start gap-3 bg-blue-50 border border-blue-100 rounded-2xl p-4">
+                    <RefreshCw className="w-4 h-4 text-blue-600 animate-spin mt-0.5 shrink-0" />
+
+                    <div>
+                      <p className="text-xs font-bold text-blue-900">
+                        Upload in progress
+                      </p>
+
+                      <p className="text-[11px] text-blue-700 mt-1 leading-relaxed">
+                        Please keep this page open until the upload is complete.
+                        Large Excel files may take additional time.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Completed Summary */}
+                {!isLocationUploading &&
+                  locationUploadProgress === 100 &&
+                  locationUploadResult && (
+                    <div className="space-y-4">
+
+                      <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-200 rounded-2xl p-4">
+                        <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+
+                        <div>
+                          <p className="text-sm font-extrabold text-emerald-900">
+                            Upload completed
+                          </p>
+
+                          <p className="text-[11px] text-emerald-700 mt-1">
+                            Your country and city data has been processed successfully.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+
+                        <div className="border border-slate-200 rounded-2xl p-3">
+                          <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">
+                            Countries Added
+                          </p>
+                          <p className="text-xl font-black text-slate-800 mt-1">
+                            {locationUploadResult.countriesAdded.toLocaleString()}
+                          </p>
+                        </div>
+
+                        <div className="border border-slate-200 rounded-2xl p-3">
+                          <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">
+                            Cities Added
+                          </p>
+                          <p className="text-xl font-black text-slate-800 mt-1">
+                            {locationUploadResult.citiesAdded.toLocaleString()}
+                          </p>
+                        </div>
+
+                        <div className="border border-slate-200 rounded-xl p-3">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase">
+                          Duplicate Countries
+                        </p>
+
+                        <p className="text-xl font-black text-slate-800 mt-1">
+                          {locationUploadResult.duplicateCountries.toLocaleString()}
+                        </p>
+                      </div>
+
+                      <div className="border border-slate-200 rounded-xl p-3">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase">
+                          Duplicate Cities
+                        </p>
+
+                        <p className="text-xl font-black text-slate-800 mt-1">
+                          {locationUploadResult.duplicateCities.toLocaleString()}
+                        </p>
+                      </div>
+
+                        <div className="border border-slate-200 rounded-2xl p-3">
+                          <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">
+                            Rows Skipped
+                          </p>
+                          <p className="text-xl font-black text-slate-800 mt-1">
+                            {locationUploadResult.rowsSkipped.toLocaleString()}
+                          </p>
+                        </div>
+
+                      </div>
+                    </div>
+                  )}
+
+                {/* Error */}
+                {!isLocationUploading &&
+                  locationUploadProgress !== 100 &&
+                  locationUploadStatus && (
+                    <div className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-2xl p-4">
+                      <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />
+
+                      <div>
+                        <p className="text-sm font-extrabold text-red-900">
+                          Upload failed
+                        </p>
+
+                        <p className="text-[11px] text-red-700 mt-1 break-words">
+                          {locationUploadStatus}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                {/* Close Button */}
+                {!isLocationUploading && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsLocationUploadOpen(false);
+                      setLocationUploadProgress(0);
+                      setLocationUploadStatus("");
+                      setLocationUploadProcessed(0);
+                      setLocationUploadTotal(0);
+                      setLocationUploadResult(null);
+                    }}
+                    className="mt-6 w-full bg-[#37494E] hover:bg-[#2c3b3f] text-white font-bold text-sm py-3 rounded-xl transition-colors cursor-pointer"
+                  >
+                    Close
+                  </button>
+                )}
+
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
-        <div className="flex items-center gap-2 sm:gap-4">
-          <button 
-            onClick={() => setActiveMenu("ADMIN_PROFILE")}
-            className="flex items-center gap-2.5 p-1.5 rounded-xl hover:bg-white/10 transition-all cursor-pointer text-left"
-            title="View Admin Profile"
-          >
-            {adminProfile.avatar ? (
-              <img 
-                src={adminProfile.avatar} 
-                alt={adminProfile.name}
-                className="w-8 h-8 rounded-full object-contain shadow-xs border border-blue-400 shrink-0" 
-              />
-            ) : (
-              <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold shadow-xs border border-blue-400 shrink-0">
-                {adminProfile.name?.charAt(0) || "A"}
+        {/* 1. Fixed Top Navbar Header */}
+        <header className="h-16 bg-[#37494E] text-white px-3 sm:px-4 md:px-6 flex items-center justify-between gap-2 shadow-md z-40 shrink-0 border-b border-[#2c3b3f] min-w-0">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-slate-200 transition-colors cursor-pointer"
+              title="Toggle Sidebar Menu"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+            <div className="flex items-center gap-2.5">
+              <div className="w-[80px] h-10 sm:w-[140px] sm:h-10 flex items-center justify-start shrink-0">
+                <img
+                  src="/company-logo.png"
+                  alt="International Conference Logo"
+                  className="w-full h-full object-contain"
+                />
               </div>
-            )}
-
-            <div className="hidden sm:block text-left">
-              <p className="text-xs font-bold text-white leading-none">
-                {adminProfile.name || "Super Admin"}
-              </p>
-              <p className="text-[10px] text-slate-300 leading-none mt-1">
-                {adminProfile.email || "Not configured"}
-              </p>
+              <div>
+                <h1 className="text-xs sm:text-sm md:text-base font-extrabold tracking-wide text-white leading-tight font-display">
+                  Admin Dashboard
+                </h1>
+              </div>
             </div>
-          </button>
+          </div>
+
+          <div className="flex items-center gap-2 sm:gap-4">
+            <button 
+              onClick={() => setActiveMenu("ADMIN_PROFILE")}
+              className="flex items-center gap-2.5 p-1.5 rounded-xl hover:bg-white/10 transition-all cursor-pointer text-left"
+              title="View Admin Profile"
+            >
+              {adminProfile.avatar ? (
+                <img 
+                  src={adminProfile.avatar} 
+                  alt={adminProfile.name}
+                  className="w-8 h-8 rounded-full object-contain shadow-xs border border-blue-400 shrink-0" 
+                />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold shadow-xs border border-blue-400 shrink-0">
+                  {adminProfile.name?.charAt(0) || "A"}
+                </div>
+              )}
+
+              <div className="hidden sm:block text-left">
+                <p className="text-xs font-bold text-white leading-none">
+                  {adminProfile.name || "Super Admin"}
+                </p>
+                <p className="text-[10px] text-slate-300 leading-none mt-1">
+                  {adminProfile.email || "Not configured"}
+                </p>
+              </div>
+            </button>
 
           {/* Mobile Logout Button */}
           <button
@@ -5001,7 +5735,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
                 </div>
                 <div className="w-full sm:w-auto flex flex-wrap items-center gap-2 min-w-0">
                   <span className="text-xs font-semibold px-3 py-1 bg-slate-100 text-slate-700 rounded-full border border-slate-200">
-                    {countriesList.length} Countries • {citiesList.length} Cities
+                    {countriesList.length} Countries • Cities load by country
                   </span>
 
                   {/* Bulk Upload Excel File Input */}
@@ -5013,13 +5747,34 @@ const [isSavingCredentials, setIsSavingCredentials] =
                     className="hidden"
                   />
                   <label
-                    htmlFor="location-excel-upload"
-                    className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition-all cursor-pointer shadow-xs flex items-center gap-1.5"
-                    title="Bulk upload countries and cities via Excel (.xlsx, .xls, .csv)"
-                  >
-                    <FileSpreadsheet className="h-4 w-4" />
-                    <span>Upload Excel</span>
-                  </label>
+                      htmlFor={
+                        isLocationUploading
+                          ? undefined
+                          : "location-excel-upload"
+                      }
+                      className={`px-3.5 py-2 text-white font-bold text-xs rounded-xl transition-all shadow-xs flex items-center gap-1.5 ${
+                        isLocationUploading
+                          ? "bg-slate-400 cursor-not-allowed opacity-70"
+                          : "bg-emerald-600 hover:bg-emerald-700 cursor-pointer"
+                      }`}
+                      title={
+                        isLocationUploading
+                          ? "Location upload is already in progress"
+                          : "Bulk upload countries and cities via Excel (.xlsx, .xls, .csv)"
+                      }
+                    >
+                      {isLocationUploading ? (
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <FileSpreadsheet className="h-4 w-4" />
+                      )}
+
+                      <span>
+                        {isLocationUploading
+                          ? "Uploading..."
+                          : "Upload Excel"}
+                      </span>
+                    </label>
 
                   {/* Download Demo Excel File */}
                   <button
@@ -5129,32 +5884,111 @@ const [isSavingCredentials, setIsSavingCredentials] =
               {/* Add City Form */}
               {(activeMenu === "ADD_CITY" || showAddCityForm) && (
                 <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    const trimmedCity = toUpperCaseName(newCityName);
-                    if (!trimmedCity) return;
-                    if (!newCityCountry) {
-                      showToast("Please select a country first!");
-                      return;
-                    }
-                    const normalizedCountry = toUpperCaseName(newCityCountry);
-                    const existingCityIndex = citiesList.findIndex(
-                      (ct) => ct.name.trim().toUpperCase() === trimmedCity && ct.country.trim().toUpperCase() === normalizedCountry
+                 onSubmit={async (e) => {
+                e.preventDefault();
+
+                const trimmedCity =
+                  toUpperCaseName(newCityName);
+
+                if (!trimmedCity) return;
+
+                if (!newCityCountry) {
+                  showToast(
+                    "Please select a country first!"
+                  );
+                  return;
+                }
+
+                const normalizedCountry =
+                  toUpperCaseName(newCityCountry);
+
+                try {
+                  const cityRecord = {
+                    id: `${normalizedCountry}:::${trimmedCity}`,
+                    name: trimmedCity,
+                    country: normalizedCountry
+                  };
+
+                  const saved =
+                    await saveRecordToSupabase(
+                      "cities",
+                      cityRecord
                     );
-                    if (existingCityIndex >= 0) {
-                      const updatedCities = citiesList.map((city, index) =>
-                        index === existingCityIndex ? { ...city, name: trimmedCity, country: normalizedCountry } : city
+
+                  if (!saved) {
+                    showToast(
+                      "Failed to save city to database."
+                    );
+                    return;
+                  }
+
+                  // Update only this country's loaded Admin cache.
+                  setAdminCitiesByCountry((prev) => {
+                    const current =
+                      prev[normalizedCountry] || [];
+
+                    const alreadyExists =
+                      current.some(
+                        (city) =>
+                          String(city.name)
+                            .trim()
+                            .toUpperCase() ===
+                          trimmedCity
                       );
-                      setCitiesList(updatedCities);
-                      showToast(`City "${trimmedCity}" replaced in its existing position under ${normalizedCountry}.`);
-                    } else {
-                      setCitiesList([...citiesList, { name: trimmedCity, country: normalizedCountry }]);
-                      showToast(`City "${trimmedCity}" added under ${normalizedCountry}!`);
-                    }
-                    setNewCityName("");
-                    setShowAddCityForm(false);
-                    if (activeMenu === "ADD_CITY") setActiveMenu("MANAGE_CITIES");
-                  }}
+
+                    const nextCities =
+                      alreadyExists
+                        ? current
+                        : [
+                            ...current,
+                            {
+                              name: trimmedCity,
+                              country: normalizedCountry
+                            }
+                          ];
+
+                    nextCities.sort((a, b) =>
+                      a.name.localeCompare(
+                        b.name,
+                        undefined,
+                        { sensitivity: "base" }
+                      )
+                    );
+
+                    return {
+                      ...prev,
+                      [normalizedCountry]:
+                        nextCities
+                    };
+                  });
+
+                  triggerBroadcastSync();
+
+                  showToast(
+                    `City "${trimmedCity}" added under ${normalizedCountry}!`
+                  );
+
+                  setNewCityName("");
+                  setShowAddCityForm(false);
+
+                  if (
+                    activeMenu === "ADD_CITY"
+                  ) {
+                    setActiveMenu(
+                      "MANAGE_CITIES"
+                    );
+                  }
+                } catch (error) {
+                  console.error(
+                    "Add city failed:",
+                    error
+                  );
+
+                  showToast(
+                    "Failed to add city. Please try again."
+                  );
+                }
+              }}
                   className="bg-blue-50/60 p-4 rounded-2xl border border-blue-200 space-y-3 text-xs animate-fadeIn"
                 >
                   <h4 className="font-bold text-slate-800 flex items-center gap-2">
@@ -5277,9 +6111,8 @@ const [isSavingCredentials, setIsSavingCredentials] =
                           }
 
                           // 5. Database deletion finished.
-                          // Now clear frontend state.
-                          setCountriesList([]);
-                          setCitiesList([]);
+                          // Clear frontend state and Admin city caches.
+                          // Do not resave empty country/city arrays back to the database.
 
                           if (onUpdateCountries) {
                             onUpdateCountries([]);
@@ -5297,7 +6130,11 @@ const [isSavingCredentials, setIsSavingCredentials] =
                             onUpdateInactiveCities([]);
                           }
 
+                          setAdminCitiesByCountry({});
+                          setAdminCitiesLoading({});
+
                           triggerBroadcastSync();
+                          
 
                           showToast(
                             "All countries and cities deleted successfully."
@@ -5323,24 +6160,45 @@ const [isSavingCredentials, setIsSavingCredentials] =
                   .map((c) => (typeof c === "string" ? c : String((c as any)?.name || (c as any)?.id || "")))
                   .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }))
                   .map((countryName, cIdx) => {
-                    const isExpanded = openGroups[`country_${cIdx}`] ?? true;
-                    const associatedCities = citiesList
-                      .filter((ct) => ct.country === countryName)
-                      .sort((a, b) => String(a?.name || "").localeCompare(String(b?.name || ""), undefined, { sensitivity: "base" }));
+                    const normalizedCountryName = String(countryName || "")
+                      .trim()
+                      .toUpperCase();
+
+                    const isExpanded =
+                      openGroups[`country_${cIdx}`] ?? false;
+
+                    const associatedCities =
+                      adminCitiesByCountry[normalizedCountryName] || [];
+
+                    const isCitiesLoading =
+                      Boolean(
+                        adminCitiesLoading[normalizedCountryName]
+                      );
 
                     return (
                       <div
                           key={countryName || `cnt-${cIdx}`}
                           className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-200"
 >
-{/* Country Card Top Bar */}
-<div className="px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white">
+                  {/* Country Card Top Bar */}
+                  <div className="px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white">
 
-  {/* Country Name */}
-  <div
-    className="flex items-center gap-3 cursor-pointer min-w-0"
-    onClick={() => toggleGroup(`country_${cIdx}`)}
-  >
+                    {/* Country Name */}
+                    <div
+                      className="flex items-center gap-3 cursor-pointer min-w-0"
+                      onClick={async () => {
+                    const key = `country_${cIdx}`;
+                    const opening = !isExpanded;
+
+                    if (opening) {
+                      await loadAdminCitiesForCountry(
+                        normalizedCountryName
+                      );
+                    }
+
+                    toggleGroup(key);
+                  }}
+                >
     <button
       type="button"
       className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-500 transition-colors shrink-0"
@@ -5359,8 +6217,20 @@ const [isSavingCredentials, setIsSavingCredentials] =
         </span>
 
         <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100">
-          {associatedCities.length}{" "}
-          {associatedCities.length === 1 ? "City" : "Cities"}
+          {Object.prototype.hasOwnProperty.call(
+            adminCityCounts,
+            normalizedCountryName
+          )
+            ? `${adminCityCounts[
+                normalizedCountryName
+              ].toLocaleString()} ${
+                adminCityCounts[
+                  normalizedCountryName
+                ] === 1
+                  ? "City"
+                  : "Cities"
+              }`
+            : "Counting..."}
         </span>
       </div>
 
@@ -5445,29 +6315,47 @@ const [isSavingCredentials, setIsSavingCredentials] =
                           }
 
                           // 3. Update frontend country list
+                          // 3. Remove the deleted country from frontend state.
                           const updatedCountries = countriesList.filter(
                             (country) =>
-                              String(country).trim().toLowerCase() !==
-                              String(countryName).trim().toLowerCase()
+                              String(country)
+                                .trim()
+                                .toUpperCase() !==
+                              String(countryName)
+                                .trim()
+                                .toUpperCase()
                           );
-
-                          // 4. Remove all cities under this country from frontend
-                          const updatedCities = citiesList.filter(
-                            (city) =>
-                              String(city.country).trim().toLowerCase() !==
-                              String(countryName).trim().toLowerCase()
-                          );
-
-                          await setCountriesList(updatedCountries);
-                          await setCitiesList(updatedCities);
 
                           if (onUpdateCountries) {
                             onUpdateCountries(updatedCountries);
                           }
 
-                          if (onUpdateCities) {
-                            onUpdateCities(updatedCities);
-                          }
+                          // 4. Remove only this country's loaded Admin city cache.
+                          // Do not rebuild or resave the complete cities table.
+                          const normalizedDeletedCountry =
+                            String(countryName || "")
+                              .trim()
+                              .toUpperCase();
+
+                          setAdminCitiesByCountry((prev) => {
+                            const next = { ...prev };
+
+                            delete next[
+                              normalizedDeletedCountry
+                            ];
+
+                            return next;
+                          });
+
+                          setAdminCitiesLoading((prev) => {
+                            const next = { ...prev };
+
+                            delete next[
+                              normalizedDeletedCountry
+                            ];
+
+                            return next;
+                          });
 
                           triggerBroadcastSync();
 
@@ -5496,7 +6384,19 @@ const [isSavingCredentials, setIsSavingCredentials] =
                       {/* Associated Cities List (Expanded) */}
                       {isExpanded && (
                         <div className="px-4 py-4 border-t border-slate-100 bg-slate-50/70">
-                          {associatedCities.length === 0 ? (
+                          {isCitiesLoading ? (
+                    <div className="border border-dashed border-blue-200 rounded-xl bg-white px-4 py-7 text-center">
+                      <RefreshCw className="h-5 w-5 mx-auto text-blue-500 animate-spin mb-2" />
+
+                      <p className="text-sm font-bold text-slate-700">
+                        Loading cities...
+                      </p>
+
+                      <p className="text-xs text-slate-400 mt-1">
+                        Loading cities for {countryName} from the database.
+                      </p>
+                    </div>
+                  ) : associatedCities.length === 0 ? (
   <div className="border border-dashed border-slate-300 rounded-xl bg-white px-4 py-7 text-center">
 
     <div className="w-10 h-10 mx-auto rounded-full bg-blue-50 flex items-center justify-center mb-2">
@@ -5583,23 +6483,34 @@ const [isSavingCredentials, setIsSavingCredentials] =
                                                   return;
                                                 }
 
-                                                const updatedCities = citiesList.filter(
-                                                  (item) =>
-                                                    !(
-                                                      String(item.name).trim().toLowerCase() ===
-                                                        String(ct.name).trim().toLowerCase() &&
-                                                      String(item.country).trim().toLowerCase() ===
-                                                        String(ct.country).trim().toLowerCase()
-                                                    )
-                                                );
+                                                const normalizedCountry = String(ct.country || "")
+                                              .trim()
+                                              .toUpperCase();
 
-                                                await setCitiesList(updatedCities);
+                                            const normalizedCity = String(ct.name || "")
+                                              .trim()
+                                              .toUpperCase();
 
-                                                if (onUpdateCities) {
-                                                  onUpdateCities(updatedCities);
-                                                }
+                                            // Update only this country's Admin cache.
+                                            // Do not rebuild or resave the complete cities table.
+                                            setAdminCitiesByCountry((prev) => {
+                                              const current =
+                                                prev[normalizedCountry] || [];
 
-                                                triggerBroadcastSync();
+                                              const updated = current.filter(
+                                                (item) =>
+                                                  String(item.name || "")
+                                                    .trim()
+                                                    .toUpperCase() !== normalizedCity
+                                              );
+
+                                              return {
+                                                ...prev,
+                                                [normalizedCountry]: updated
+                                              };
+                                            });
+
+                                            triggerBroadcastSync();
 
                                                 showToast(
                                                   `City "${ct.name}" deleted permanently.`

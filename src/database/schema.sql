@@ -377,6 +377,10 @@ CREATE INDEX IF NOT EXISTS idx_conferences_live_status_start_date ON public.conf
 CREATE INDEX IF NOT EXISTS idx_organizers_slug ON public.organizers(slug);
 CREATE INDEX IF NOT EXISTS idx_organizers_email ON public.organizers(email);
 CREATE INDEX IF NOT EXISTS idx_cities_country ON public.cities(country);
+
+CREATE INDEX IF NOT EXISTS idx_cities_country_name
+ON public.cities(country, name);
+
 CREATE INDEX IF NOT EXISTS idx_media_partners_status ON public.media_partners(status);
 CREATE INDEX IF NOT EXISTS idx_associates_status ON public.associates(status);
 CREATE INDEX IF NOT EXISTS idx_user_feedbacks_status ON public.user_feedbacks(status);

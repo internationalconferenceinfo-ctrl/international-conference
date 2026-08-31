@@ -5,7 +5,9 @@ import { adminFetch, setAdminTabToken, clearAdminTabToken, getAdminTabToken } fr
 import { toUpperCaseName } from "./shared/utils/textUtils";
 import { 
   saveToSupabase, 
-  fetchFromSupabase, 
+  fetchFromSupabase,
+  fetchAllCountriesFromSupabase,
+  fetchCitiesByCountryFromSupabase,
   deleteFromSupabase, 
   saveRecordToSupabase, 
   deleteRecordFromSupabase, 
@@ -204,6 +206,67 @@ const DEFAULT_CITIES: Array<{ name: string; country: string }> = [
   const [inactiveCountries, setInactiveCountries] = useState<string[]>([]);
   const [inactiveCities, setInactiveCities] = useState<string[]>([]);
 
+  // Load cities only for the selected country.
+// This keeps millions of cities out of browser memory.
+const loadCitiesForCountry = useCallback(
+  async (country: string) => {
+    const normalizedCountry = String(country || "")
+      .trim()
+      .toUpperCase();
+
+    if (!normalizedCountry) {
+      setCitiesList([]);
+      return;
+    }
+
+    try {
+      const countryCities =
+        await fetchCitiesByCountryFromSupabase(
+          normalizedCountry
+        );
+
+      const cityMap = new Map<
+        string,
+        { name: string; country: string }
+      >();
+
+      countryCities.forEach((item) => {
+        const name = String(item?.name || "")
+          .trim()
+          .toUpperCase();
+
+        const itemCountry = String(
+          item?.country || normalizedCountry
+        )
+          .trim()
+          .toUpperCase();
+
+        if (!name) return;
+
+        cityMap.set(
+          `${itemCountry}:::${name}`,
+          {
+            name,
+            country: itemCountry
+          }
+        );
+      });
+
+      setCitiesList(
+        Array.from(cityMap.values())
+      );
+    } catch (error) {
+      console.error(
+        `Unable to load cities for ${normalizedCountry}:`,
+        error
+      );
+
+      setCitiesList([]);
+    }
+  },
+  []
+);
+
   const isSupabaseLoaded = useRef(false);
   const pendingFullSyncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -289,8 +352,11 @@ const DEFAULT_CITIES: Array<{ name: string; country: string }> = [
         fetchFromSupabase<BannerContentItem[]>("banner_contents"),
         fetchFromSupabase<UserFeedback[]>("user_feedbacks"),
         needsAdminData ? fetchFromSupabase<SubscriberItem[]>("subscriber_emails") : Promise.resolve([]),
-        fetchFromSupabase<string[]>("countries"),
-        fetchFromSupabase<Array<{ name: string; country: string }>>("cities"),
+        fetchAllCountriesFromSupabase(),
+        // IMPORTANT: 
+        // Never load the complete cities table here.
+        // With millions of cities, cities are loaded only when a country is selected.
+        Promise.resolve([] as Array<{ name: string; country: string }>),
         fetchFromSupabase<string[]>("inactive_countries"),
         fetchFromSupabase<string[]>("inactive_cities"),
         needsAdminData ? fetchFromSupabase<AuditLog[]>("audit_logs") : Promise.resolve([]),
@@ -767,6 +833,21 @@ const DEFAULT_CITIES: Array<{ name: string; country: string }> = [
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [selectedCountry, setSelectedCountry] = useState<string>("All");
   const [selectedCity, setSelectedCity] = useState<string>("All");
+
+  // Load only the cities belonging to the currently selected country.
+// Never download the complete cities table.
+useEffect(() => {
+  if (
+    !selectedCountry ||
+    selectedCountry === "All"
+  ) {
+    setCitiesList([]);
+    return;
+  }
+
+  void loadCitiesForCountry(selectedCountry);
+}, [selectedCountry, loadCitiesForCountry]);
+
   const orgConferencesScrollRef = useRef<HTMLDivElement>(null);
 
   // Scroll to top on active page, tab, or detail selection change
@@ -915,18 +996,26 @@ const DEFAULT_CITIES: Array<{ name: string; country: string }> = [
       } else if (firstSegment === "admin-portal") {
         nextPortal = "ADMIN";
       } else if (firstSegment === "organizers" || firstSegment === "organizer") {
-        nextTab = "EVENTS";
+        // /organizers = full organizers directory
+        nextTab = "ORGANIZERS";
+
+        // /organizers/[slug] = individual organizer profile
         if (segments[1]) {
           const orgSlug = segments[1];
+
           const foundOrg = orgsToUse.find(
             (o) =>
               (o.slug && o.slug.toLowerCase() === orgSlug.toLowerCase()) ||
               o.id.toLowerCase() === orgSlug.toLowerCase() ||
               slugify(o.organizationName) === orgSlug.toLowerCase()
           );
-          if (foundOrg) nextOrgId = foundOrg.id;
+
+          if (foundOrg) {
+            nextOrgId = foundOrg.id;
+          }
         }
-      } else {
+      }
+      else {
         // Multi-segment directory filter or event detail
         const subSegments = (firstSegment === "events" || firstSegment === "conferences" || firstSegment === "conference")
           ? segments.slice(1)

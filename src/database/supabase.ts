@@ -708,7 +708,12 @@ async function tryAdminServerRead(table: string): Promise<AdminServerResult> {
 /**
  * Save data to Supabase relational database directly
  */
-export async function saveToSupabase(key: string, data: any): Promise<boolean> {
+export async function saveToSupabase(
+  key: string,
+  data: any,
+  onProgress?: (processed: number, total: number) => void
+): Promise<boolean> {
+
   const client = getSupabaseClient();
   if (!client) return false;
 
@@ -834,6 +839,14 @@ export async function saveToSupabase(key: string, data: any): Promise<boolean> {
           sanitized.length
         )}/${sanitized.length}`
       );
+
+      // Report real completed database batch progress
+      if (onProgress) {
+        onProgress(
+          Math.min(start + batch.length, sanitized.length),
+          sanitized.length
+        );
+      }
     }
   } else {
     success = true;
@@ -1108,6 +1121,176 @@ export async function fetchFromSupabase<T = any>(key: string, forceRefresh: bool
 
   inflightRequests.set(key, fetchPromise);
   return fetchPromise;
+}
+
+/**
+ * Fetch ALL countries safely using pagination.
+ * Supabase commonly returns a maximum of 1000 rows per request,
+ * so this continues requesting pages until every country is loaded.
+ */
+export async function fetchAllCountriesFromSupabase(): Promise<string[]> {
+  const client = getSupabaseClient();
+  if (!client) return [];
+
+  const PAGE_SIZE = 500;
+  const allRows: any[] = [];
+
+  try {
+    for (let from = 0; ; from += PAGE_SIZE) {
+      const to = from + PAGE_SIZE - 1;
+
+      const { data, error } = await client
+        .from("countries")
+        .select("*")
+        .order("name", { ascending: true })
+        .range(from, to);
+
+      if (error) {
+        console.error(
+          `[Countries Pagination Error] ${from}-${to}:`,
+          error
+        );
+        return [];
+      }
+
+      const rows = data || [];
+
+      allRows.push(...rows);
+
+      if (rows.length < PAGE_SIZE) {
+        break;
+      }
+    }
+
+    const normalized = normalizeFromTable(
+      "countries",
+      allRows
+    );
+
+    return Array.isArray(normalized)
+      ? normalized
+      : [];
+  } catch (err) {
+    console.error(
+      "[Fetch All Countries Error]:",
+      err
+    );
+    return [];
+  }
+}
+
+/**
+ * Fetch only the number of cities for one country.
+ * No city rows are downloaded.
+ */
+export async function fetchCityCountByCountryFromSupabase(
+  country: string
+): Promise<number> {
+  const client = getSupabaseClient();
+
+  if (!client || !country?.trim()) {
+    return 0;
+  }
+
+  const normalizedCountry =
+    country.trim().toUpperCase();
+
+  try {
+    const { count, error } = await client
+      .from("cities")
+      .select("id", {
+        count: "exact",
+        head: true
+      })
+      .eq(
+        "country",
+        normalizedCountry
+      );
+
+    if (error) {
+      console.error(
+        `[City Count Error] ${normalizedCountry}:`,
+        error
+      );
+
+      return 0;
+    }
+
+    return count || 0;
+  } catch (error) {
+    console.error(
+      `[City Count Error] ${normalizedCountry}:`,
+      error
+    );
+
+    return 0;
+  }
+}
+
+/**
+ * Fetch cities ONLY for one selected country.
+ *
+ * This avoids loading millions of cities into browser memory.
+ * Pagination also supports countries containing more than 1000 cities.
+ */
+export async function fetchCitiesByCountryFromSupabase(
+  country: string
+): Promise<Array<{ name: string; country: string }>> {
+  const client = getSupabaseClient();
+
+  if (!client || !country?.trim()) {
+    return [];
+  }
+
+  const normalizedCountry =
+    country.trim().toUpperCase();
+
+  const PAGE_SIZE = 500;
+  const allRows: any[] = [];
+
+  try {
+    for (let from = 0; ; from += PAGE_SIZE) {
+      const to = from + PAGE_SIZE - 1;
+
+      const { data, error } = await client
+        .from("cities")
+        .select("id,name,country")
+        .eq("country", normalizedCountry)
+        .order("name", { ascending: true })
+        .range(from, to);
+
+      if (error) {
+        console.error(
+          `[Cities Pagination Error] ${normalizedCountry} ${from}-${to}:`,
+          error
+        );
+        return [];
+      }
+
+      const rows = data || [];
+
+      allRows.push(...rows);
+
+      if (rows.length < PAGE_SIZE) {
+        break;
+      }
+    }
+
+    const normalized = normalizeFromTable(
+      "cities",
+      allRows
+    );
+
+    return Array.isArray(normalized)
+      ? normalized
+      : [];
+  } catch (err) {
+    console.error(
+      `[Fetch Cities By Country Error] ${normalizedCountry}:`,
+      err
+    );
+    return [];
+  }
 }
 
 /**
