@@ -311,6 +311,23 @@ CREATE TABLE IF NOT EXISTS public.social_links (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+
+-- Privacy Policy Table
+CREATE TABLE IF NOT EXISTS public.privacy_policy (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL DEFAULT 'Privacy Policy',
+    content TEXT NOT NULL DEFAULT '',
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Terms of Service Table
+CREATE TABLE IF NOT EXISTS public.terms_of_service (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL DEFAULT 'Terms of Service',
+    content TEXT NOT NULL DEFAULT '',
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- ----------------------------------------------------------------------------
 -- 4. Triggers for Automatic updated_at Updates
 -- ----------------------------------------------------------------------------
@@ -441,6 +458,22 @@ ALTER TABLE public.contact_info ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Public contact info read" ON public.contact_info FOR SELECT TO anon, authenticated USING (true);
 ALTER TABLE public.social_links ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Public social links read" ON public.social_links FOR SELECT TO anon, authenticated USING (true);
+
+ALTER TABLE public.privacy_policy ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Public can read privacy policy" ON public.privacy_policy;
+CREATE POLICY "Public can read privacy policy"
+ON public.privacy_policy
+FOR SELECT
+TO anon, authenticated
+USING (true);
+
+ALTER TABLE public.terms_of_service ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Public can read terms of service" ON public.terms_of_service;
+CREATE POLICY "Public can read terms of service"
+ON public.terms_of_service
+FOR SELECT
+TO anon, authenticated
+USING (true);
 
 -- Public submission tables: browser can submit, but cannot edit/delete.
 ALTER TABLE public.user_feedbacks ENABLE ROW LEVEL SECURITY;

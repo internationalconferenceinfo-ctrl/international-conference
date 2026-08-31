@@ -13,6 +13,7 @@ import { compressImageFile } from "../shared/utils/imageUtils";
 import { ImageUploaderField } from "../shared/components/ImageUploaderField";
 import { isConferenceCompleted } from "../shared/utils/expirationUtils";
 import { slugify, getConferenceSlug } from "../shared/utils/slugUtils";
+import { fetchCitiesByCountryFromSupabase } from "../database/supabase";
 
 const getCleanImageSrc = (src?: string, fallback = ""): string => {
   if (!src) return fallback;
@@ -173,15 +174,53 @@ export default function OrganizerPortal({
   const [formEndDate, setFormEndDate] = useState("");
   const [formTime, setFormTime] = useState("");
   const [formTimeZone, setFormTimeZone] = useState("GMT+9 (Tokyo)");
-  const [formCountry, setFormCountry] = useState(() => (countriesList && countriesList[0]) || "");
-  const [formState, setFormState] = useState("");
-  const [formCity, setFormCity] = useState(() => {
-    const c = countriesList && countriesList[0];
-    if (!c) return "";
-    const match = (citiesList || []).find((ct) => ct.country.trim().toLowerCase() === c.trim().toLowerCase());
-    return match ? match.name : "";
-  });
-  const [formVenue, setFormVenue] = useState("");
+  const [formCountry, setFormCountry] = useState(
+  () => (countriesList && countriesList[0]) || ""
+);
+const [formState, setFormState] = useState("");
+const [formCity, setFormCity] = useState("");
+
+// Cities loaded from Supabase only for the selected conference country
+const [conferenceCountryCities, setConferenceCountryCities] = useState<
+  Array<{ name: string; country: string }>
+>([]);
+
+const [formVenue, setFormVenue] = useState("");
+
+useEffect(() => {
+  const loadConferenceCities = async () => {
+    if (!formCountry) {
+      setConferenceCountryCities([]);
+      return;
+    }
+
+    try {
+      const rows = await fetchCitiesByCountryFromSupabase(
+        formCountry.trim().toUpperCase()
+      );
+
+      setConferenceCountryCities(
+        Array.isArray(rows)
+          ? rows.map((city) => ({
+              name: String(city.name || "").trim().toUpperCase(),
+              country: String(city.country || formCountry)
+                .trim()
+                .toUpperCase()
+            }))
+          : []
+      );
+    } catch (error) {
+      console.error(
+        `Failed to load cities for ${formCountry}:`,
+        error
+      );
+      setConferenceCountryCities([]);
+    }
+  };
+
+  void loadConferenceCities();
+}, [formCountry]);
+
   const [formAttendanceType, setFormAttendanceType] = useState<"Online" | "Offline" | "Hybrid">("Offline");
 
   // Profile Edit State
@@ -196,6 +235,46 @@ export default function OrganizerPortal({
   const [profileCountry, setProfileCountry] = useState("");
   const [profileCity, setProfileCity] = useState("");
 
+  // Cities loaded from Supabase only for the selected profile country
+  const [profileCountryCities, setProfileCountryCities] = useState<
+    Array<{ name: string; country: string }>
+  >([]);
+
+  useEffect(() => {
+  const loadProfileCities = async () => {
+    if (!profileCountry) {
+      setProfileCountryCities([]);
+      return;
+    }
+
+    try {
+      const rows = await fetchCitiesByCountryFromSupabase(
+        profileCountry.trim().toUpperCase()
+      );
+
+      setProfileCountryCities(
+        Array.isArray(rows)
+          ? rows.map((city) => ({
+              name: String(city.name || "").trim().toUpperCase(),
+              country: String(city.country || profileCountry)
+                .trim()
+                .toUpperCase()
+            }))
+          : []
+      );
+    } catch (error) {
+      console.error(
+        `Failed to load profile cities for ${profileCountry}:`,
+        error
+      );
+
+      setProfileCountryCities([]);
+    }
+  };
+
+  void loadProfileCities();
+}, [profileCountry]);
+
   // Dynamic available countries added by Admin for Profile and Conference
   const adminCountryOptions = useMemo(() => {
     const list = (countriesList || [])
@@ -206,23 +285,60 @@ export default function OrganizerPortal({
 
   // Profile cities options based on selected profileCountry from Admin-added cities
   const profileCityOptions = useMemo(() => {
-    if (!profileCountry) return [];
-    const list = (citiesList || [])
-      .filter((c) => String(c.country || "").trim().toUpperCase() === profileCountry.trim().toUpperCase())
-      .map((c) => String(c.name || "").trim().toUpperCase())
-      .filter((cn) => Boolean(cn) && !inactiveCities?.some((ic) => ic.toUpperCase() === `${profileCountry.trim().toUpperCase()}:::${cn}`));
-    return Array.from(new Set(list)).sort((a, b) => a.localeCompare(b));
-  }, [profileCountry, citiesList, inactiveCities]);
+  if (!profileCountry) return [];
+
+  const normalizedCountry = profileCountry.trim().toUpperCase();
+
+  const list = profileCountryCities
+    .filter(
+      (city) =>
+        String(city.country || "").trim().toUpperCase() ===
+        normalizedCountry
+    )
+    .map((city) => String(city.name || "").trim().toUpperCase())
+    .filter(
+      (cityName) =>
+        Boolean(cityName) &&
+        !inactiveCities?.some(
+          (inactiveCity) =>
+            inactiveCity.trim().toUpperCase() ===
+            `${normalizedCountry}:::${cityName}`
+        )
+    );
+
+  return Array.from(new Set<string>(list)).sort(
+    (a: string, b: string) => a.localeCompare(b)
+  );
+}, [profileCountry, profileCountryCities, inactiveCities]);
 
   // Conference cities options based on selected formCountry from Admin-added cities
   const conferenceCityOptions = useMemo(() => {
-    if (!formCountry) return [];
-    const list = (citiesList || [])
-      .filter((c) => String(c.country || "").trim().toUpperCase() === formCountry.trim().toUpperCase())
-      .map((c) => String(c.name || "").trim().toUpperCase())
-      .filter((cn) => Boolean(cn) && !inactiveCities?.some((ic) => ic.toUpperCase() === `${formCountry.trim().toUpperCase()}:::${cn}`));
-    return Array.from(new Set(list)).sort((a, b) => a.localeCompare(b));
-  }, [formCountry, citiesList, inactiveCities]);
+  if (!formCountry) return [];
+
+  const normalizedCountry = formCountry.trim().toUpperCase();
+
+  const list = conferenceCountryCities
+    .filter(
+      (city) =>
+        String(city.country || "").trim().toUpperCase() ===
+        normalizedCountry
+    )
+    .map((city) => String(city.name || "").trim().toUpperCase())
+    .filter(
+      (cityName) =>
+        Boolean(cityName) &&
+        !inactiveCities?.some(
+          (inactiveCity) =>
+            inactiveCity.trim().toUpperCase() ===
+            `${normalizedCountry}:::${cityName}`
+        )
+    );
+
+  return Array.from(new Set<string>(list)).sort(
+  (a: string, b: string) => a.localeCompare(b)
+);
+
+}, [formCountry, conferenceCountryCities, inactiveCities]);
 
   const [formOrgWebsite, setFormOrgWebsite] = useState("");
   const [formConfWebsite, setFormConfWebsite] = useState("");
@@ -542,14 +658,11 @@ export default function OrganizerPortal({
                 <select
                   required
                   value={profileCountry || ""}
-                  onChange={(e) => {
-                    const selectedC = e.target.value;
-                    setProfileCountry(selectedC);
-                    const matchingCities = (citiesList || [])
-                      .filter((c) => c.country.trim().toLowerCase() === selectedC.trim().toLowerCase())
-                      .map((c) => c.name);
-                    setProfileCity(matchingCities[0] || "");
-                  }}
+                 onChange={(e) => {
+                  const selectedC = e.target.value;
+                  setProfileCountry(selectedC);
+                  setProfileCity("");
+                }}
                   className="w-full text-sm bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 >
                   <option value="">Select Country</option>
@@ -1205,14 +1318,11 @@ export default function OrganizerPortal({
                         required
                         value={formCountry || ""}
                         onChange={(e) => {
-                          const newCountry = e.target.value;
-                          setFormCountry(newCountry);
-                          const nextCities = (citiesList || [])
-                            .filter((c) => c.country.trim().toLowerCase() === newCountry.trim().toLowerCase())
-                            .map((c) => c.name);
-                          const combined = Array.from(new Set(nextCities));
-                          setFormCity(combined[0] || "");
-                        }}
+                        const newCountry = e.target.value;
+                        setFormCountry(newCountry);
+                        setFormCity("");
+                        setFormState("");
+                      }}
                         className="w-full text-sm bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                       >
                         <option value="">Select Country</option>

@@ -1182,7 +1182,7 @@ const ADMIN_DB_TABLES = new Set([
   "conferences", "organizers", "categories", "banners", "banner_contents",
   "user_feedbacks", "subscriber_emails", "contact_inquiries", "countries", "cities",
   "inactive_countries", "inactive_cities", "inactive_topics", "media_partners", "associates",
-  "contact_info", "social_links", "notifications", "audit_logs", "about_us", "home_description", "conference_descriptions"
+  "contact_info", "social_links", "notifications", "audit_logs", "about_us", "home_description", "conference_descriptions", "privacy_policy", "terms_of_service"
 ]);
 
 const requireServiceRole = (res: Response) => {

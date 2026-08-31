@@ -133,6 +133,8 @@ type MenuKey =
   | "ABOUT_INFO"
   | "HOME_DESCRIPTION"
   | "CONFERENCE_DESCRIPTION"
+  | "PRIVACY_POLICY"
+  | "TERMS_OF_SERVICE"
   | "APPROVED_FEEDBACK"
   | "MANAGE_FEEDBACK"
   | "SUBSCRIBER_EMAILS"
@@ -184,6 +186,20 @@ interface AboutUsContent {
   stat2_value: string;
   stat2_label: string;
   image_url: string;
+  updated_at?: string;
+}
+
+interface PrivacyPolicyContent {
+  id: string;
+  title: string;
+  content: string;
+  updated_at?: string;
+}
+
+interface TermsOfServiceContent {
+  id: string;
+  title: string;
+  content: string;
   updated_at?: string;
 }
 
@@ -633,6 +649,78 @@ useEffect(() => {
 
   loadAboutUsContent();
 }, []);
+
+// Load Privacy Policy from Supabase
+useEffect(() => {
+  const loadPrivacyPolicy = async () => {
+    setIsLoadingPrivacyPolicy(true);
+
+    try {
+      const data = await fetchFromSupabase<PrivacyPolicyContent[]>(
+        "privacy_policy",
+        true
+      );
+
+      const record = Array.isArray(data) ? data[0] : data;
+
+      if (record) {
+        const loadedContent: PrivacyPolicyContent = {
+          id: record.id || "primary",
+          title: record.title || "Privacy Policy",
+          content: record.content || "",
+          updated_at: record.updated_at
+        };
+
+        setPrivacyPolicy(loadedContent);
+        setPrivacyPolicyOriginal(loadedContent);
+      }
+    } catch (error) {
+      console.error("Failed to load Privacy Policy:", error);
+      showToast("Unable to load Privacy Policy.");
+    } finally {
+      setIsLoadingPrivacyPolicy(false);
+    }
+  };
+
+  loadPrivacyPolicy();
+}, []);
+
+// Load Terms of Service from Supabase
+useEffect(() => {
+  const loadTermsOfService = async () => {
+    setIsLoadingTermsOfService(true);
+
+    try {
+      const data = await fetchFromSupabase<TermsOfServiceContent[]>(
+        "terms_of_service",
+        true
+      );
+
+      const record = Array.isArray(data) ? data[0] : data;
+
+      if (record) {
+        const loadedContent: TermsOfServiceContent = {
+          id: record.id || "primary",
+          title: record.title || "Terms of Service",
+          content: record.content || "",
+          updated_at: record.updated_at
+        };
+
+        setTermsOfService(loadedContent);
+        setTermsOfServiceOriginal(loadedContent);
+      }
+    } catch (error) {
+      console.error("Failed to load Terms of Service:", error);
+      showToast("Unable to load Terms of Service.");
+    } finally {
+      setIsLoadingTermsOfService(false);
+    }
+  };
+
+  loadTermsOfService();
+}, []);
+
+
 
 // Load Home Main Description from Supabase
 useEffect(() => {
@@ -2010,6 +2098,46 @@ const [isEditingAboutUs, setIsEditingAboutUs] = useState(false);
 const [isSavingAboutUs, setIsSavingAboutUs] = useState(false);
 const [isLoadingAboutUs, setIsLoadingAboutUs] = useState(true);
 
+// Privacy Policy management states
+const [privacyPolicy, setPrivacyPolicy] =
+  useState<PrivacyPolicyContent>({
+    id: "primary",
+    title: "Privacy Policy",
+    content: ""
+  });
+
+const [privacyPolicyOriginal, setPrivacyPolicyOriginal] =
+  useState<PrivacyPolicyContent | null>(null);
+
+const [isEditingPrivacyPolicy, setIsEditingPrivacyPolicy] =
+  useState(false);
+
+const [isSavingPrivacyPolicy, setIsSavingPrivacyPolicy] =
+  useState(false);
+
+const [isLoadingPrivacyPolicy, setIsLoadingPrivacyPolicy] =
+  useState(true);
+
+// Terms of Service management states
+const [termsOfService, setTermsOfService] =
+  useState<TermsOfServiceContent>({
+    id: "primary",
+    title: "Terms of Service",
+    content: ""
+  });
+
+const [termsOfServiceOriginal, setTermsOfServiceOriginal] =
+  useState<TermsOfServiceContent | null>(null);
+
+const [isEditingTermsOfService, setIsEditingTermsOfService] =
+  useState(false);
+
+const [isSavingTermsOfService, setIsSavingTermsOfService] =
+  useState(false);
+
+const [isLoadingTermsOfService, setIsLoadingTermsOfService] =
+  useState(true);
+
 
 // Home Main Description management states
 const [homeDescription, setHomeDescription] = useState<HomeDescriptionContent>({
@@ -2176,6 +2304,116 @@ const [isLoadingConferenceDescription, setIsLoadingConferenceDescription] =
   } finally {
     setIsSavingAboutUs(false);
   }
+};
+
+const handleSavePrivacyPolicy = async () => {
+  if (!privacyPolicy.title.trim()) {
+    showToast("Privacy Policy title cannot be empty.");
+    return;
+  }
+
+  if (!privacyPolicy.content.trim()) {
+    showToast("Privacy Policy content cannot be empty.");
+    return;
+  }
+
+  setIsSavingPrivacyPolicy(true);
+
+  try {
+    const updatedContent: PrivacyPolicyContent = {
+      ...privacyPolicy,
+      id: "primary",
+      updated_at: new Date().toISOString()
+    };
+
+    const saved = await saveToSupabase(
+      "privacy_policy",
+      updatedContent
+    );
+
+    if (!saved) {
+      showToast("Unable to save Privacy Policy.");
+      return;
+    }
+
+    setPrivacyPolicy(updatedContent);
+    setPrivacyPolicyOriginal(updatedContent);
+    setIsEditingPrivacyPolicy(false);
+
+    triggerBroadcastSync();
+
+    showToast("Privacy Policy updated successfully!");
+  } catch (error) {
+    console.error("Failed to save Privacy Policy:", error);
+    showToast("Unable to save Privacy Policy.");
+  } finally {
+    setIsSavingPrivacyPolicy(false);
+  }
+};
+
+const handleCancelPrivacyPolicyEdit = () => {
+  if (privacyPolicyOriginal) {
+    setPrivacyPolicy({
+      ...privacyPolicyOriginal
+    });
+  }
+
+  setIsEditingPrivacyPolicy(false);
+};
+
+const handleSaveTermsOfService = async () => {
+  if (!termsOfService.title.trim()) {
+    showToast("Terms of Service title cannot be empty.");
+    return;
+  }
+
+  if (!termsOfService.content.trim()) {
+    showToast("Terms of Service content cannot be empty.");
+    return;
+  }
+
+  setIsSavingTermsOfService(true);
+
+  try {
+    const updatedContent: TermsOfServiceContent = {
+      ...termsOfService,
+      id: "primary",
+      updated_at: new Date().toISOString()
+    };
+
+    const saved = await saveToSupabase(
+      "terms_of_service",
+      updatedContent
+    );
+
+    if (!saved) {
+      showToast("Unable to save Terms of Service.");
+      return;
+    }
+
+    setTermsOfService(updatedContent);
+    setTermsOfServiceOriginal(updatedContent);
+    setIsEditingTermsOfService(false);
+
+    triggerBroadcastSync();
+
+    showToast("Terms of Service updated successfully!");
+  } catch (error) {
+    console.error("Failed to save Terms of Service:", error);
+    showToast("Unable to save Terms of Service.");
+  } finally {
+    setIsSavingTermsOfService(false);
+  }
+};
+
+const handleCancelTermsOfServiceEdit = () => {
+  if (termsOfServiceOriginal) {
+    setTermsOfService({
+      ...termsOfServiceOriginal
+    });
+  }
+
+  setIsEditingTermsOfService(false);
 };
 
 const handleSaveHomeDescription = async () => {
@@ -3121,6 +3359,34 @@ const [isSavingCredentials, setIsSavingCredentials] =
                     >
                       Conference Description
                     </button>
+
+                      <button
+                        onClick={() => {
+                          setActiveMenu("PRIVACY_POLICY");
+                          if (window.innerWidth < 1024) setIsSidebarOpen(false);
+                        }}
+                        className={`w-full text-left py-1.5 px-2.5 rounded-lg transition-colors cursor-pointer ${
+                          activeMenu === "PRIVACY_POLICY"
+                            ? "text-white font-bold bg-white/20"
+                            : "text-slate-300 hover:text-white"
+                        }`}
+                      >
+                        Privacy Policy
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setActiveMenu("TERMS_OF_SERVICE");
+                          if (window.innerWidth < 1024) setIsSidebarOpen(false);
+                        }}
+                        className={`w-full text-left py-1.5 px-2.5 rounded-lg transition-colors cursor-pointer ${
+                          activeMenu === "TERMS_OF_SERVICE"
+                            ? "text-white font-bold bg-white/20"
+                            : "text-slate-300 hover:text-white"
+                        }`}
+                      >
+                        Terms of Service
+                      </button>
 
                   </div>
                 )}
@@ -6040,12 +6306,12 @@ const [isSavingCredentials, setIsSavingCredentials] =
               {/* Location Bulk Actions */}
               <div className="flex flex-wrap items-center justify-end gap-2 bg-slate-50 p-3 rounded-xl border border-slate-200">
 
-                {(countriesList.length > 0 || citiesList.length > 0) && (
+                {countriesList.length > 0 && (
                   <button
                     onClick={async () => {
                         if (
                           !confirm(
-                            `Are you sure you want to permanently delete all ${countriesList.length} countries and ${citiesList.length} cities?`
+                            `Are you sure you want to permanently delete all ${countriesList.length} countries and ${(Object.values(adminCityCounts) as number[]).reduce((total, count) => total + count, 0)} cities?`
                           )
                         ) {
                           showToast("Delete action cancelled.");
@@ -7604,6 +7870,310 @@ const [isSavingCredentials, setIsSavingCredentials] =
 
             </div>
           )}
+
+          {/* Privacy Policy Management */}
+        {activeMenu === "PRIVACY_POLICY" && (
+          <div className="bg-white rounded-xl sm:rounded-2xl border border-slate-200 shadow-xs p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 min-w-0">
+
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
+              <div>
+                <h3 className="text-base font-bold text-[#37494E] flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-blue-600" />
+                  <span>Privacy Policy Management</span>
+                </h3>
+
+                <p className="text-xs text-slate-500 mt-1">
+                  Edit the Privacy Policy displayed on the User Portal.
+                </p>
+              </div>
+
+              {!isEditingPrivacyPolicy && !isLoadingPrivacyPolicy && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPrivacyPolicyOriginal({
+                      ...privacyPolicy
+                    });
+                    setIsEditingPrivacyPolicy(true);
+                  }}
+                  className="w-full sm:w-auto justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer transition-all shadow-sm"
+                >
+                  <Edit3 className="h-4 w-4" />
+                  Edit
+                </button>
+              )}
+            </div>
+
+            {isLoadingPrivacyPolicy ? (
+              <div className="px-4 py-10 sm:py-16 flex flex-col items-center justify-center text-slate-500 text-center min-w-0">
+                <RefreshCw className="h-7 w-7 animate-spin text-blue-600 mb-3" />
+                <p className="text-xs font-semibold">
+                  Loading Privacy Policy...
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-5 min-w-0">
+
+                {/* Title */}
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-700">
+                    Page Title
+                  </label>
+
+                  <input
+                    type="text"
+                    value={privacyPolicy.title}
+                    disabled={!isEditingPrivacyPolicy}
+                    onChange={(e) =>
+                      setPrivacyPolicy({
+                        ...privacyPolicy,
+                        title: e.target.value
+                      })
+                    }
+                    placeholder="Privacy Policy"
+                    className={`w-full px-4 py-2.5 text-sm rounded-xl border outline-none ${
+                      isEditingPrivacyPolicy
+                        ? "bg-white border-slate-300 focus:ring-2 focus:ring-blue-500"
+                        : "bg-slate-50 border-slate-200 text-slate-600"
+                    }`}
+                  />
+                </div>
+
+                {/* Content */}
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-700">
+                    Privacy Policy Content
+                  </label>
+
+                  <textarea
+                    rows={22}
+                    value={privacyPolicy.content}
+                    disabled={!isEditingPrivacyPolicy}
+                    onChange={(e) =>
+                      setPrivacyPolicy({
+                        ...privacyPolicy,
+                        content: e.target.value
+                      })
+                    }
+                    placeholder="Enter the complete Privacy Policy here..."
+                    className={`w-full px-4 py-3 text-sm leading-6 rounded-xl border outline-none resize-y ${
+                      isEditingPrivacyPolicy
+                        ? "bg-white border-slate-300 focus:ring-2 focus:ring-blue-500"
+                        : "bg-slate-50 border-slate-200 text-slate-600"
+                    }`}
+                  />
+
+                  <p className="text-xs text-slate-400">
+                    Paragraph spacing and line breaks will be preserved on the User Portal.
+                  </p>
+                </div>
+
+                {/* Last Updated */}
+                {privacyPolicy.updated_at && (
+                  <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3">
+                    <p className="text-xs text-slate-500">
+                      Last updated:{" "}
+                      <span className="font-semibold text-slate-700">
+                        {new Date(
+                          privacyPolicy.updated_at
+                        ).toLocaleString()}
+                      </span>
+                    </p>
+                  </div>
+                )}
+
+                {/* Edit Buttons */}
+                {isEditingPrivacyPolicy && (
+                  <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2 sm:gap-3 pt-5 border-t border-slate-100">
+
+                    <button
+                      type="button"
+                      disabled={isSavingPrivacyPolicy}
+                      onClick={handleCancelPrivacyPolicyEdit}
+                      className="w-full sm:w-auto px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold cursor-pointer disabled:opacity-50"
+                    >
+                      Cancel
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={isSavingPrivacyPolicy}
+                      onClick={handleSavePrivacyPolicy}
+                      className="w-full sm:w-auto px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                    >
+                      {isSavingPrivacyPolicy ? (
+                        <>
+                          <RefreshCw className="h-4 w-4 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="h-4 w-4" />
+                          Save Changes
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
+
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Terms of Service Management */}
+{activeMenu === "TERMS_OF_SERVICE" && (
+  <div className="bg-white rounded-xl sm:rounded-2xl border border-slate-200 shadow-xs p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 min-w-0">
+
+    {/* Header */}
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
+      <div>
+        <h3 className="text-base font-bold text-[#37494E] flex items-center gap-2">
+          <FileText className="h-5 w-5 text-blue-600" />
+          <span>Terms of Service Management</span>
+        </h3>
+
+        <p className="text-xs text-slate-500 mt-1">
+          Edit the Terms of Service displayed on the User Portal.
+        </p>
+      </div>
+
+      {!isEditingTermsOfService && !isLoadingTermsOfService && (
+        <button
+          type="button"
+          onClick={() => {
+            setTermsOfServiceOriginal({
+              ...termsOfService
+            });
+            setIsEditingTermsOfService(true);
+          }}
+          className="w-full sm:w-auto justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer transition-all shadow-sm"
+        >
+          <Edit3 className="h-4 w-4" />
+          Edit
+        </button>
+      )}
+    </div>
+
+    {isLoadingTermsOfService ? (
+      <div className="px-4 py-10 sm:py-16 flex flex-col items-center justify-center text-slate-500 text-center min-w-0">
+        <RefreshCw className="h-7 w-7 animate-spin text-blue-600 mb-3" />
+        <p className="text-xs font-semibold">
+          Loading Terms of Service...
+        </p>
+      </div>
+    ) : (
+      <div className="space-y-5 min-w-0">
+
+        {/* Title */}
+        <div className="space-y-2">
+          <label className="text-xs font-bold text-slate-700">
+            Page Title
+          </label>
+
+          <input
+            type="text"
+            value={termsOfService.title}
+            disabled={!isEditingTermsOfService}
+            onChange={(e) =>
+              setTermsOfService({
+                ...termsOfService,
+                title: e.target.value
+              })
+            }
+            placeholder="Terms of Service"
+            className={`w-full px-4 py-2.5 text-sm rounded-xl border outline-none ${
+              isEditingTermsOfService
+                ? "bg-white border-slate-300 focus:ring-2 focus:ring-blue-500"
+                : "bg-slate-50 border-slate-200 text-slate-600"
+            }`}
+          />
+        </div>
+
+        {/* Content */}
+        <div className="space-y-2">
+          <label className="text-xs font-bold text-slate-700">
+            Terms of Service Content
+          </label>
+
+          <textarea
+            rows={22}
+            value={termsOfService.content}
+            disabled={!isEditingTermsOfService}
+            onChange={(e) =>
+              setTermsOfService({
+                ...termsOfService,
+                content: e.target.value
+              })
+            }
+            placeholder="Enter the complete Terms of Service here..."
+            className={`w-full px-4 py-3 text-sm leading-6 rounded-xl border outline-none resize-y ${
+              isEditingTermsOfService
+                ? "bg-white border-slate-300 focus:ring-2 focus:ring-blue-500"
+                : "bg-slate-50 border-slate-200 text-slate-600"
+            }`}
+          />
+
+          <p className="text-xs text-slate-400">
+            Paragraph spacing and line breaks will be preserved on the User Portal.
+          </p>
+        </div>
+
+        {/* Last Updated */}
+        {termsOfService.updated_at && (
+          <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3">
+            <p className="text-xs text-slate-500">
+              Last updated:{" "}
+              <span className="font-semibold text-slate-700">
+                {new Date(
+                  termsOfService.updated_at
+                ).toLocaleString()}
+              </span>
+            </p>
+          </div>
+        )}
+
+        {/* Edit Buttons */}
+        {isEditingTermsOfService && (
+          <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2 sm:gap-3 pt-5 border-t border-slate-100">
+
+            <button
+              type="button"
+              disabled={isSavingTermsOfService}
+              onClick={handleCancelTermsOfServiceEdit}
+              className="w-full sm:w-auto px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold cursor-pointer disabled:opacity-50"
+            >
+              Cancel
+            </button>
+
+            <button
+              type="button"
+              disabled={isSavingTermsOfService}
+              onClick={handleSaveTermsOfService}
+              className="w-full sm:w-auto px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+            >
+              {isSavingTermsOfService ? (
+                <>
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4" />
+                  Save Changes
+                </>
+              )}
+            </button>
+
+          </div>
+        )}
+
+      </div>
+    )}
+  </div>
+)}
+
 
           {/* Conference Description Management */}
             {activeMenu === "CONFERENCE_DESCRIPTION" && (

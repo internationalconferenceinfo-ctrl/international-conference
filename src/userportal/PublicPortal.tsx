@@ -1,6 +1,12 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { saveToSupabase, fetchFromSupabase, subscribeToSupabase, saveRecordToSupabase } from "../database/supabase";
+import {
+  saveToSupabase,
+  fetchFromSupabase,
+  fetchCitiesByCountryFromSupabase,
+  subscribeToSupabase,
+  saveRecordToSupabase
+} from "../database/supabase";
 import { safeSetLocalStorage } from "../shared/utils/storageUtils";
 import { 
   Search, MapPin, Calendar, Clock, Globe, ShieldCheck, 
@@ -146,6 +152,11 @@ export default function PublicPortal({
   const [selectedCountryLocal, setSelectedCountryLocal] = useState<string>("All");
   const [selectedCityLocal, setSelectedCityLocal] = useState<string>("All");
 
+  // Cities loaded from Supabase for the currently selected country
+  const [selectedCountryCities, setSelectedCountryCities] = useState<
+    Array<{ name: string; country: string }>
+  >([]);
+
   const [footerContactInfo, setFooterContactInfo] = useState<ContactInfo>({ ...OFFICIAL_CONTACT_INFO });
   const [footerSocialMedia, setFooterSocialMedia] = useState<SocialLinks>({ ...OFFICIAL_SOCIAL_LINKS });
 
@@ -159,6 +170,32 @@ export default function PublicPortal({
   stat2Value: aboutUsContent.stat2Value,
   stat2Label: aboutUsContent.stat2Label,
   imageUrl: aboutUsContent.imageUrl,
+});
+
+// Dynamic Privacy Policy from Supabase
+const [dynamicPrivacyPolicy, setDynamicPrivacyPolicy] = useState({
+  title: privacyPolicyContent.title,
+  content: [
+    privacyPolicyContent.intro,
+    ...privacyPolicyContent.sections.flatMap((section) => [
+      section.title,
+      section.content
+    ])
+  ].join("\n\n"),
+  updated_at: ""
+});
+
+// Dynamic Terms of Service from Supabase
+const [dynamicTermsOfService, setDynamicTermsOfService] = useState({
+  title: termsOfServiceContent.title,
+  content: [
+    termsOfServiceContent.intro,
+    ...termsOfServiceContent.sections.flatMap((section) => [
+      section.title,
+      section.content
+    ])
+  ].join("\n\n"),
+  updated_at: ""
 });
 
 const [homeMainDescription, setHomeMainDescription] = useState("");
@@ -182,6 +219,90 @@ const [conferenceDescriptions, setConferenceDescriptions] = useState({
   combined_description:
     "Discover verified {TOPIC} conferences taking place in {CITY}, {COUNTRY}."
 });
+
+// Load Privacy Policy from Supabase
+useEffect(() => {
+  const loadPrivacyPolicy = async () => {
+    try {
+      const data = await fetchFromSupabase<any[]>(
+        "privacy_policy",
+        true
+      );
+
+      if (!data || !Array.isArray(data) || data.length === 0) {
+        return;
+      }
+
+      const row =
+        data.find((item) => item.id === "primary") || data[0];
+
+      if (!row) return;
+
+      setDynamicPrivacyPolicy({
+        title: row.title || privacyPolicyContent.title,
+        content:
+          row.content ||
+          [
+            privacyPolicyContent.intro,
+            ...privacyPolicyContent.sections.flatMap((section) => [
+              section.title,
+              section.content
+            ])
+          ].join("\n\n"),
+        updated_at: row.updated_at || ""
+      });
+    } catch (error) {
+      console.error(
+        "Failed to load Privacy Policy:",
+        error
+      );
+    }
+  };
+
+  loadPrivacyPolicy();
+}, []);
+
+// Load Terms of Service from Supabase
+useEffect(() => {
+  const loadTermsOfService = async () => {
+    try {
+      const data = await fetchFromSupabase<any[]>(
+        "terms_of_service",
+        true
+      );
+
+      if (!data || !Array.isArray(data) || data.length === 0) {
+        return;
+      }
+
+      const row =
+        data.find((item) => item.id === "primary") || data[0];
+
+      if (!row) return;
+
+      setDynamicTermsOfService({
+        title: row.title || termsOfServiceContent.title,
+        content:
+          row.content ||
+          [
+            termsOfServiceContent.intro,
+            ...termsOfServiceContent.sections.flatMap((section) => [
+              section.title,
+              section.content
+            ])
+          ].join("\n\n"),
+        updated_at: row.updated_at || ""
+      });
+    } catch (error) {
+      console.error(
+        "Failed to load Terms of Service:",
+        error
+      );
+    }
+  };
+
+  loadTermsOfService();
+}, []);
 
   useEffect(() => {
     const refreshPublicContact = () => {
@@ -351,6 +472,41 @@ useEffect(() => {
     setSelectedCityLocal(val);
     if (onCityChange) onCityChange(val);
   };
+
+  useEffect(() => {
+  const loadCitiesForSelectedCountry = async () => {
+    if (!selectedCountry || selectedCountry === "All") {
+      setSelectedCountryCities([]);
+      return;
+    }
+
+    try {
+      const rows = await fetchCitiesByCountryFromSupabase(
+        selectedCountry.trim().toUpperCase()
+      );
+
+      setSelectedCountryCities(
+        Array.isArray(rows)
+          ? rows.map((city) => ({
+              name: String(city.name || "").trim().toUpperCase(),
+              country: String(city.country || selectedCountry)
+                .trim()
+                .toUpperCase()
+            }))
+          : []
+      );
+    } catch (error) {
+      console.error(
+        `Failed to load cities for ${selectedCountry}:`,
+        error
+      );
+
+      setSelectedCountryCities([]);
+    }
+  };
+
+  void loadCitiesForSelectedCountry();
+}, [selectedCountry]);
 
   useEffect(() => {
     if (selectedCategoryProp !== undefined) {
@@ -815,26 +971,52 @@ const approvedMediaPartnersList = useMemo(() => {
   }, [activeCountriesList]);
 
   // Cities dropdown list (Includes active admin-added cities and approved conference cities for selected country)
-  const citiesDropdown = useMemo(() => {
-    if (selectedCountry === "All" || !selectedCountry) {
-      return ["All Cities (Select Country First)"];
-    }
+     const citiesDropdown = useMemo(() => {
+  if (selectedCountry === "All" || !selectedCountry) {
+    return ["All Cities (Select Country First)"];
+  }
 
-    // Get admin-managed cities for the selected country
-    const adminMatchCities = adminCities
-      .filter((c) => c.country.trim().toLowerCase() === selectedCountry.trim().toLowerCase())
-      .map((c) => c.name)
-      .filter((cn) => Boolean(cn) && !inactiveCities.includes(`${selectedCountry}:::${cn}`));
-    
-    // Get cities from approved conferences in this country
-    const dbCities = approvedConferences
-      .filter((c) => c.country?.trim().toLowerCase() === selectedCountry.trim().toLowerCase())
-      .map((c) => c.city)
-      .filter((cn) => Boolean(cn) && !inactiveCities.includes(`${selectedCountry}:::${cn}`));
-      
-    const combined = new Set<string>([...adminMatchCities, ...dbCities]);
-    return ["All", ...Array.from(combined).map(String).sort((a: string, b: string) => a.localeCompare(b))];
-  }, [approvedConferences, selectedCountry, adminCities, inactiveCities]);
+  const selectedCountryNormalized = selectedCountry
+    .trim()
+    .toUpperCase();
+
+  // Cities loaded directly from Supabase for the selected country
+  const supabaseCities = selectedCountryCities
+    .filter(
+      (city) =>
+        city.country.trim().toUpperCase() ===
+        selectedCountryNormalized
+    )
+    .map((city) => city.name.trim())
+    .filter(Boolean);
+
+  // Keep cities already used by approved conferences as a fallback
+  const conferenceCities = approvedConferences
+    .filter(
+      (conference) =>
+        String(conference.country || "")
+          .trim()
+          .toUpperCase() === selectedCountryNormalized
+    )
+    .map((conference) => String(conference.city || "").trim())
+    .filter(Boolean);
+
+  const combined = new Set<string>([
+    ...supabaseCities,
+    ...conferenceCities
+  ]);
+
+  return [
+    "All",
+    ...Array.from(combined).sort((a, b) =>
+      a.localeCompare(b)
+    )
+  ];
+}, [
+  selectedCountry,
+  selectedCountryCities,
+  approvedConferences
+]);
 
   // Countries shown on Home only when at least 1 approved/live conference exists
       const allFilterCountries = useMemo(() => {
@@ -3653,39 +3835,59 @@ if (hasCategory && hasCountry) {
         </section>
       )}
 
-      {/* Privacy Policy Tab */}
-      {tab === "PRIVACY" && (
-        <section className="bg-white border border-slate-100 rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 lg:p-12 shadow-sm space-y-5 sm:space-y-6 min-w-0">
-          <h1 className="text-3xl font-extrabold text-slate-900 font-display">{privacyPolicyContent.title}</h1>
-          <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Last updated: {privacyPolicyContent.lastUpdated}</p>
-          <div className="prose prose-blue text-sm text-slate-600 space-y-4">
-            <p>{privacyPolicyContent.intro}</p>
-            {privacyPolicyContent.sections.map((sec, idx) => (
-              <React.Fragment key={idx}>
-                <h3 className="font-bold text-slate-800 text-base mt-4">{sec.title}</h3>
-                <p>{sec.content}</p>
-              </React.Fragment>
-            ))}
-          </div>
-        </section>
-      )}
+     {/* Privacy Policy Tab */}
+{tab === "PRIVACY" && (
+  <section className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14">
+    <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-2">
+      {dynamicPrivacyPolicy.title}
+    </h1>
+
+    <p className="text-sm text-slate-500 mb-8">
+      Last updated:{" "}
+      {dynamicPrivacyPolicy.updated_at
+        ? new Date(dynamicPrivacyPolicy.updated_at).toLocaleDateString(
+            "en-US",
+            {
+              year: "numeric",
+              month: "long",
+              day: "numeric"
+            }
+          )
+        : privacyPolicyContent.lastUpdated}
+    </p>
+
+    <div className="prose prose-slate max-w-none text-slate-700 leading-7 whitespace-pre-line">
+      {dynamicPrivacyPolicy.content}
+    </div>
+  </section>
+)}
 
       {/* Terms of Service Tab */}
-      {tab === "TERMS" && (
-        <section className="bg-white border border-slate-100 rounded-3xl p-8 md:p-12 shadow-sm space-y-6">
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 font-display leading-tight break-words">{termsOfServiceContent.title}</h1>
-          <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Last updated: {termsOfServiceContent.lastUpdated}</p>
-          <div className="prose prose-blue text-sm text-slate-600 space-y-4">
-            <p>{termsOfServiceContent.intro}</p>
-            {termsOfServiceContent.sections.map((sec, idx) => (
-              <React.Fragment key={idx}>
-                <h3 className="font-bold text-slate-800 text-base mt-4">{sec.title}</h3>
-                <p>{sec.content}</p>
-              </React.Fragment>
-            ))}
-          </div>
-        </section>
-      )}
+{tab === "TERMS" && (
+  <section className="bg-white border border-slate-100 rounded-3xl p-8 md:p-12 shadow-sm space-y-6">
+    <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 font-display leading-tight break-words">
+      {dynamicTermsOfService.title}
+    </h1>
+
+    <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">
+      Last updated:{" "}
+      {dynamicTermsOfService.updated_at
+        ? new Date(dynamicTermsOfService.updated_at).toLocaleDateString(
+            "en-US",
+            {
+              year: "numeric",
+              month: "long",
+              day: "numeric"
+            }
+          )
+        : termsOfServiceContent.lastUpdated}
+    </p>
+
+    <div className="prose prose-blue max-w-none text-sm text-slate-600 leading-7 whitespace-pre-line">
+      {dynamicTermsOfService.content}
+    </div>
+  </section>
+)}
 
       {/* Customer Feedback / Testimonials Full Dedicated Page */}
       {(tab === "FEEDBACK" || tab === "TESTIMONIALS") && (

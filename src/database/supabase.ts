@@ -651,7 +651,7 @@ const ADMIN_SERVER_TABLES = new Set([
   "conferences", "organizers", "categories", "banners", "banner_contents",
   "user_feedbacks", "subscriber_emails", "contact_inquiries", "countries", "cities",
   "inactive_countries", "inactive_cities", "inactive_topics", "media_partners", "associates",
-  "contact_info", "social_links", "notifications", "audit_logs", "about_us", "home_description", "conference_descriptions"
+  "contact_info", "social_links", "notifications", "audit_logs", "about_us", "home_description", "conference_descriptions", "privacy_policy", "terms_of_service"
 ]);
 
 const ADMIN_READ_PREFERRED_TABLES = new Set([
@@ -888,6 +888,82 @@ export async function saveToSupabase(
       success = true;
     }
   }
+
+  else if (snakeTable === "privacy_policy") {
+  const payload = {
+    id: data.id || "primary",
+    title: data.title || "Privacy Policy",
+    content: data.content || "",
+    updated_at: data.updated_at || new Date().toISOString()
+  };
+
+  const adminWrite = await tryAdminServerUpsert(
+    "privacy_policy",
+    payload
+  );
+
+  if (adminWrite.handled) {
+    if (adminWrite.success) {
+      success = true;
+    } else {
+      console.error(
+        "[Privacy Policy Admin Save Error]:",
+        adminWrite.error
+      );
+    }
+  } else {
+    const res = await client
+      .from("privacy_policy")
+      .upsert(payload);
+
+    if (res.error) {
+      console.error(
+        "[Privacy Policy Supabase Save Error]:",
+        res.error
+      );
+    } else {
+      success = true;
+    }
+  }
+}
+
+else if (snakeTable === "terms_of_service") {
+  const payload = {
+    id: data.id || "primary",
+    title: data.title || "Terms of Service",
+    content: data.content || "",
+    updated_at: data.updated_at || new Date().toISOString()
+  };
+
+  const adminWrite = await tryAdminServerUpsert(
+    "terms_of_service",
+    payload
+  );
+
+  if (adminWrite.handled) {
+    if (adminWrite.success) {
+      success = true;
+    } else {
+      console.error(
+        "[Terms of Service Admin Save Error]:",
+        adminWrite.error
+      );
+    }
+  } else {
+    const res = await client
+      .from("terms_of_service")
+      .upsert(payload);
+
+    if (res.error) {
+      console.error(
+        "[Terms of Service Supabase Save Error]:",
+        res.error
+      );
+    } else {
+      success = true;
+    }
+  }
+}
 
   else if (snakeTable === "about_us") {
     const payload = {
