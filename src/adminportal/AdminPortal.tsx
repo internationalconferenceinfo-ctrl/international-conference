@@ -154,6 +154,7 @@ interface MediaPartner {
   email?: string;
   submittedAt?: string;
   status?: string;
+  isVerified?: boolean;
 }
 
 interface Associate {
@@ -167,6 +168,7 @@ interface Associate {
   email?: string;
   submittedAt?: string;
   status?: string;
+  isVerified?: boolean;
 }
 
 interface TextItem {
@@ -4973,7 +4975,49 @@ const [isSavingCredentials, setIsSavingCredentials] =
 
                       {/* Actions */}
                       <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
-                        
+
+                        <button
+                          onClick={async () => {
+                            const updated = mediaPartners.map((m) => {
+                              const isTarget =
+                                mp.id && m.id
+                                  ? m.id === mp.id
+                                  : m.name === mp.name;
+
+                              return isTarget
+                                ? {
+                                    ...m,
+                                    isVerified: !Boolean(m.isVerified)
+                                  }
+                                : m;
+                            });
+
+                            const saveOk = await saveToSupabase("media_partners", updated);
+
+                            if (!saveOk) {
+                              showToast("Failed to update Media Partner verification.");
+                              return;
+                            }
+
+                            setMediaPartners(updated);
+                            triggerBroadcastSync();
+
+                            showToast(
+                              mp.isVerified
+                                ? "Media Partner is now Unverified."
+                                : "Media Partner verified successfully!"
+                            );
+                          }}
+                          className={`px-3 py-1.5 font-bold text-xs rounded-xl transition-colors cursor-pointer flex items-center gap-1 ${
+                            mp.isVerified
+                              ? "bg-emerald-100 hover:bg-emerald-200 text-emerald-700"
+                              : "bg-amber-50 hover:bg-amber-100 text-amber-700"
+                          }`}
+                        >
+                          <ShieldCheck className="h-3.5 w-3.5" />
+                          <span>{mp.isVerified ? "Unverify" : "Verify"}</span>
+                        </button>
+
                         <button
                           onClick={async () => {
                             if (confirm(`Are you sure you want to permanently delete media partner "${mp.name}"?`)) {
@@ -5110,7 +5154,50 @@ const [isSavingCredentials, setIsSavingCredentials] =
                       </div>
 
                       {/* Actions */}
-                      <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+                      <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-end gap-2">
+
+                        <button
+                          onClick={async () => {
+                            const updated = associates.map((a) => {
+                              const isTarget =
+                                assoc.id && a.id
+                                  ? a.id === assoc.id
+                                  : a.name === assoc.name;
+
+                              return isTarget
+                                ? {
+                                    ...a,
+                                    isVerified: !Boolean(a.isVerified)
+                                  }
+                                : a;
+                            });
+
+                            const saveOk = await saveToSupabase("associates", updated);
+
+                            if (!saveOk) {
+                              showToast("Failed to update Associate verification.");
+                              return;
+                            }
+
+                            setAssociates(updated);
+                            triggerBroadcastSync();
+
+                            showToast(
+                              assoc.isVerified
+                                ? "Associate is now Unverified."
+                                : "Associate verified successfully!"
+                            );
+                          }}
+                          className={`px-3 py-1.5 font-bold text-xs rounded-xl transition-colors cursor-pointer flex items-center gap-1 ${
+                            assoc.isVerified
+                              ? "bg-emerald-100 hover:bg-emerald-200 text-emerald-700"
+                              : "bg-amber-50 hover:bg-amber-100 text-amber-700"
+                          }`}
+                        >
+                          <ShieldCheck className="h-3.5 w-3.5" />
+                          <span>{assoc.isVerified ? "Unverify" : "Verify"}</span>
+                        </button>
+
                         <button
                           onClick={async () => {
                             if (confirm(`Are you sure you want to permanently delete associate "${assoc.name}"?`)) {
@@ -7172,7 +7259,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
                     <span>User Feedback Management</span>
                   </h3>
                   <p className="text-xs text-slate-500 mt-1">
-                    View and manage feedback submitted by users. All submitted feedback is automatically visible on the User Portal.
+                    View and manage feedback submitted by users. Only verified feedback is visible on the User Portal.
                   </p>
                 </div>
 
@@ -7336,6 +7423,57 @@ const [isSavingCredentials, setIsSavingCredentials] =
 
                             {/* Actions: Activate/Deactivate Toggle and Delete */}
                             <div className="flex items-center gap-1.5">
+
+                              <button
+                                onClick={async () => {
+                                  const updated = userFeedbacks.map((f) => {
+                                    const isTarget =
+                                      fb.id && f.id
+                                        ? f.id === fb.id
+                                        : f.name === fb.name && f.text === fb.text;
+
+                                    return isTarget
+                                      ? {
+                                          ...f,
+                                          isVerified: !Boolean(f.isVerified)
+                                        }
+                                      : f;
+                                  });
+
+                                  const saveOk = await saveToSupabase(
+                                    "user_feedbacks",
+                                    updated
+                                  );
+
+                                  if (!saveOk) {
+                                    showToast("Failed to update Feedback verification.");
+                                    return;
+                                  }
+
+                                  setUserFeedbacks(updated);
+
+                                  if (onUpdateUserFeedbacks) {
+                                    onUpdateUserFeedbacks(updated);
+                                  }
+
+                                  triggerBroadcastSync();
+
+                                  showToast(
+                                    fb.isVerified
+                                      ? "Feedback is now Unverified."
+                                      : "Feedback verified successfully!"
+                                  );
+                                }}
+                                className={`px-2.5 py-1.5 font-bold text-xs rounded-xl transition-colors cursor-pointer flex items-center gap-1 ${
+                                  fb.isVerified
+                                    ? "bg-emerald-100 hover:bg-emerald-200 text-emerald-700"
+                                    : "bg-amber-50 hover:bg-amber-100 text-amber-700"
+                                }`}
+                              >
+                                <ShieldCheck className="h-3.5 w-3.5" />
+                                <span>{fb.isVerified ? "Unverify" : "Verify"}</span>
+                              </button>
+
                               <button
                                 onClick={async () => {
                                   if (!confirm(`Are you sure you want to permanently delete feedback from "${fb.name}"?`)) {
@@ -7351,9 +7489,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
                                       } catch (e) {}
                                     }
                                   }
-                                  if (fb.id) {
-                                    await deleteFromSupabase("user_feedbacks", fb.id);
-                                  }
+                                  
 
                                   if (fb.id) {
                                   const deleteOk = await deleteFromSupabase(

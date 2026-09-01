@@ -186,6 +186,7 @@ CREATE TABLE IF NOT EXISTS public.user_feedbacks (
     message TEXT,
     rating INT DEFAULT 5,
     status TEXT DEFAULT 'Pending',
+    is_verified BOOLEAN NOT NULL DEFAULT FALSE,
     date TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -266,6 +267,7 @@ CREATE TABLE IF NOT EXISTS public.media_partners (
     website TEXT,
     email TEXT,
     status TEXT DEFAULT 'Pending',
+    is_verified BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -281,6 +283,7 @@ CREATE TABLE IF NOT EXISTS public.associates (
     website TEXT,
     email TEXT,
     status TEXT DEFAULT 'Pending',
+    is_verified BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

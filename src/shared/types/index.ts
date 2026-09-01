@@ -60,6 +60,7 @@ export interface UserFeedback {
   status: "Approved" | "Pending" | "Active" | "Inactive";
   date: string;
   country?: string;
+  isVerified?: boolean;
 }
 
 export interface BannerContentItem {

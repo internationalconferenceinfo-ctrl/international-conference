@@ -609,7 +609,7 @@ useEffect(() => {
         image: userFeedbackImage.trim() || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&h=120&q=80",
         text: userFeedbackText.trim().slice(0, 50),
         rating: userFeedbackRating || 5,
-        status: "Approved",
+        status: "Pending",
         date: formattedDate,
         country: userFeedbackLocation.trim() || "Global"
       };
@@ -685,7 +685,7 @@ useEffect(() => {
     }
   };
 
-  // Handle Collaboration Submission (Saves directly to Supabase and goes live immediately)
+  // Handle Collaboration Submission (saves to Supabase and awaits Admin verification)
   const handleCollabSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!collabName.trim() || !collabUrl.trim() || !collabDescription.trim()) {
@@ -734,7 +734,7 @@ useEffect(() => {
 
         onAddNotification?.(
           "New Media Partner Submission 🤝",
-          `New media partner '${newPartner.name}' submitted and is now live.`,
+          `New media partner '${newPartner.name}' submitted and is awaiting verification.`,
           "info",
           "ADMIN",
           newPartner.id,
@@ -766,7 +766,7 @@ useEffect(() => {
 
         onAddNotification?.(
           "New Associate Submission 🏢",
-          `New associate '${newAssoc.name}' submitted and is now live.`,
+          `New associate '${newAssoc.name}' submitted and is awaiting verification.`,
           "info",
           "ADMIN",
           newAssoc.id,
@@ -842,6 +842,7 @@ useEffect(() => {
   // Media Partners list - newest submission first
 const approvedMediaPartnersList = useMemo(() => {
   return [...dynamicMediaPartners]
+    .filter((m) => Boolean(m.isVerified))
     .sort((a, b) => {
       const timeA = a.submittedAt
         ? new Date(a.submittedAt).getTime()
@@ -884,8 +885,9 @@ const approvedMediaPartnersList = useMemo(() => {
 
  // Associates list - newest submission first
   const approvedAssociatesList = useMemo(() => {
-    return [...dynamicAssociates]
-      .sort((a, b) => {
+  return [...dynamicAssociates]
+    .filter((a) => Boolean(a.isVerified))
+    .sort((a, b) => {
         const timeA = a.submittedAt
           ? new Date(a.submittedAt).getTime()
           : 0;
@@ -1284,10 +1286,14 @@ const trustedOrganizersList = useMemo(() => {
     .filter((org) => {
       if (org.isSuspended) return false;
 
+      // Only Admin-verified organizers can appear publicly
+      if (!org.isVerified) return false;
+
       // Home Trusted Organizers should only show organizers
       // that currently have at least one approved/live conference
       return getPublishedConferenceCount(org) > 0;
     })
+
     .sort((a, b) => {
       const aCount = getPublishedConferenceCount(a);
       const bCount = getPublishedConferenceCount(b);
@@ -1322,7 +1328,7 @@ const trustedOrganizersList = useMemo(() => {
       };
 
       return organizers
-        .filter((org) => !org.isSuspended)
+        .filter((org) => !org.isSuspended && org.isVerified)
         .sort((a, b) => {
           const aCount = getPublishedConferenceCount(a);
           const bCount = getPublishedConferenceCount(b);
@@ -1642,8 +1648,8 @@ if (hasCategory && hasCountry) {
   const approvedFeedbacksList = useMemo(() => {
     const list: UserFeedback[] = userFeedbacks || [];
     const activeOnly = list.filter(
-      (f) => Boolean(f)
-    );
+  (f) => Boolean(f) && Boolean(f.isVerified)
+  );
     const seen = new Set<string>();
     const unique: UserFeedback[] = [];
     for (const item of activeOnly) {
@@ -4015,7 +4021,7 @@ if (hasCategory && hasCountry) {
               <p className="text-sm text-slate-500 max-w-md mx-auto">
                 {feedbackSearchQuery || feedbackRatingFilter !== "ALL"
                   ? "No reviews matched your current search or rating filter. Try clearing filters to see all reviews."
-                  : "No feedback has been approved yet. Be the first to share your thoughts!"}
+                  : "No verified feedback is available yet. Be the first to share your thoughts!"}
               </p>
               {(feedbackSearchQuery || feedbackRatingFilter !== "ALL") && (
                 <button

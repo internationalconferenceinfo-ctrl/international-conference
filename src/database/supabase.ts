@@ -223,6 +223,7 @@ function sanitizeForTable(table: string, data: any[]): any[] {
       message: item.text || item.message || "",
       rating: typeof item.rating === "number" ? item.rating : 5,
       status: item.status || "Pending",
+      is_verified: Boolean(item.isVerified ?? item.is_verified ?? false),
       country: item.country || "",
       date: item.date || (item.created_at ? new Date(item.created_at).toISOString() : new Date().toISOString()),
       created_at: item.created_at || (item.date ? new Date(item.date).toISOString() : new Date().toISOString())
@@ -279,6 +280,7 @@ function sanitizeForTable(table: string, data: any[]): any[] {
         website: item.website || "",
         email: item.email || "",
         status: item.status || "Pending",
+        is_verified: Boolean(item.isVerified ?? item.is_verified ?? false),
         created_at: createdAtIso
       };
     });
@@ -301,6 +303,7 @@ function sanitizeForTable(table: string, data: any[]): any[] {
         website: item.website || "",
         email: item.email || "",
         status: item.status || "Pending",
+        is_verified: Boolean(item.isVerified ?? item.is_verified ?? false),
         created_at: createdAtIso
       };
     });
@@ -477,6 +480,7 @@ function normalizeFromTable(table: string, data: any): any {
       text: item.text || item.message || "",
       rating: typeof item.rating === "number" ? item.rating : 5,
       status: item.status || "Pending",
+      isVerified: Boolean(item.is_verified ?? item.isVerified ?? false),
       date: item.date || item.created_at || new Date().toLocaleDateString(),
       country: item.country || ""
     }));
@@ -569,6 +573,7 @@ function normalizeFromTable(table: string, data: any): any {
         website: item.website || "",
         email: item.email || "",
         status: item.status || "Pending",
+        isVerified: Boolean(item.is_verified ?? item.isVerified ?? false),
         created_at: createdAtIso
       };
     });
@@ -591,6 +596,7 @@ function normalizeFromTable(table: string, data: any): any {
         website: item.website || "",
         email: item.email || "",
         status: item.status || "Pending",
+        isVerified: Boolean(item.is_verified ?? item.isVerified ?? false),
         created_at: createdAtIso
       };
     });

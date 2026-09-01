@@ -223,6 +223,15 @@ useEffect(() => {
 
   const [formAttendanceType, setFormAttendanceType] = useState<"Online" | "Offline" | "Hybrid">("Offline");
 
+  // Temporary browser draft for incomplete organizer profile
+    const organizerProfileDraftKey = `organizer-profile-draft:${
+      String(authUser?.email || activeOrgId || "guest")
+        .trim()
+        .toLowerCase()
+    }`;
+
+    const [profileDraftReady, setProfileDraftReady] = useState(false);
+
   // Profile Edit State
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [profileOrgName, setProfileOrgName] = useState("");
@@ -234,6 +243,78 @@ useEffect(() => {
   const [profileAbout, setProfileAbout] = useState("");
   const [profileCountry, setProfileCountry] = useState("");
   const [profileCity, setProfileCity] = useState("");
+
+  useEffect(() => {
+  try {
+    const savedDraft = localStorage.getItem(organizerProfileDraftKey);
+
+    if (savedDraft) {
+      const draft = JSON.parse(savedDraft);
+
+      setProfileOrgName(String(draft.profileOrgName || ""));
+      setProfileContact(String(draft.profileContact || ""));
+      setProfileLogo(String(draft.profileLogo || ""));
+      setProfileCover(String(draft.profileCover || ""));
+      setProfileGallery(
+        Array.isArray(draft.profileGallery)
+          ? draft.profileGallery
+          : []
+      );
+      setProfileWebsite(String(draft.profileWebsite || ""));
+      setProfileAbout(String(draft.profileAbout || ""));
+      setProfileCountry(String(draft.profileCountry || ""));
+      setProfileCity(String(draft.profileCity || ""));
+    }
+  } catch (error) {
+    console.error("Failed to restore organizer profile draft:", error);
+  } finally {
+    setProfileDraftReady(true);
+  }
+}, [organizerProfileDraftKey]);
+
+// Automatically save incomplete organizer profile as a browser draft
+useEffect(() => {
+  if (!profileDraftReady) return;
+
+  const saveTimer = window.setTimeout(() => {
+    try {
+      const draft = {
+        profileOrgName,
+        profileContact,
+        profileLogo,
+        profileCover,
+        profileGallery,
+        profileWebsite,
+        profileAbout,
+        profileCountry,
+        profileCity
+      };
+
+      localStorage.setItem(
+        organizerProfileDraftKey,
+        JSON.stringify(draft)
+      );
+    } catch (error) {
+      console.error("Failed to save organizer profile draft:", error);
+    }
+  }, 300);
+
+  return () => {
+    window.clearTimeout(saveTimer);
+  };
+}, [
+  profileDraftReady,
+  organizerProfileDraftKey,
+  profileOrgName,
+  profileContact,
+  profileLogo,
+  profileCover,
+  profileGallery,
+  profileWebsite,
+  profileAbout,
+  profileCountry,
+  profileCity
+]);
 
   // Cities loaded from Supabase only for the selected profile country
   const [profileCountryCities, setProfileCountryCities] = useState<
@@ -379,6 +460,20 @@ useEffect(() => {
   }, [organizers, activeOrgId, authUser]);
 
   useEffect(() => {
+      // If an incomplete profile has a saved browser draft,
+  // do not overwrite that draft with database/profile values.
+  if (!isProfileComplete) {
+    try {
+      const savedDraft = localStorage.getItem(organizerProfileDraftKey);
+
+      if (savedDraft) {
+        return;
+      }
+    } catch (error) {
+      console.error("Failed to check organizer profile draft:", error);
+    }
+  }
+
   // Do not overwrite unsaved profile form values while the organizer is editing.
   // This prevents social-media links and other fields from disappearing when
   // the page receives refreshed organizer data after switching browser tabs/apps.
@@ -574,8 +669,9 @@ useEffect(() => {
   // Profile completion wall if incomplete
   if (!isProfileComplete) {
     return (
-      <div className="min-h-[100dvh] w-full overflow-x-hidden overflow-y-auto bg-slate-100 flex items-center justify-center p-3 sm:p-4">
-        <div className="max-w-2xl w-full bg-white rounded-xl sm:rounded-2xl md:rounded-3xl border border-gray-100 p-4 sm:p-6 md:p-8 shadow-xl space-y-5 sm:space-y-6 my-auto min-w-0">
+      <div className="h-[100dvh] w-full overflow-x-hidden overflow-y-auto bg-slate-100">
+      <div className="min-h-full w-full flex items-start justify-center px-3 sm:px-4 py-4 sm:py-6">
+        <div className="max-w-2xl w-full bg-white rounded-xl sm:rounded-2xl md:rounded-3xl border border-gray-100 p-4 sm:p-6 md:p-8 shadow-xl space-y-5 sm:space-y-6 min-w-0">
           <div className="text-center space-y-2">
             <div className="w-16 h-16 sm:w-20 sm:h-20 bg-[#37494E] rounded-xl sm:rounded-2xl flex items-center justify-center mx-auto shadow-lg text-white">
               <User className="h-10 w-10 text-blue-300" />
@@ -628,8 +724,17 @@ useEffect(() => {
               city: profileCity.trim(),
               isProfileComplete: true,
             });
-            showToast("Profile completed successfully!");
-          }} className="space-y-4">
+            // Profile completed — remove the temporary browser draft
+              try {
+                localStorage.removeItem(organizerProfileDraftKey);
+              } catch (error) {
+                console.error("Failed to clear organizer profile draft:", error);
+              }
+
+              showToast("Profile completed successfully!");
+          }} 
+          
+          className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 min-w-0"> 
               <div className="space-y-1 md:col-span-2 min-w-0">
                 <label className="text-xs font-bold uppercase tracking-wider text-gray-500">Organization Name *</label>
@@ -757,6 +862,7 @@ useEffect(() => {
             </div>
           </form>
         </div>
+      </div>
       </div>
     );
   }
