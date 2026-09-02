@@ -1823,6 +1823,64 @@ app.post("/api/collaboration/submit", rateLimit("collaboration", 10, 60 * 60 * 1
   }
 });
 
+// Public Feedback Submission Endpoint
+app.post("/api/public/feedback", rateLimit("public-feedback", 10, 60 * 60 * 1000), async (req, res) => {
+  try {
+    const name = String(req.body?.name || "").trim();
+    const text = String(req.body?.text || "").trim();
+    const country = String(req.body?.country || "Global").trim();
+    const image = String(req.body?.image || "").trim();
+    const rating = Math.min(5, Math.max(1, Number(req.body?.rating) || 5));
+
+    if (!name || !text) {
+      return res.status(400).json({
+        success: false,
+        error: "Name and feedback are required."
+      });
+    }
+
+    const newRecord = {
+      id: `fb-${Date.now()}-${crypto.randomBytes(4).toString("hex")}`,
+      name,
+      image,
+      text,
+      rating,
+      status: "Pending",
+      country: country || "Global",
+      date: new Date().toISOString(),
+      is_verified: false,
+      created_at: new Date().toISOString()
+    };
+
+    const { data, error } = await supabaseServerClient
+      .from("user_feedbacks")
+      .insert(newRecord)
+      .select();
+
+    if (error) {
+      console.error("[Backend Feedback Submit Error]:", error);
+
+      return res.status(500).json({
+        success: false,
+        error: error.message
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: "Feedback submitted successfully for review.",
+      record: data?.[0] || newRecord
+    });
+  } catch (err: any) {
+    console.error("[Backend Feedback Submit Exception]:", err);
+
+    return res.status(500).json({
+      success: false,
+      error: err?.message || "Server error while submitting feedback."
+    });
+  }
+});
+
 
 // Dynamic Sitemap
 app.get("/sitemap.xml", async (req, res) => {

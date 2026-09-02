@@ -7596,31 +7596,6 @@ const [isSavingCredentials, setIsSavingCredentials] =
         {/* Mission Badge + Title */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
 
-{/* Default Description */}
-<div className="space-y-2">
-  <label className="text-xs font-bold text-slate-700">
-  Main Description
-</label>
-
-  <textarea
-    rows={5}
-    value={conferenceDescription.default_description}
-    disabled={!isEditingConferenceDescription}
-    onChange={(e) =>
-      setConferenceDescription({
-        ...conferenceDescription,
-        default_description: e.target.value
-      })
-    }
-    placeholder="Enter the default conference page description..."
-    className={`w-full px-4 py-3 text-sm rounded-xl border outline-none leading-relaxed resize-y transition-all ${
-      isEditingConferenceDescription
-        ? "bg-white border-slate-300 focus:ring-2 focus:ring-blue-500"
-        : "bg-slate-50 border-slate-200 text-slate-600"
-    }`}
-  />
-</div>
-
 {/* Topic Description */}
 
           <div className="space-y-2">

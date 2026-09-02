@@ -594,67 +594,76 @@ useEffect(() => {
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
 
   const handleUserFeedbackSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!userFeedbackName.trim() || !userFeedbackText.trim() || isSubmittingFeedback) return;
+  e.preventDefault();
 
-    setIsSubmittingFeedback(true);
+  if (
+    !userFeedbackName.trim() ||
+    !userFeedbackText.trim() ||
+    isSubmittingFeedback
+  ) {
+    return;
+  }
 
-    try {
-      const now = new Date();
-      const formattedDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")} ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+  setIsSubmittingFeedback(true);
 
-      const newFeedback: UserFeedback = {
-        id: `fb-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+  try {
+    const response = await fetch("/api/public/feedback", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
         name: userFeedbackName.trim(),
-        image: userFeedbackImage.trim() || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&h=120&q=80",
-        text: userFeedbackText.trim().slice(0, 50),
-        rating: userFeedbackRating || 5,
-        status: "Pending",
-        date: formattedDate,
-        country: userFeedbackLocation.trim() || "Global"
-      };
+        country: userFeedbackLocation.trim() || "Global",
+        image: userFeedbackImage.trim(),
+        text: userFeedbackText.trim(),
+        rating: userFeedbackRating || 5
+      })
+    });
 
-      const currentList = Array.isArray(userFeedbacks) ? userFeedbacks : [];
-      const deduplicated = Array.from(
-        new Map([newFeedback, ...currentList].map((f) => [f.id, f])).values()
+    const result = await response.json();
+
+    if (!response.ok || !result?.success) {
+      throw new Error(
+        result?.error || "Unable to submit feedback."
       );
-
-      safeSetLocalStorage("gch_feedbacks", deduplicated);
-      if (onUpdateUserFeedbacks) {
-        onUpdateUserFeedbacks(deduplicated);
-      }
-
-      onAddNotification?.(
-        "New Feedback Submission 💬",
-        `New feedback submitted by ${newFeedback.name} (${newFeedback.country}).`,
-        "info",
-        "ADMIN",
-        newFeedback.id,
-        "FEEDBACK_SUBMISSION"
-      );
-
-      // Persist to database in background
-      saveToSupabase("user_feedbacks", deduplicated).catch((err) => {
-        console.warn("[Feedback save notice]:", err);
-      });
-
-      setUserFeedbackSubmitted(true);
-      setUserFeedbackName("");
-      setUserFeedbackLocation("");
-      setUserFeedbackImage("");
-      setUserFeedbackText("");
-      setUserFeedbackRating(5);
-      setIsFeedbackModalOpen(false);
-
-      setTimeout(() => {
-        setUserFeedbackSubmitted(false);
-      }, 3500);
-    } catch (err) {
-      console.error("Error submitting feedback:", err);
-    } finally {
-      setIsSubmittingFeedback(false);
     }
-  };
+
+    setUserFeedbackSubmitted(true);
+
+    setUserFeedbackName("");
+    setUserFeedbackLocation("");
+    setUserFeedbackImage("");
+    setUserFeedbackText("");
+    setUserFeedbackRating(5);
+    setIsFeedbackModalOpen(false);
+
+    if (typeof BroadcastChannel !== "undefined") {
+      try {
+        const bc = new BroadcastChannel("gch_realtime_sync");
+        bc.postMessage({
+          type: "DATA_UPDATED",
+          timestamp: Date.now()
+        });
+        bc.close();
+      } catch (e) {}
+    }
+
+    setTimeout(() => {
+      setUserFeedbackSubmitted(false);
+    }, 3500);
+
+  } catch (err: any) {
+    console.error("Error submitting feedback:", err);
+
+    alert(
+      err?.message ||
+      "Unable to submit feedback. Please try again."
+    );
+  } finally {
+    setIsSubmittingFeedback(false);
+  }
+};
 
   // Collaboration / Partner Application States
   const [collabLogo, setCollabLogo] = useState("");
@@ -686,106 +695,89 @@ useEffect(() => {
   };
 
   // Handle Collaboration Submission (saves to Supabase and awaits Admin verification)
-  const handleCollabSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!collabName.trim() || !collabUrl.trim() || !collabDescription.trim()) {
-      alert("Please fill in all required fields (Company Name, Website, and Description).");
-      return;
+ const handleCollabSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+
+  if (
+    !collabName.trim() ||
+    !collabUrl.trim() ||
+    !collabDescription.trim()
+  ) {
+    alert(
+      "Please fill in all required fields (Company Name, Website, and Description)."
+    );
+    return;
+  }
+
+  if (collabDescription.trim().length > 150) {
+    alert(
+      "Description exceeds the 150-character maximum limit. Please shorten your description."
+    );
+    return;
+  }
+
+  let formattedUrl = collabUrl.trim();
+
+  if (formattedUrl && !/^https?:\/\//i.test(formattedUrl)) {
+    formattedUrl = `https://${formattedUrl}`;
+  }
+
+  try {
+    const response = await fetch("/api/collaboration/submit", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        name: collabName.trim(),
+        website: formattedUrl,
+        description: collabDescription.trim(),
+        category: collabCategory,
+        logo: collabLogo,
+        email: ""
+      })
+    });
+
+    const result = await response.json();
+
+    if (!response.ok || !result?.success) {
+      throw new Error(
+        result?.error || "Unable to submit collaboration application."
+      );
     }
 
-    // Strict 150-character validation
-    if (collabDescription.trim().length > 150) {
-      alert("Description exceeds the 150-character maximum limit. Please shorten your description.");
-      return;
+    setCollabSubmitted(true);
+
+    setCollabName("");
+    setCollabUrl("");
+    setCollabDescription("");
+    setCollabLogo("");
+
+    if (typeof BroadcastChannel !== "undefined") {
+      try {
+        const bc = new BroadcastChannel("gch_realtime_sync");
+
+        bc.postMessage({
+          type: "DATA_UPDATED",
+          timestamp: Date.now()
+        });
+
+        bc.close();
+      } catch (e) {}
     }
 
-    let formattedUrl = collabUrl.trim();
-    if (formattedUrl && !/^https?:\/\//i.test(formattedUrl)) {
-      formattedUrl = `https://${formattedUrl}`;
-    }
+  } catch (err: any) {
+    console.error(
+      "Error submitting collaboration application:",
+      err
+    );
 
-    try {
-      const now = new Date();
-      const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-
-      if (collabCategory === "Event Partner" || collabCategory === "Media Partner") {
-        const newPartner = {
-          id: `mp-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`,
-          name: collabName.trim(),
-          type: "Media Partner",
-          logo: collabLogo || "https://images.unsplash.com/photo-1541829070764-84a7d30dd3f3?auto=format&fit=crop&w=120&h=120&q=80",
-          website: formattedUrl,
-          description: collabDescription.trim().slice(0, 150),
-          email: "",
-          submittedAt: dateStr,
-        };
-
-        const res = await saveRecordToSupabase("media_partners", newPartner);
-        if (res.success) {
-          const fresh = await fetchFromSupabase<any[]>("media_partners", true);
-          if (fresh) setDynamicMediaPartners(fresh);
-        }
-
-        setCollabSubmitted(true);
-        setCollabName("");
-        setCollabUrl("");
-        setCollabDescription("");
-        setCollabLogo("");
-
-        onAddNotification?.(
-          "New Media Partner Submission 🤝",
-          `New media partner '${newPartner.name}' submitted and is awaiting verification.`,
-          "info",
-          "ADMIN",
-          newPartner.id,
-          "MEDIA_PARTNER_SUBMISSION"
-        );
-      } else {
-        const newAssoc = {
-          id: `assoc-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`,
-          name: collabName.trim(),
-          category: "Associates",
-          logo: collabLogo || "https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=120&h=120&q=80",
-          website: formattedUrl,
-          description: collabDescription.trim().slice(0, 150),
-          email: "",
-          submittedAt: dateStr,
-        };
-
-        const res = await saveRecordToSupabase("associates", newAssoc);
-        if (res.success) {
-          const fresh = await fetchFromSupabase<any[]>("associates", true);
-          if (fresh) setDynamicAssociates(fresh);
-        }
-
-        setCollabSubmitted(true);
-        setCollabName("");
-        setCollabUrl("");
-        setCollabDescription("");
-        setCollabLogo("");
-
-        onAddNotification?.(
-          "New Associate Submission 🏢",
-          `New associate '${newAssoc.name}' submitted and is awaiting verification.`,
-          "info",
-          "ADMIN",
-          newAssoc.id,
-          "ASSOCIATE_SUBMISSION"
-        );
-      }
-
-      if (typeof BroadcastChannel !== "undefined") {
-        try {
-          const bc = new BroadcastChannel("gch_realtime_sync");
-          bc.postMessage({ type: "DATA_UPDATED", timestamp: Date.now() });
-          bc.close();
-        } catch (e) {}
-      }
-    } catch (err) {
-      console.error("Error submitting collaboration application:", err);
-    }
-  };
-
+    alert(
+      err?.message ||
+      "Unable to submit your application. Please try again."
+    );
+  }
+};
   // Real-time sync for dynamic partners and associates
   useEffect(() => {
     const fetchPartnersAndAssociates = () => {
