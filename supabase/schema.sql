@@ -268,6 +268,7 @@ CREATE TABLE IF NOT EXISTS public.media_partners (
     email TEXT,
     status TEXT DEFAULT 'Pending',
     is_verified BOOLEAN NOT NULL DEFAULT FALSE,
+    is_deactivated BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -284,6 +285,7 @@ CREATE TABLE IF NOT EXISTS public.associates (
     email TEXT,
     status TEXT DEFAULT 'Pending',
     is_verified BOOLEAN NOT NULL DEFAULT FALSE,
+    is_deactivated BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -314,6 +316,52 @@ CREATE TABLE IF NOT EXISTS public.social_links (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Audit Logs Table
+CREATE TABLE IF NOT EXISTS public.audit_logs (
+    id TEXT PRIMARY KEY,
+    conference_id TEXT,
+    organizer_id TEXT,
+    admin_id TEXT DEFAULT 'ADMIN',
+    action TEXT NOT NULL DEFAULT '',
+    details TEXT DEFAULT '',
+    actor TEXT DEFAULT 'System',
+    role TEXT DEFAULT 'ADMIN',
+    timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Home Main Description Table
+CREATE TABLE IF NOT EXISTS public.home_description (
+    id TEXT PRIMARY KEY DEFAULT 'primary',
+    description TEXT NOT NULL DEFAULT '',
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- About Us Table
+CREATE TABLE IF NOT EXISTS public.about_us (
+    id TEXT PRIMARY KEY DEFAULT 'primary',
+    mission_badge TEXT DEFAULT '',
+    title TEXT DEFAULT '',
+    paragraph1 TEXT DEFAULT '',
+    paragraph2 TEXT DEFAULT '',
+    stat1_value TEXT DEFAULT '',
+    stat1_label TEXT DEFAULT '',
+    stat2_value TEXT DEFAULT '',
+    stat2_label TEXT DEFAULT '',
+    image_url TEXT DEFAULT '',
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Conference Descriptions Table
+CREATE TABLE IF NOT EXISTS public.conference_descriptions (
+    id TEXT PRIMARY KEY DEFAULT 'primary',
+    default_description TEXT DEFAULT '',
+    topic_description TEXT DEFAULT '',
+    country_description TEXT DEFAULT '',
+    city_description TEXT DEFAULT '',
+    topic_country_description TEXT DEFAULT '',
+    combined_description TEXT DEFAULT '',
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
 
 -- Privacy Policy Table
 CREATE TABLE IF NOT EXISTS public.privacy_policy (
@@ -401,6 +449,20 @@ CREATE INDEX IF NOT EXISTS idx_media_partners_status ON public.media_partners(st
 CREATE INDEX IF NOT EXISTS idx_associates_status ON public.associates(status);
 CREATE INDEX IF NOT EXISTS idx_user_feedbacks_status ON public.user_feedbacks(status);
 CREATE INDEX IF NOT EXISTS idx_feedback_status_created ON public.user_feedbacks(status, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS public.notifications (
+    id TEXT PRIMARY KEY,
+    organizer_id TEXT NOT NULL,
+    type TEXT,
+    notification_type TEXT DEFAULT 'info',
+    related_conference_id TEXT,
+    title TEXT,
+    message TEXT,
+    read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 CREATE INDEX IF NOT EXISTS idx_notifications_organizer_created ON public.notifications(organizer_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_contact_inquiries_status_created ON public.contact_inquiries(status, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_subscriber_emails_email ON public.subscriber_emails(email);
@@ -462,6 +524,31 @@ CREATE POLICY "Public contact info read" ON public.contact_info FOR SELECT TO an
 ALTER TABLE public.social_links ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Public social links read" ON public.social_links FOR SELECT TO anon, authenticated USING (true);
 
+-- Public website content: readable publicly, editable only through Admin/server.
+ALTER TABLE public.about_us ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Public about us read" ON public.about_us;
+CREATE POLICY "Public about us read"
+ON public.about_us
+FOR SELECT
+TO anon, authenticated
+USING (true);
+
+ALTER TABLE public.home_description ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Public home description read" ON public.home_description;
+CREATE POLICY "Public home description read"
+ON public.home_description
+FOR SELECT
+TO anon, authenticated
+USING (true);
+
+ALTER TABLE public.conference_descriptions ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Public conference descriptions read" ON public.conference_descriptions;
+CREATE POLICY "Public conference descriptions read"
+ON public.conference_descriptions
+FOR SELECT
+TO anon, authenticated
+USING (true);
+
 ALTER TABLE public.privacy_policy ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Public can read privacy policy" ON public.privacy_policy;
 CREATE POLICY "Public can read privacy policy"
@@ -481,7 +568,11 @@ USING (true);
 -- Public submission tables: browser can submit, but cannot edit/delete.
 ALTER TABLE public.user_feedbacks ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Public feedback insert" ON public.user_feedbacks FOR INSERT TO anon, authenticated WITH CHECK (status = 'Pending');
-CREATE POLICY "Public feedback read approved" ON public.user_feedbacks FOR SELECT TO anon, authenticated USING (status IN ('Approved','Active'));
+DROP POLICY IF EXISTS "Public feedback read approved" ON public.user_feedbacks;
+CREATE POLICY "Public feedback read approved"
+ON public.user_feedbacks
+FOR SELECT TO anon, authenticated
+USING (is_verified = TRUE);
 
 ALTER TABLE public.subscriber_emails ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Public subscriber insert" ON public.subscriber_emails FOR INSERT TO anon, authenticated WITH CHECK (true);
@@ -491,11 +582,19 @@ CREATE POLICY "Public contact inquiry insert" ON public.contact_inquiries FOR IN
 
 ALTER TABLE public.media_partners ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Public media partner insert" ON public.media_partners FOR INSERT TO anon, authenticated WITH CHECK (status = 'Pending');
-CREATE POLICY "Public media partner read approved" ON public.media_partners FOR SELECT TO anon, authenticated USING (status = 'Approved' AND COALESCE(is_deactivated, false) = false);
+DROP POLICY IF EXISTS "Public media partner read approved" ON public.media_partners;
+CREATE POLICY "Public media partner read approved"
+ON public.media_partners
+FOR SELECT TO anon, authenticated
+USING (is_verified = TRUE);
 
 ALTER TABLE public.associates ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Public associate insert" ON public.associates FOR INSERT TO anon, authenticated WITH CHECK (status = 'Pending');
-CREATE POLICY "Public associate read approved" ON public.associates FOR SELECT TO anon, authenticated USING (status = 'Approved' AND COALESCE(is_deactivated, false) = false);
+DROP POLICY IF EXISTS "Public associate read approved" ON public.associates;
+CREATE POLICY "Public associate read approved"
+ON public.associates
+FOR SELECT TO anon, authenticated
+USING (is_verified = TRUE);
 
 -- Audit data is server-only.
 ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
@@ -621,9 +720,14 @@ ALTER TABLE public.organizers ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Allow_Public_Full_Access_organizers" ON public.organizers;
 DROP POLICY IF EXISTS "Public organizers read" ON public.organizers;
 DROP POLICY IF EXISTS "Organizer update own profile" ON public.organizers;
+
 CREATE POLICY "Public organizers read"
   ON public.organizers FOR SELECT TO anon, authenticated
-  USING (true);
+  USING (
+    is_verified = TRUE
+    OR auth_user_id = auth.uid()
+  );
+  
 CREATE POLICY "Organizer update own profile"
   ON public.organizers FOR UPDATE TO authenticated
   USING (auth_user_id = auth.uid())
