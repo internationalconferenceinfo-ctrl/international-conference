@@ -1797,7 +1797,8 @@ app.post("/api/collaboration/submit", rateLimit("collaboration", 10, 60 * 60 * 1
       logo: String(logo || "").trim() || "https://images.unsplash.com/photo-1541829070764-84a7d30dd3f3?auto=format&fit=crop&w=120&h=120&q=80",
       website: String(website).trim(),
       email: String(email || "").trim(),
-      status: "Pending"
+      status: "Pending",
+      is_verified: false
     };
 
     const { data, error } = await (supabaseServerClient.from(targetTable) as any).insert(newRecord).select();
