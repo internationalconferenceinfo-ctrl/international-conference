@@ -1788,8 +1788,6 @@ app.post("/api/collaboration/submit", rateLimit("collaboration", 10, 60 * 60 * 1
 
     const targetTable = (category === "Associates" || category === "Our Associates") ? "associates" : "media_partners";
     const prefix = targetTable === "associates" ? "assoc" : "mp";
-    const now = new Date();
-    const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 
     const newRecord: any = {
       id: `${prefix}-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
@@ -1799,7 +1797,6 @@ app.post("/api/collaboration/submit", rateLimit("collaboration", 10, 60 * 60 * 1
       logo: String(logo || "").trim() || "https://images.unsplash.com/photo-1541829070764-84a7d30dd3f3?auto=format&fit=crop&w=120&h=120&q=80",
       website: String(website).trim(),
       email: String(email || "").trim(),
-      submitted_at: dateStr,
       status: "Pending"
     };
 
