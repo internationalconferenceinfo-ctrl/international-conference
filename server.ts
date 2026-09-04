@@ -149,6 +149,72 @@ async function getSeoMetadataForPath(
     };
   }
 
+  if (cleanPath === "/conferences") {
+  return {
+    title: `Upcoming International Conferences ${currentYear} | Global Conferences`,
+    description:
+      `Browse upcoming international conferences in ${currentYear} across technology, medicine, science, business, education, engineering, research, and other professional fields worldwide.`,
+    keywords:
+      `upcoming international conferences ${currentYear}, international conferences ${currentYear}, global conferences, academic conferences, research conferences, professional conferences, international events, conferences worldwide`,
+  };
+}
+
+if (cleanPath === "/organizers") {
+  return {
+    title:
+      "International Conference Organizers | Global Event Organizers",
+    description:
+      "Explore international conference organizers and organizations hosting academic, scientific, business, medical, technology, research, and professional events worldwide.",
+    keywords:
+      "international conference organizers, conference organizers, global conference organizers, academic conference organizers, event organizers, research conference organizers, professional conference organizers",
+  };
+}
+
+if (cleanPath === "/contact-us") {
+  return {
+    title:
+      "Contact Us | International Conferences",
+    description:
+      "Contact International Conferences for questions about conference listings, organizers, partnerships, event information, website support, and general enquiries.",
+    keywords:
+      "contact international conferences, conference support, conference enquiry, event support, international conference contact, conference listing support",
+  };
+}
+
+if (cleanPath === "/testimonials") {
+  return {
+    title:
+      "Testimonials | International Conferences",
+    description:
+      "Read feedback and testimonials from users, organizers, researchers, professionals, and participants using the International Conferences platform.",
+    keywords:
+      "international conference testimonials, conference reviews, conference feedback, event testimonials, conference participant feedback, organizer testimonials",
+  };
+}
+
+if (cleanPath === "/privacy-policy") {
+  return {
+    title:
+      "Privacy Policy | International Conferences",
+    description:
+      "Read the International Conferences privacy policy to understand how information is collected, used, stored, and protected when using the platform.",
+    keywords:
+      "international conferences privacy policy, conference website privacy policy, data privacy, user privacy, website privacy policy",
+  };
+}
+
+if (cleanPath === "/terms-of-service") {
+  return {
+    title:
+      "Terms of Service | International Conferences",
+    description:
+      "Read the terms and conditions governing access to and use of the International Conferences website, conference listings, organizer services, and platform features.",
+    keywords:
+      "international conferences terms of service, conference website terms, terms and conditions, conference platform terms, website terms",
+  };
+}
+  
+
   // Single-slug dynamic pages:
   // /japan
   // /osaka
@@ -157,15 +223,410 @@ async function getSeoMetadataForPath(
     .split("/")
     .filter(Boolean);
 
+    // Conference detail page
+// Example: /conference/international-ai-conference-2026
+if (
+  segments.length === 2 &&
+  segments[0] === "conference"
+) {
+  const conferenceSlug = segments[1];
+
+  const { data: conferenceRows, error } =
+    await supabaseServerClient
+      .from("conferences")
+      .select(
+        "title,description,category,topic,category_name,country,city,slug,status,is_deactivated"
+      );
+
+  if (!error && Array.isArray(conferenceRows)) {
+    const conference = conferenceRows.find((item: any) => {
+      const status = String(item.status || "")
+        .toLowerCase()
+        .trim();
+
+      if (
+        status !== "approved" ||
+        item.is_deactivated === true
+      ) {
+        return false;
+      }
+
+      const savedSlug = String(
+        item.slug || ""
+      ).trim();
+
+      const generatedSlug = sitemapSlugify(
+        item.title || ""
+      );
+
+      return (
+        savedSlug === conferenceSlug ||
+        generatedSlug === conferenceSlug
+      );
+    });
+
+    if (conference) {
+      const title = String(
+        conference.title ||
+        "International Conference"
+      ).trim();
+
+      const city = String(
+        conference.city || ""
+      ).trim();
+
+      const country = String(
+        conference.country || ""
+      ).trim();
+
+      const topic = String(
+        conference.category ||
+        conference.topic ||
+        conference.category_name ||
+        "International Conference"
+      ).trim();
+
+      const location = [city, country]
+        .filter(Boolean)
+        .join(", ");
+
+      const cleanDescription = String(
+        conference.description || ""
+      )
+        .replace(/<[^>]*>/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+
+      const description =
+        cleanDescription.length > 0
+          ? cleanDescription.slice(0, 160)
+          : `Explore ${title}${location ? ` in ${location}` : ""}. Find conference dates, venue, organizer information, registration details, and event information.`;
+
+      return {
+        title: `${title}${location ? ` | ${location}` : ""}`,
+        description,
+        keywords: `${title}, ${topic} conference, international conference ${currentYear}${city ? `, conference in ${city}` : ""}${country ? `, conference in ${country}` : ""}, international conferences, academic conferences, professional conferences`,
+      };
+    }
+  }
+}
+
+ // Organizer detail page
+// Example: /organizers/global-science-events
+if (
+  segments.length === 2 &&
+  segments[0] === "organizers"
+) {
+  const organizerSlug = segments[1];
+
+  const { data: organizerRows, error } =
+    await supabaseServerClient
+      .from("organizers")
+      .select(
+        "slug,organization_name,name,about_organization,country,city,is_suspended"
+      );
+
+  if (!error && Array.isArray(organizerRows)) {
+    const organizer = organizerRows.find((item: any) => {
+      const isSuspended =
+        item.is_suspended === true ||
+        item.isSuspended === true;
+
+      if (isSuspended) {
+        return false;
+      }
+
+      const savedSlug = String(
+        item.slug || ""
+      ).trim();
+
+      const organizerName = String(
+        item.organization_name ||
+        item.name ||
+        "Conference Organizer"
+      ).trim();
+
+      const generatedSlug =
+        sitemapSlugify(organizerName);
+
+      return (
+        savedSlug === organizerSlug ||
+        generatedSlug === organizerSlug
+      );
+    });
+
+    if (organizer) {
+      const organizerName = String(
+        organizer.organization_name ||
+        organizer.name ||
+        "Conference Organizer"
+      ).trim();
+
+      const city = String(
+        organizer.city || ""
+      ).trim();
+
+      const country = String(
+        organizer.country || ""
+      ).trim();
+
+      const location = [city, country]
+        .filter(Boolean)
+        .join(", ");
+
+      const about = String(
+        organizer.about_organization || ""
+      )
+        .replace(/<[^>]*>/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+
+      const description =
+        about.length > 0
+          ? about.slice(0, 160)
+          : `Explore conferences organized by ${organizerName}${location ? ` in ${location}` : ""}. Find upcoming international conferences, events, and organizer information.`;
+
+      return {
+        title: `${organizerName} | International Conference Organizer`,
+        description,
+        keywords: `${organizerName}, ${organizerName} conferences, international conference organizer, conference organizer${city ? `, conference organizer in ${city}` : ""}${country ? `, conference organizer in ${country}` : ""}, upcoming international conferences`,
+      };
+    }
+  }
+}
+
+
+// Three-slug dynamic SEO page:
+// /country/city/topic
+if (segments.length === 3) {
+  const countrySlug = segments[0];
+  const citySlug = segments[1];
+  const topicSlug = segments[2];
+
+  const { data: conferences, error } =
+    await supabaseServerClient
+      .from("conferences")
+      .select(
+        "category,topic,category_name,country,city,status,is_deactivated"
+      );
+
+  if (!error && Array.isArray(conferences)) {
+    const match = conferences.find(
+      (conference: any) => {
+        const status = String(
+          conference.status || ""
+        )
+          .toLowerCase()
+          .trim();
+
+        const isDeactivated =
+          conference.is_deactivated === true ||
+          conference.isDeactivated === true;
+
+        if (
+          status !== "approved" ||
+          isDeactivated
+        ) {
+          return false;
+        }
+
+        const topic = String(
+          conference.category ||
+          conference.topic ||
+          conference.category_name ||
+          ""
+        ).trim();
+
+        return (
+          sitemapSlugify(
+            conference.country || ""
+          ) === countrySlug &&
+          sitemapSlugify(
+            conference.city || ""
+          ) === citySlug &&
+          sitemapSlugify(topic) === topicSlug
+        );
+      }
+    );
+
+    if (match) {
+      const country = String(
+        match.country || ""
+      ).trim();
+
+      const city = String(
+        match.city || ""
+      ).trim();
+
+      const topic = String(
+        match.category ||
+        match.topic ||
+        match.category_name ||
+        ""
+      ).trim();
+
+      return {
+        title: `${topic} International Conferences in ${city}, ${country} ${currentYear}`,
+        description:
+          `Find upcoming ${topic} international conferences in ${city}, ${country} in ${currentYear}. Explore academic, research, scientific, professional, and industry events.`,
+        keywords:
+          `${topic} conferences in ${city}, ${topic} conferences in ${country}, ${topic} international conferences ${currentYear}, conferences in ${city} ${country}, academic ${topic} conferences, research conferences`,
+      };
+    }
+  }
+}
+
+// Two-slug dynamic SEO pages:
+// /country/city
+// /country/topic
+// /topic/city
+if (
+  segments.length === 2 &&
+  segments[0] !== "conference" &&
+  segments[0] !== "organizers"
+) {
+  const firstSlug = segments[0];
+  const secondSlug = segments[1];
+
+  const { data: conferences, error } =
+    await supabaseServerClient
+      .from("conferences")
+      .select(
+        "category,topic,category_name,country,city,status,is_deactivated"
+      );
+
+  if (!error && Array.isArray(conferences)) {
+    const visibleConferences = conferences.filter(
+      (conference: any) => {
+        const status = String(
+          conference.status || ""
+        )
+          .toLowerCase()
+          .trim();
+
+        const isDeactivated =
+          conference.is_deactivated === true ||
+          conference.isDeactivated === true;
+
+        return (
+          status === "approved" &&
+          !isDeactivated
+        );
+      }
+    );
+
+    const getTopic = (conference: any) =>
+      String(
+        conference.category ||
+        conference.topic ||
+        conference.category_name ||
+        ""
+      ).trim();
+
+    // Country + City
+    const countryCityMatch =
+      visibleConferences.find((conference: any) => {
+        return (
+          sitemapSlugify(
+            conference.country || ""
+          ) === firstSlug &&
+          sitemapSlugify(
+            conference.city || ""
+          ) === secondSlug
+        );
+      });
+
+    if (countryCityMatch) {
+      const country = String(
+        countryCityMatch.country || ""
+      ).trim();
+
+      const city = String(
+        countryCityMatch.city || ""
+      ).trim();
+
+      return {
+        title: `International Conferences in ${city}, ${country} ${currentYear}`,
+        description:
+          `Find upcoming international conferences in ${city}, ${country} in ${currentYear}. Explore academic, scientific, medical, technology, business, research, and professional events.`,
+        keywords:
+          `international conferences in ${city} ${currentYear}, conferences in ${city}, international conferences in ${country}, upcoming conferences in ${city}, academic conferences in ${city}, research conferences in ${city}`,
+      };
+    }
+
+    // Country + Topic
+    const countryTopicMatch =
+      visibleConferences.find((conference: any) => {
+        return (
+          sitemapSlugify(
+            conference.country || ""
+          ) === firstSlug &&
+          sitemapSlugify(
+            getTopic(conference)
+          ) === secondSlug
+        );
+      });
+
+    if (countryTopicMatch) {
+      const country = String(
+        countryTopicMatch.country || ""
+      ).trim();
+
+      const topic = getTopic(
+        countryTopicMatch
+      );
+
+      return {
+        title: `${topic} International Conferences in ${country} ${currentYear}`,
+        description:
+          `Explore upcoming ${topic} international conferences in ${country} in ${currentYear}. Find academic, research, professional, scientific, and industry events.`,
+        keywords:
+          `${topic} conferences in ${country}, ${topic} international conferences ${currentYear}, upcoming ${topic} conferences, international conferences in ${country}, academic ${topic} conferences`,
+      };
+    }
+
+    // Topic + City
+    const topicCityMatch =
+      visibleConferences.find((conference: any) => {
+        return (
+          sitemapSlugify(
+            getTopic(conference)
+          ) === firstSlug &&
+          sitemapSlugify(
+            conference.city || ""
+          ) === secondSlug
+        );
+      });
+
+    if (topicCityMatch) {
+      const topic = getTopic(
+        topicCityMatch
+      );
+
+      const city = String(
+        topicCityMatch.city || ""
+      ).trim();
+
+      return {
+        title: `${topic} International Conferences in ${city} ${currentYear}`,
+        description:
+          `Find upcoming ${topic} international conferences in ${city} in ${currentYear}. Explore academic, research, scientific, professional, and industry events.`,
+        keywords:
+          `${topic} conferences in ${city}, ${topic} international conferences ${currentYear}, upcoming conferences in ${city}, academic ${topic} conferences, research conferences in ${city}`,
+      };
+    }
+  }
+}
+
   if (segments.length === 1) {
     const slug = segments[0];
 
     const { data: conferences, error } =
-    await supabaseServerClient
-      .from("conferences")
-      .select("*");(
-          "category,topic,category_name,country,city,status,is_deactivated"
-        );
+  await supabaseServerClient
+    .from("conferences")
+    .select(
+      "category,topic,category_name,country,city,status,is_deactivated"
+    );
 
     if (!error && Array.isArray(conferences)) {
       const visibleConferences = conferences.filter((conference: any) => {
@@ -384,91 +845,7 @@ const supabaseServerClient = createClient(supabaseUrl, supabaseServerKey, {
 /**
  * Server-side timezone and completion calculation helper
  */
-const TIMEZONE_OFFSET_MAP: Record<string, number> = {
-  UTC: 0, GMT: 0, Z: 0, EST: -5, EDT: -4, CST: -6, CDT: -5, MST: -7, MDT: -6, PST: -8, PDT: -7,
-  AKST: -9, HST: -10, BST: 1, CET: 1, CEST: 2, EET: 2, EEST: 3, MSK: 3, GST: 4, IST: 5.5, ICT: 7,
-  SGT: 8, HKT: 8, JST: 9, KST: 9, AEST: 10, AEDT: 11, NZST: 12, NZDT: 13,
-};
 
-const COUNTRY_CITY_TIMEZONE_MAP: Record<string, number> = {
-  "USA": -5, "UNITED STATES": -5, "US": -5, "CANADA": -5, "MEXICO": -6,
-  "NEW YORK": -5, "WASHINGTON": -5, "CHICAGO": -6, "LOS ANGELES": -8, "SAN FRANCISCO": -8, "TORONTO": -5, "VANCOUVER": -8,
-  "UK": 0, "UNITED KINGDOM": 0, "GREAT BRITAIN": 0, "ENGLAND": 0, "LONDON": 0,
-  "GERMANY": 1, "BERLIN": 1, "FRANKFURT": 1, "MUNICH": 1,
-  "FRANCE": 1, "PARIS": 1, "ITALY": 1, "ROME": 1, "MILAN": 1,
-  "SPAIN": 1, "MADRID": 1, "BARCELONA": 1, "NETHERLANDS": 1, "AMSTERDAM": 1,
-  "SWITZERLAND": 1, "ZURICH": 1, "GENEVA": 1, "AUSTRIA": 1, "VIENNA": 1,
-  "BELGIUM": 1, "BRUSSELS": 1, "SWEDEN": 1, "STOCKHOLM": 1, "NORWAY": 1, "OSLO": 1,
-  "POLAND": 1, "WARSAW": 1, "GREECE": 2, "ATHENS": 2, "RUSSIA": 3, "MOSCOW": 3,
-  "JAPAN": 9, "TOKYO": 9, "OSAKA": 9, "KYOTO": 9,
-  "SOUTH KOREA": 9, "SEOUL": 9, "KOREA": 9,
-  "CHINA": 8, "BEIJING": 8, "SHANGHAI": 8, "SHENZHEN": 8, "HONG KONG": 8, "TAIWAN": 8, "TAIPEI": 8,
-  "SINGAPORE": 8, "MALAYSIA": 8, "KUALA LUMPUR": 8, "INDONESIA": 7, "JAKARTA": 7, "BALI": 8,
-  "THAILAND": 7, "BANGKOK": 7, "VIETNAM": 7, "HANOI": 7, "HO CHI MINH": 7,
-  "PHILIPPINES": 8, "MANILA": 8, "INDIA": 5.5, "NEW DELHI": 5.5, "MUMBAI": 5.5, "BANGALORE": 5.5, "CHENNAI": 5.5, "HYDERABAD": 5.5, "KOLKATA": 5.5,
-  "PAKISTAN": 5, "KARACHI": 5, "BANGLADESH": 6, "DHAKA": 6, "SRI LANKA": 5.5, "COLOMBO": 5.5, "NEPAL": 5.75, "KATHMANDU": 5.75,
-  "AUSTRALIA": 10, "SYDNEY": 10, "MELBOURNE": 10, "BRISBANE": 10, "PERTH": 8,
-  "NEW ZEALAND": 12, "AUCKLAND": 12, "WELLINGTON": 12,
-  "UAE": 4, "UNITED ARAB EMIRATES": 4, "DUBAI": 4, "ABU DHABI": 4,
-  "SAUDI ARABIA": 3, "RIYADH": 3, "JEDDAH": 3, "QATAR": 3, "DOHA": 3,
-  "TURKEY": 3, "ISTANBUL": 3, "ANKARA": 3, "ISRAEL": 2, "TEL AVIV": 2,
-  "EGYPT": 2, "CAIRO": 2, "SOUTH AFRICA": 2, "JOHANNESBURG": 2, "CAPE TOWN": 2,
-  "NIGERIA": 1, "LAGOS": 1, "KENYA": 3, "NAIROBI": 3, "MOROCCO": 1, "CASABLANCA": 1,
-  "BRAZIL": -3, "SAO PAULO": -3, "RIO DE JANEIRO": -3,
-  "ARGENTINA": -3, "BUENOS AIRES": -3, "CHILE": -3, "SANTIAGO": -3, "COLOMBIA": -5, "BOGOTA": -5, "PERU": -5, "LIMA": -5
-};
-
-function parseTimezoneOffset(tzStr?: string, countryStr?: string, cityStr?: string): number {
-  if (tzStr) {
-    const clean = tzStr.trim().toUpperCase();
-    if (TIMEZONE_OFFSET_MAP[clean] !== undefined) return TIMEZONE_OFFSET_MAP[clean];
-    const match = clean.match(/(?:UTC|GMT)?\s*([+-])\s*(\d{1,2})(?::?(\d{2}))?/i);
-    if (match) {
-      const sign = match[1] === "-" ? -1 : 1;
-      const hours = parseInt(match[2], 10) || 0;
-      const minutes = parseInt(match[3] || "0", 10) || 0;
-      return sign * (hours + minutes / 60);
-    }
-  }
-  if (cityStr) {
-    const cleanCity = cityStr.trim().toUpperCase();
-    if (COUNTRY_CITY_TIMEZONE_MAP[cleanCity] !== undefined) return COUNTRY_CITY_TIMEZONE_MAP[cleanCity];
-  }
-  if (countryStr) {
-    const cleanCountry = countryStr.trim().toUpperCase();
-    if (COUNTRY_CITY_TIMEZONE_MAP[cleanCountry] !== undefined) return COUNTRY_CITY_TIMEZONE_MAP[cleanCountry];
-  }
-  // Unknown or newly added locations use the India server timezone by default.
-  return 5.5;
-}
-
-function parseEndTimeFromString(timeStr?: string): { hours: number; minutes: number } | null {
-  if (!timeStr) return null;
-  const clean = timeStr.trim();
-  let target = clean;
-  if (clean.includes("-")) {
-    const parts = clean.split("-");
-    target = parts[parts.length - 1].trim();
-  } else if (clean.includes("to")) {
-    const parts = clean.split("to");
-    target = parts[parts.length - 1].trim();
-  }
-  const match = target.match(/(\d{1,2})(?::(\d{2}))?\s*(AM|PM)?/i);
-  if (!match) return null;
-
-  let hours = parseInt(match[1], 10);
-  const minutes = parseInt(match[2] || "0", 10);
-  const ampm = match[3] ? match[3].toUpperCase() : null;
-
-  if (ampm) {
-    if (ampm === "PM" && hours < 12) hours += 12;
-    if (ampm === "AM" && hours === 12) hours = 0;
-  }
-  if (hours >= 0 && hours < 24 && minutes >= 0 && minutes < 60) {
-    return { hours, minutes };
-  }
-  return null;
-}
 
 function getConferenceEndTimestamp(conf: any): number | null {
   const dateStr = conf.end_date || conf.endDate || conf.start_date || conf.startDate;
@@ -552,10 +929,59 @@ let currentAdminProfile = {
 };
 
 const ADMIN_STORE_FILE = path.resolve(process.cwd(), process.env.ADMIN_STORE_PATH || ".data/admin-store.json");
-const hashAdminPassword = (password: string) => crypto
-  .createHash("sha256")
-  .update("gch_auth_salt_2026_" + password)
-  .digest("hex");
+const hashAdminPassword = (password: string) => {
+  const salt = crypto.randomBytes(16).toString("hex");
+  const digest = crypto.scryptSync(password, salt, 64).toString("hex");
+
+  return `scrypt$${salt}$${digest}`;
+};
+
+const legacyAdminPasswordHash = (password: string) =>
+  crypto
+    .createHash("sha256")
+    .update("gch_auth_salt_2026_" + password)
+    .digest("hex");
+
+const verifyAdminPassword = (
+  password: string,
+  storedHash: string
+) => {
+  try {
+    const stored = String(storedHash || "");
+
+    if (!stored) return false;
+
+    if (stored.startsWith("scrypt$")) {
+      const [scheme, salt, expectedHex] = stored.split("$");
+
+      if (scheme !== "scrypt" || !salt || !expectedHex) {
+        return false;
+      }
+
+      const actual = crypto.scryptSync(password, salt, 64);
+      const expected = Buffer.from(expectedHex, "hex");
+
+      return (
+        actual.length === expected.length &&
+        crypto.timingSafeEqual(actual, expected)
+      );
+    }
+
+    // Old SHA-256 Admin password support
+    const actualLegacy = legacyAdminPasswordHash(password);
+
+    if (actualLegacy.length !== stored.length) {
+      return false;
+    }
+
+    return crypto.timingSafeEqual(
+      Buffer.from(actualLegacy),
+      Buffer.from(stored)
+    );
+  } catch {
+    return false;
+  }
+};
 
 async function loadLocalAdminStore() {
   try {
@@ -750,8 +1176,8 @@ const verifyOrganizerResetToken = (token?: string): { userId: string; nonce: str
           about_organization: "",
           logo: "https://images.unsplash.com/photo-1599305445671-ac291c95aba9?auto=format&fit=crop&w=120&h=120&q=80",
           cover_image: "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=1000&q=80",
-          country: "Japan",
-          city: "Tokyo",
+          country: "",
+          city: "",
           is_verified: false,
           is_suspended: false,
           is_featured: false,
@@ -1126,12 +1552,38 @@ app.post("/api/admin/login", rateLimit("admin-login", 8, 15 * 60 * 1000), async 
       return res.status(401).json({ success: false, error: "Invalid email or password" });
     }
 
-    // Compute SHA-256 hash using salt "gch_auth_salt_2026_"
-    const computedHash = hashAdminPassword(password);
+    // Verify Admin password
+    if (
+  !verifyAdminPassword(
+    String(password),
+    currentAdminPasswordHash
+  )
+) {
+  return res.status(401).json({
+    success: false,
+    error: "Invalid email or password"
+  });
+}
 
-    if (computedHash !== currentAdminPasswordHash) {
-      return res.status(401).json({ success: false, error: "Invalid email or password" });
-    }
+// Upgrade old SHA-256 password hash to scrypt
+// after successful Admin login.
+if (!currentAdminPasswordHash.startsWith("scrypt$")) {
+  const previousPasswordHash = currentAdminPasswordHash;
+
+  currentAdminPasswordHash =
+    hashAdminPassword(String(password));
+
+  const upgraded = await persistAdminStore();
+
+  if (!upgraded.success) {
+    currentAdminPasswordHash = previousPasswordHash;
+
+    console.warn(
+      "Admin password hash upgrade could not be persisted:",
+      upgraded.error
+    );
+  }
+}
 
     const sessionExpiresAt = Date.now() + SESSION_TTL_MS;
     const sessionToken = signSession(sessionExpiresAt);
@@ -1227,6 +1679,190 @@ app.delete("/api/admin/db/:table/:id", requireAdminSession, async (req, res) => 
   return res.json({ success: true });
 });
 
+// Permanently delete an organizer, their login account,
+// conferences, notifications, and organizer auth records.
+app.delete(
+  "/api/admin/organizers/:id",
+  requireAdminSession,
+  async (req, res) => {
+    if (!requireServiceRole(res)) return;
+
+    const organizerId = String(
+      req.params.id || ""
+    ).trim();
+
+    if (!organizerId) {
+      return res.status(400).json({
+        success: false,
+        error: "Organizer id is required."
+      });
+    }
+
+    try {
+      // 1. Read organizer before deleting anything
+      const {
+        data: organizer,
+        error: organizerFetchError
+      } = await supabaseServerClient
+        .from("organizers")
+        .select(
+          "id,email,auth_user_id"
+        )
+        .eq("id", organizerId)
+        .maybeSingle();
+
+      if (organizerFetchError) {
+        return res.status(500).json({
+          success: false,
+          error:
+            organizerFetchError.message ||
+            "Unable to read organizer."
+        });
+      }
+
+      if (!organizer) {
+        return res.status(404).json({
+          success: false,
+          error: "Organizer not found."
+        });
+      }
+
+      const authUserId = String(
+        organizer.auth_user_id || ""
+      ).trim();
+
+      /*
+       * 2. Delete Supabase Auth account first.
+       *
+       * If the following database cleanup fails,
+       * Admin can safely retry the delete operation.
+       *
+       * A missing Auth account is treated as already
+       * deleted so retries remain safe.
+       */
+      if (authUserId) {
+        const {
+          error: authDeleteError
+        } =
+          await supabaseServerClient.auth.admin.deleteUser(
+            authUserId
+          );
+
+        if (authDeleteError) {
+          const authStatus = Number(
+            (authDeleteError as any)?.status || 0
+          );
+
+          const authMessage = String(
+            authDeleteError.message || ""
+          );
+
+          const alreadyMissing =
+            authStatus === 404 ||
+            /not found/i.test(authMessage);
+
+          if (!alreadyMissing) {
+            return res.status(500).json({
+              success: false,
+              error:
+                authDeleteError.message ||
+                "Failed to delete organizer login account."
+            });
+          }
+        }
+      }
+
+      // Helper for service-role database cleanup
+      const deleteOrganizerRows = async (
+        table: string,
+        column: string,
+        value: string
+      ) => {
+        const { error } =
+          await supabaseServerClient
+            .from(table)
+            .delete()
+            .eq(column, value);
+
+        if (error) {
+          throw new Error(
+            `${table}: ${error.message}`
+          );
+        }
+      };
+
+      // 3. Delete organizer notifications
+      await deleteOrganizerRows(
+        "notifications",
+        "organizer_id",
+        organizerId
+      );
+
+      // 4. Delete organizer conferences
+      await deleteOrganizerRows(
+        "conferences",
+        "organizer_id",
+        organizerId
+      );
+
+      // 5. Delete organizer authentication records
+      await deleteOrganizerRows(
+        "organizer_auth_secrets",
+        "organizer_id",
+        organizerId
+      );
+
+      await deleteOrganizerRows(
+        "organizer_legacy_auth",
+        "organizer_id",
+        organizerId
+      );
+
+      // 6. Finally delete organizer profile
+      const {
+        data: deletedOrganizer,
+        error: organizerDeleteError
+      } = await supabaseServerClient
+        .from("organizers")
+        .delete()
+        .eq("id", organizerId)
+        .select("id");
+
+      if (organizerDeleteError) {
+        throw new Error(
+          organizerDeleteError.message
+        );
+      }
+
+      if (!deletedOrganizer?.length) {
+        throw new Error(
+          "Organizer record was not deleted."
+        );
+      }
+
+      return res.json({
+        success: true,
+        organizerId,
+        authUserDeleted: Boolean(
+          authUserId
+        )
+      });
+    } catch (error: any) {
+      console.error(
+        "[Admin Organizer Delete Error]",
+        error
+      );
+
+      return res.status(500).json({
+        success: false,
+        error:
+          error?.message ||
+          "Failed to permanently delete organizer."
+      });
+    }
+  }
+);
+
 app.post("/api/admin/profile", requireAdminSession, async (req, res) => {
   try {
     await adminStoreReady;
@@ -1275,10 +1911,12 @@ app.post(
       }
 
       // Verify current password
-      const computedCurrentHash =
-        hashAdminPassword(String(currentPassword));
-
-      if (computedCurrentHash !== currentAdminPasswordHash) {
+      if (
+        !verifyAdminPassword(
+          String(currentPassword),
+          currentAdminPasswordHash
+        )
+      ) {
         return res.status(401).json({
           success: false,
           error: "Current password is incorrect."
@@ -1589,9 +2227,17 @@ app.post("/api/admin/reset-database", rateLimit("admin-reset", 20, 60 * 60 * 100
       return res.status(400).json({ success: false, error: "Select a valid database section to delete." });
     }
 
-    if (hashAdminPassword(adminPassword) !== currentAdminPasswordHash) {
-      return res.status(401).json({ success: false, error: "Invalid Admin password. Delete operation aborted." });
-    }
+    if (
+  !verifyAdminPassword(
+    String(adminPassword),
+    currentAdminPasswordHash
+  )
+) {
+  return res.status(401).json({
+    success: false,
+    error: "Invalid Admin password. Delete operation aborted."
+  });
+}
 
           // Collect Organizer Auth user IDs before deleting organizer records.
       let organizerAuthUserIds: string[] = [];
@@ -1749,7 +2395,11 @@ app.post("/api/admin/reset-database", rateLimit("admin-reset", 20, 60 * 60 * 100
 });
 
 // Status Sync Endpoint for Completed Conferences (Non-destructive: No records are ever automatically deleted)
-app.all("/api/conferences/cleanup-expired", rateLimit("conference-status-sync", 12, 60 * 60 * 1000), async (req, res) => {
+app.post(
+  "/api/conferences/cleanup-expired",
+  rateLimit("conference-status-sync", 12, 60 * 60 * 1000),
+  requireAdminSession,
+  async (req, res) => {
   try {
     const result = await syncCompletedConferencesStatusServer();
     res.json({
@@ -2306,17 +2956,12 @@ Return as JSON.`,
   }
 });
 
-// Setup Vite Dev Server
-async function startServer() {
-  if (process.env.NODE_ENV !== "production") {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: "spa",
-    });
-    app.use(vite.middlewares);
-  } else {
-    const distPath = path.join(process.cwd(), "dist");
-    app.use(express.static(distPath, {
+
+const setupProductionFrontend = () => {
+  const distPath = path.join(process.cwd(), "dist");
+
+  app.use(
+    express.static(distPath, {
       maxAge: "1y",
       immutable: true,
       setHeaders: (res, filePath) => {
@@ -2324,51 +2969,72 @@ async function startServer() {
           res.setHeader("Cache-Control", "no-cache");
         }
       },
-    }));
-    app.get("*", async (req, res) => {
-  try {
-    const indexPath = path.join(distPath, "index.html");
+    })
+  );
 
-    let html = await fs.readFile(indexPath, "utf-8");
+  app.get("*", async (req, res) => {
+    try {
+      const indexPath = path.join(distPath, "index.html");
 
-    // Get server-side SEO metadata for the requested page
-    const seoMetadata = await getSeoMetadataForPath(req.path);
+      let html = await fs.readFile(indexPath, "utf-8");
 
-    if (seoMetadata) {
-      html = injectSeoMetadata(html, seoMetadata);
-    } else {
-      // Fallback: keep homepage/default SEO year automatic
-      const currentYear = new Date().getFullYear();
+      const seoMetadata = await getSeoMetadataForPath(req.path);
 
-      html = html.replace(
-        /International Conferences 2026 \| Upcoming Global International Conferences and Events/g,
-        `International Conferences ${currentYear} | Upcoming Global International Conferences and Events`
-      );
+      if (seoMetadata) {
+        html = injectSeoMetadata(html, seoMetadata);
+      } else {
+        const currentYear = new Date().getFullYear();
 
-      html = html.replace(
-        /upcoming international conferences 2026/g,
-        `upcoming international conferences ${currentYear}`
-      );
+        html = html.replace(
+          /International Conferences 2026 \| Upcoming Global International Conferences and Events/g,
+          `International Conferences ${currentYear} | Upcoming Global International Conferences and Events`
+        );
 
-      html = html.replace(
-        /international conferences worldwide 2026/g,
-        `international conferences worldwide ${currentYear}`
-      );
+        html = html.replace(
+          /upcoming international conferences 2026/g,
+          `upcoming international conferences ${currentYear}`
+        );
+
+        html = html.replace(
+          /international conferences worldwide 2026/g,
+          `international conferences worldwide ${currentYear}`
+        );
+      }
+
+      res.setHeader("Content-Type", "text/html");
+      res.setHeader("Cache-Control", "no-cache");
+
+      res.send(html);
+    } catch (error) {
+      console.error("Failed to serve frontend:", error);
+
+      res
+        .status(500)
+        .send("Failed to load application");
     }
+  });
+};
 
-    res.setHeader("Content-Type", "text/html");
-    res.setHeader("Cache-Control", "no-cache");
+// Setup Vite Dev Server
+async function startServer() {
+  if (process.env.NODE_ENV !== "production") {
+    const vite = await createViteServer({
+      server: {
+        middlewareMode: true,
+      },
+      appType: "spa",
+    });
 
-    res.send(html);
-  } catch (error) {
-    console.error("Failed to serve frontend:", error);
-    res.status(500).send("Failed to load application");
-  }
-});
+    app.use(vite.middlewares);
+  } else {
+    setupProductionFrontend();
   }
 
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`🚀 International Conference running on http://localhost:${PORT}`);
+    console.log(
+      `🚀 International Conference running on http://localhost:${PORT}`
+    );
+
     console.log(`📊 API endpoints:`);
     console.log(`  - /api/health`);
     console.log(`  - /api/gemini/detect-duplicate`);
@@ -2379,7 +3045,9 @@ async function startServer() {
   });
 }
 
-if (!process.env.VERCEL) {
+if (process.env.VERCEL) {
+  setupProductionFrontend();
+} else {
   startServer();
 }
 

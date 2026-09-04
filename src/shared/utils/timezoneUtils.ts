@@ -42,7 +42,7 @@ export function resolveConferenceTimeZone(timeZone?: string, country?: string, c
   if (LOCATION_TIMEZONES[countryKey]) return LOCATION_TIMEZONES[countryKey];
   const explicitKey = explicit.toUpperCase();
   const hintedLocation = Object.keys(LOCATION_TIMEZONES).find((key) => explicitKey.includes(key));
-  return hintedLocation ? LOCATION_TIMEZONES[hintedLocation] : "Asia/Kolkata";
+  return hintedLocation ? LOCATION_TIMEZONES[hintedLocation] : "UTC";
 }
 
 function getOffsetMilliseconds(timestamp: number, timeZone: string): number {

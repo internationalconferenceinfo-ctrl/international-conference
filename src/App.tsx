@@ -2467,25 +2467,105 @@ useEffect(() => {
     logAudit("Toggled Verified Conference", `Changed verification badge for '${conf.title}'`, "Super Admin", "ADMIN");
   };
 
-  const handleVerifyOrganizer = async (orgId: string) => {
-    const org = organizers.find((o) => o.id === orgId);
-    if (!org) return;
+    const handleVerifyOrganizer = async (
+      orgId: string
+    ): Promise<{
+      success: boolean;
+      isVerified: boolean;
+      error?: string;
+    }> => {
+      const org = organizers.find(
+        (o) => o.id === orgId
+      );
 
-    const nextState = !org.isVerified;
-    const toggledOrg = { ...org, isVerified: nextState };
+      if (!org) {
+        return {
+          success: false,
+          isVerified: false,
+          error: "Organizer not found."
+        };
+      }
 
-    await saveRecordToSupabase("organizers", toggledOrg);
-    const freshOrgs = await fetchFromSupabase<OrganizerProfile[]>("organizers", true);
-    if (freshOrgs && Array.isArray(freshOrgs)) {
-      setOrganizers(ensureOrganizerSlugs(freshOrgs));
-    }
-    triggerBroadcastSync();
+      const nextState = !org.isVerified;
 
-    if (nextState) {
-      addNotification("Account Verified ✅", "Your organization has been verified!", "success", orgId);
-    }
-    logAudit("Vetted Organizer", `Toggled verification badge for organizer ID ${orgId}`, "Super Admin", "ADMIN");
-  };
+      const toggledOrg = {
+        ...org,
+        isVerified: nextState
+      };
+
+      const saved =
+        await saveRecordToSupabase(
+          "organizers",
+          toggledOrg
+        );
+
+      if (!saved.success) {
+        console.error(
+          "Organizer verification update failed:",
+          saved.error
+        );
+
+        return {
+          success: false,
+          isVerified: Boolean(org.isVerified),
+          error:
+            saved.error ||
+            "Database update failed."
+        };
+      }
+
+      setOrganizers((current) =>
+        current.map((item) =>
+          item.id === orgId
+            ? toggledOrg
+            : item
+        )
+      );
+
+      const freshOrgs =
+        await fetchFromSupabase<
+          OrganizerProfile[]
+        >(
+          "organizers",
+          true
+        );
+
+      if (
+        freshOrgs &&
+        Array.isArray(freshOrgs)
+      ) {
+        setOrganizers(
+          ensureOrganizerSlugs(
+            freshOrgs
+          )
+        );
+      }
+
+      triggerBroadcastSync();
+
+      if (nextState) {
+        addNotification(
+          "Account Verified ✅",
+          "Your organization has been verified!",
+          "success",
+          orgId
+        );
+      }
+
+      logAudit(
+        "Vetted Organizer",
+        `Set organizer ID ${orgId} verification to ${
+          nextState ? "verified" : "unverified"
+        }`,
+        "Super Admin",
+        "ADMIN"
+      );
+
+      return {
+        success: true,
+        isVerified: nextState
+      };
+    };
 
   const handleToggleSuspendOrganizer = async (orgId: string) => {
     const org = organizers.find((o) => o.id === orgId);
@@ -2525,25 +2605,125 @@ useEffect(() => {
     return { success: true, isActive: !nextSuspended };
   };
 
-  const handleDeleteOrganizer = async (orgId: string) => {
-    await deleteRecordFromSupabase("organizers", orgId);
-    await deleteFromSupabase("organizers", orgId);
+const handleDeleteOrganizer = async (
+  orgId: string
+): Promise<{
+  success: boolean;
+  error?: string;
+}> => {
+  const normalizedOrgId =
+    String(orgId || "").trim();
 
-    const orgConfs = conferences.filter((c) => c.organizerId === orgId);
-    for (const c of orgConfs) {
-      await deleteRecordFromSupabase("conferences", c.id);
-      await deleteFromSupabase("conferences", c.id);
+  if (!normalizedOrgId) {
+    return {
+      success: false,
+      error: "Organizer ID is missing."
+    };
+  }
+
+  try {
+    const response = await adminFetch(
+      `/api/admin/organizers/${encodeURIComponent(
+        normalizedOrgId
+      )}`,
+      {
+        method: "DELETE",
+        credentials: "same-origin",
+        cache: "no-store"
+      }
+    );
+
+    const data = await response
+      .json()
+      .catch(() => ({}));
+
+    if (
+      !response.ok ||
+      !data?.success
+    ) {
+      const errorMessage =
+        data?.error ||
+        "Failed to permanently delete organizer.";
+
+      console.error(
+        "Organizer delete failed:",
+        errorMessage
+      );
+
+      return {
+        success: false,
+        error: errorMessage
+      };
     }
 
-    const freshOrgs = await fetchFromSupabase<OrganizerProfile[]>("organizers", true);
-    if (freshOrgs) setOrganizers(ensureOrganizerSlugs(freshOrgs));
+    // Reload organizers from the real database.
+    const freshOrgs =
+      await fetchFromSupabase<
+        OrganizerProfile[]
+      >(
+        "organizers",
+        true
+      );
 
-    const freshConfs = await fetchFromSupabase<Conference[]>("conferences", true);
-    if (freshConfs) setConferences(ensureConferenceSlugs(freshConfs));
+    if (
+      freshOrgs &&
+      Array.isArray(freshOrgs)
+    ) {
+      setOrganizers(
+        ensureOrganizerSlugs(
+          freshOrgs
+        )
+      );
+    }
+
+    // Reload conferences because the server
+    // also deletes this organizer's conferences.
+    const freshConfs =
+      await fetchFromSupabase<
+        Conference[]
+      >(
+        "conferences",
+        true
+      );
+
+    if (
+      freshConfs &&
+      Array.isArray(freshConfs)
+    ) {
+      setConferences(
+        ensureConferenceSlugs(
+          freshConfs
+        )
+      );
+    }
 
     triggerBroadcastSync();
-    logAudit("Deleted Organizer", `Fully purged organizer ID ${orgId} and their conferences`, "Super Admin", "ADMIN");
-  };
+
+    logAudit(
+      "Deleted Organizer",
+      `Permanently deleted organizer ID ${normalizedOrgId}, their login account, and associated records`,
+      "Super Admin",
+      "ADMIN"
+    );
+
+    return {
+      success: true
+    };
+  } catch (error) {
+    console.error(
+      "Organizer permanent delete error:",
+      error
+    );
+
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to permanently delete organizer."
+    };
+  }
+};
 
 const handleAddCategory = async (cat: Partial<Category>) => {
   if (!cat.name?.trim()) return;

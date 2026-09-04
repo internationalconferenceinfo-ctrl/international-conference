@@ -81,6 +81,7 @@ function sanitizeForTable(table: string, data: any[]): any[] {
       category: item.category || "",
       slug: item.slug || "",
       country: item.country || "",
+      state: item.state || "",
       city: item.city || "",
       location: item.venue || item.location || "",
       start_date: item.startDate || item.start_date || "",
@@ -249,7 +250,13 @@ function sanitizeForTable(table: string, data: any[]): any[] {
     return data.map((item: any) => {
       if (typeof item === "string") {
         const val = item.trim().toUpperCase();
-        return { id: val, name: val, country: "", created_at: new Date().toISOString() };
+        return {
+          id: val,
+          name: val,
+          country: "",
+          time_zone: "",
+          created_at: new Date().toISOString()
+        };
       }
       const countryStr = String(item.country || "").trim().toUpperCase();
       const nameStr = String(item.name || "").trim().toUpperCase();
@@ -258,7 +265,14 @@ function sanitizeForTable(table: string, data: any[]): any[] {
         id: String(calculatedId),
         name: nameStr,
         country: countryStr,
-        created_at: item.created_at || new Date().toISOString()
+        time_zone: String(
+          item.timeZone ||
+          item.time_zone ||
+          ""
+        ).trim(),
+        created_at:
+          item.created_at ||
+          new Date().toISOString()
       };
     });
   }
@@ -381,6 +395,7 @@ function normalizeFromTable(table: string, data: any): any {
       category: row.category || "",
       slug: row.slug || "",
       country: row.country || "",
+      state: row.state || "",
       city: row.city || "",
       venue: row.location || row.venue || "",
       startDate: row.start_date || "",
@@ -543,18 +558,40 @@ function normalizeFromTable(table: string, data: any): any {
   }
 
   if (table === "cities") {
-    return data
-      .map((item: any) => {
-        if (typeof item === "object" && item !== null) {
-          return {
-            name: String(item.name || item.id || "").trim().toUpperCase(),
-            country: String(item.country || "").trim().toUpperCase()
-          };
-        }
-        return { name: String(item || "").trim().toUpperCase(), country: "" };
-      })
-      .filter((c: any) => Boolean(c.name));
-  }
+  return data
+    .map((item: any) => {
+      if (typeof item === "object" && item !== null) {
+        return {
+          name: String(
+            item.name || item.id || ""
+          )
+            .trim()
+            .toUpperCase(),
+
+          country: String(
+            item.country || ""
+          )
+            .trim()
+            .toUpperCase(),
+
+          timeZone: String(
+            item.time_zone ||
+            item.timeZone ||
+            ""
+          ).trim()
+        };
+      }
+
+      return {
+        name: String(item || "")
+          .trim()
+          .toUpperCase(),
+        country: "",
+        timeZone: ""
+      };
+    })
+    .filter((c: any) => Boolean(c.name));
+}
 
   if (table === "media_partners") {
     return data.map((item: any) => {
@@ -860,40 +897,92 @@ export async function saveToSupabase(
 }
     else if (typeof data === "object" && data !== null) {
   if (snakeTable === "contact_info") {
-    const payload = {
-      id: data.id || "primary",
-      email: data.email || "",
-      phone: data.phone || "",
-      address: data.address || "",
-      website: data.website || "",
-      updated_at: new Date().toISOString()
-    };
+  const payload = {
+    id: data.id || "primary",
+    email: data.email || "",
+    phone: data.phone || "",
+    address: data.address || "",
+    website: data.website || "",
+    updated_at:
+      data.updated_at ||
+      new Date().toISOString()
+  };
 
-    const res = await client.from("contact_info").upsert(payload);
+  const adminWrite =
+    await tryAdminServerUpsert(
+      "contact_info",
+      payload
+    );
 
-    if (!res.error) {
+  if (adminWrite.handled) {
+    if (adminWrite.success) {
+      success = true;
+    } else {
+      console.error(
+        "[Contact Info Admin Save Error]:",
+        adminWrite.error
+      );
+    }
+  } else {
+    const res = await client
+      .from("contact_info")
+      .upsert(payload);
+
+    if (res.error) {
+      console.error(
+        "[Contact Info Supabase Save Error]:",
+        res.error
+      );
+    } else {
       success = true;
     }
   }
+}
 
-  else if (snakeTable === "social_links") {
-    const payload = {
-      id: data.id || "primary",
-      facebook: data.facebook || "",
-      instagram: data.instagram || "",
-      linkedin: data.linkedin || "",
-      twitter: data.twitter || "",
-      youtube: data.youtube || "",
-      other: data.other || "",
-      updated_at: new Date().toISOString()
-    };
+else if (snakeTable === "social_links") {
+  const payload = {
+    id: data.id || "primary",
+    facebook: data.facebook || "",
+    instagram: data.instagram || "",
+    linkedin: data.linkedin || "",
+    twitter: data.twitter || "",
+    youtube: data.youtube || "",
+    other: data.other || "",
+    updated_at:
+      data.updated_at ||
+      new Date().toISOString()
+  };
 
-    const res = await client.from("social_links").upsert(payload);
+  const adminWrite =
+    await tryAdminServerUpsert(
+      "social_links",
+      payload
+    );
 
-    if (!res.error) {
+  if (adminWrite.handled) {
+    if (adminWrite.success) {
+      success = true;
+    } else {
+      console.error(
+        "[Social Links Admin Save Error]:",
+        adminWrite.error
+      );
+    }
+  } else {
+    const res = await client
+      .from("social_links")
+      .upsert(payload);
+
+    if (res.error) {
+      console.error(
+        "[Social Links Supabase Save Error]:",
+        res.error
+      );
+    } else {
       success = true;
     }
   }
+}
 
   else if (snakeTable === "privacy_policy") {
   const payload = {
@@ -1317,7 +1406,13 @@ export async function fetchCityCountByCountryFromSupabase(
  */
 export async function fetchCitiesByCountryFromSupabase(
   country: string
-): Promise<Array<{ name: string; country: string }>> {
+): Promise<
+  Array<{
+    name: string;
+    country: string;
+    timeZone: string;
+  }>
+> {
   const client = getSupabaseClient();
 
   if (!client || !country?.trim()) {
@@ -1336,7 +1431,7 @@ export async function fetchCitiesByCountryFromSupabase(
 
       const { data, error } = await client
         .from("cities")
-        .select("id,name,country")
+        .select("id,name,country,time_zone")
         .eq("country", normalizedCountry)
         .order("name", { ascending: true })
         .range(from, to);

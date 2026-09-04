@@ -13,6 +13,9 @@ import {
   saveRecordToSupabase,
   deleteRecordFromSupabase
 } from "../database/supabase";
+
+import { detectCityTimeZone } from "../shared/utils/cityTimezoneLookup";
+
 import { 
   Check, X, ShieldAlert, Award, ShieldCheck, Flag, Ban, 
   Edit2, Edit3, Trash2, Calendar, MapPin, Eye, EyeOff, ExternalLink, 
@@ -70,9 +73,20 @@ interface AdminPortalProps {
   onDeleteConference?: (confId: string) => void;
   onToggleFeatureConference: (confId: string) => void;
   onToggleVerifyConference: (confId: string) => void;
-  onVerifyOrganizer: (orgId: string) => void;
+  onVerifyOrganizer: (
+  orgId: string
+) => Promise<{
+  success: boolean;
+  isVerified: boolean;
+  error?: string;
+}>;
   onToggleSuspendOrganizer: (orgId: string) => Promise<{ success: boolean; isActive: boolean; error?: string }>;
-  onDeleteOrganizer: (orgId: string) => void;
+  onDeleteOrganizer: (
+  orgId: string
+) => Promise<{
+  success: boolean;
+  error?: string;
+}>;
  onAddCategory: (
   cat: Partial<Category>
 ) => Promise<void> | void;
@@ -322,7 +336,14 @@ const setCountriesList = async (
 // Cities are loaded country-by-country for large location databases.
 // This prevents millions of cities from being kept in browser memory.
 const [adminCitiesByCountry, setAdminCitiesByCountry] = useState<
-  Record<string, Array<{ name: string; country: string }>>
+  Record<
+  string,
+  Array<{
+    name: string;
+    country: string;
+    timeZone: string;
+  }>
+>
 >({});
 
 const [adminCitiesLoading, setAdminCitiesLoading] = useState<
@@ -1444,6 +1465,39 @@ for (const country of excelCountries) {
         );
       });
 
+      const finalCitiesWithTimeZones: Array<{
+          name: string;
+          country: string;
+          timeZone: string;
+        }> = [];
+
+        const TIMEZONE_BATCH_SIZE = 100;
+
+        for (
+          let index = 0;
+          index < finalCities.length;
+          index += TIMEZONE_BATCH_SIZE
+        ) {
+          const batch = finalCities.slice(
+            index,
+            index + TIMEZONE_BATCH_SIZE
+          );
+
+          const enrichedBatch = await Promise.all(
+            batch.map(async (city) => ({
+              ...city,
+              timeZone: await detectCityTimeZone(
+                city.name,
+                city.country
+              )
+            }))
+          );
+
+          finalCitiesWithTimeZones.push(
+            ...enrichedBatch
+          );
+        }
+
   const newCountries =
   finalCountries.filter(
     (country) =>
@@ -1455,7 +1509,7 @@ for (const country of excelCountries) {
   );
 
 const newCities =
-  finalCities.filter((city) => {
+  finalCitiesWithTimeZones.filter((city) => {
     const countryName = String(
       city?.country || ""
     )
@@ -2251,20 +2305,68 @@ const [isLoadingConferenceDescription, setIsLoadingConferenceDescription] =
     }
   };
 
-  const handleSavePublicContact = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSavingPublicContact(true);
-    try {
-      await saveToSupabase("contact_info", { id: "primary", ...publicContactInfo });
-      await saveToSupabase("social_links", { id: "primary", ...publicSocialLinks });
-      triggerBroadcastSync();
-      showToast("Public Contact Us details and footer updated successfully!");
-    } catch (_error) {
-      showToast("Unable to update public contact details.");
-    } finally {
-      setIsSavingPublicContact(false);
+const handleSavePublicContact = async (
+  e: React.FormEvent
+) => {
+  e.preventDefault();
+
+  if (isSavingPublicContact) {
+    return;
+  }
+
+  setIsSavingPublicContact(true);
+
+  try {
+    const contactSaved =
+      await saveToSupabase(
+        "contact_info",
+        {
+          id: "primary",
+          ...publicContactInfo
+        }
+      );
+
+    if (!contactSaved) {
+      showToast(
+        "Unable to save Public Contact Us details."
+      );
+      return;
     }
-  };
+
+    const socialSaved =
+      await saveToSupabase(
+        "social_links",
+        {
+          id: "primary",
+          ...publicSocialLinks
+        }
+      );
+
+    if (!socialSaved) {
+      showToast(
+        "Contact details saved, but social links could not be saved."
+      );
+      return;
+    }
+
+    triggerBroadcastSync();
+
+    showToast(
+      "Public Contact Us details and footer updated successfully!"
+    );
+  } catch (error) {
+    console.error(
+      "Public contact save error:",
+      error
+    );
+
+    showToast(
+      "Unable to update public contact details."
+    );
+  } finally {
+    setIsSavingPublicContact(false);
+  }
+};
 
   const handleSaveAboutUs = async () => {
   if (!aboutUsContent.title.trim()) {
@@ -4169,22 +4271,59 @@ const [isSavingCredentials, setIsSavingCredentials] =
                             </button>
 
                             <button
-                              onClick={() => {
-                                onVerifyOrganizer(org.id);
-                                showToast(org.isVerified ? "Organizer set to unverified." : "Organizer verified successfully!");
-                              }}
+                              onClick={async () => {
+                              const result =
+                                await onVerifyOrganizer(org.id);
+
+                              if (!result.success) {
+                                showToast(
+                                  result.error ||
+                                    "Unable to update organizer verification."
+                                );
+                                return;
+                              }
+
+                              showToast(
+                                result.isVerified
+                                  ? "Organizer verified successfully!"
+                                  : "Organizer set to unverified."
+                              );
+                            }}
                               className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs cursor-pointer transition-colors"
                             >
                               {org.isVerified ? "Unverify" : "Verify"}
                             </button>
 
                             <button
-                              onClick={() => {
-                                if (confirm(`Are you sure you want to permanently delete organizer "${org.organizationName || org.email}"?`)) {
-                                  onDeleteOrganizer(org.id);
-                                  showToast(`Organizer "${org.organizationName || org.email}" deleted.`);
-                                }
-                              }}
+                              onClick={async () => {
+                              const organizerName =
+                                org.organizationName ||
+                                org.email ||
+                                "Organizer";
+
+                              if (
+                                !confirm(
+                                  `Are you sure you want to permanently delete organizer "${organizerName}"? This will also delete the organizer login account and associated conferences.`
+                                )
+                              ) {
+                                return;
+                              }
+
+                              const result =
+                                await onDeleteOrganizer(org.id);
+
+                              if (!result.success) {
+                                showToast(
+                                  result.error ||
+                                    "Failed to delete organizer."
+                                );
+                                return;
+                              }
+
+                              showToast(
+                                `Organizer "${organizerName}" permanently deleted.`
+                              );
+                            }}
                               className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl cursor-pointer transition-colors"
                               title="Delete Organizer"
                             >
@@ -6255,11 +6394,18 @@ const [isSavingCredentials, setIsSavingCredentials] =
                 const normalizedCountry =
                   toUpperCaseName(newCityCountry);
 
+                  const detectedTimeZone =
+                    await detectCityTimeZone(
+                      trimmedCity,
+                      normalizedCountry
+                    );
+
                 try {
                   const cityRecord = {
                     id: `${normalizedCountry}:::${trimmedCity}`,
                     name: trimmedCity,
-                    country: normalizedCountry
+                    country: normalizedCountry,
+                    timeZone: detectedTimeZone
                   };
 
                   const saved =
@@ -6296,7 +6442,8 @@ const [isSavingCredentials, setIsSavingCredentials] =
                             ...current,
                             {
                               name: trimmedCity,
-                              country: normalizedCountry
+                              country: normalizedCountry,
+                              timeZone: detectedTimeZone
                             }
                           ];
 
@@ -6396,109 +6543,90 @@ const [isSavingCredentials, setIsSavingCredentials] =
                 {countriesList.length > 0 && (
                   <button
                     onClick={async () => {
-                        if (
-                          !confirm(
-                            `Are you sure you want to permanently delete all ${countriesList.length} countries and ${(Object.values(adminCityCounts) as number[]).reduce((total, count) => total + count, 0)} cities?`
-                          )
-                        ) {
-                          showToast("Delete action cancelled.");
-                          return;
-                        }
+  if (
+    !confirm(
+      `Are you sure you want to permanently delete all ${countriesList.length} countries and ${(Object.values(adminCityCounts) as number[]).reduce(
+        (total, count) => total + count,
+        0
+      )} cities?`
+    )
+  ) {
+    showToast("Delete action cancelled.");
+    return;
+  }
 
-                        const client = getSupabaseClient();
+  const adminPassword = window.prompt(
+    "Enter your current Super Admin password to permanently delete all countries and cities:"
+  );
 
-                        if (!client) {
-                          showToast("Database connection unavailable.");
-                          return;
-                        }
+  if (!adminPassword) {
+    showToast("Super Admin password is required.");
+    return;
+  }
 
-                        try {
-                          // 1. Delete all cities first
-                          const { error: citiesError } = await client
-                            .from("cities")
-                            .delete()
-                            .not("id", "is", null);
+  try {
+    const response = await adminFetch(
+      "/api/admin/reset-database",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          adminPassword,
+          scope: "locations"
+        })
+      }
+    );
 
-                          if (citiesError) {
-                            console.error("Delete all cities failed:", citiesError);
-                            showToast("Failed to delete all cities.");
-                            return;
-                          }
+    const data = await response
+      .json()
+      .catch(() => ({}));
 
-                          // 2. Delete all countries
-                          const { error: countriesError } = await client
-                            .from("countries")
-                            .delete()
-                            .not("id", "is", null);
+    if (!response.ok || !data?.success) {
+      showToast(
+        data?.error ||
+          "Failed to delete countries and cities."
+      );
+      return;
+    }
 
-                          if (countriesError) {
-                            console.error("Delete all countries failed:", countriesError);
-                            showToast("Failed to delete all countries.");
-                            return;
-                          }
+    if (onUpdateCountries) {
+      onUpdateCountries([]);
+    }
 
-                          // 3. Clear inactive country records
-                          const { error: inactiveCountriesError } = await client
-                            .from("inactive_countries")
-                            .delete()
-                            .not("id", "is", null);
+    if (onUpdateCities) {
+      onUpdateCities([]);
+    }
 
-                          if (inactiveCountriesError) {
-                            console.error(
-                              "Delete inactive countries failed:",
-                              inactiveCountriesError
-                            );
-                          }
+    if (onUpdateInactiveCountries) {
+      onUpdateInactiveCountries([]);
+    }
 
-                          // 4. Clear inactive city records
-                          const { error: inactiveCitiesError } = await client
-                            .from("inactive_cities")
-                            .delete()
-                            .not("id", "is", null);
+    if (onUpdateInactiveCities) {
+      onUpdateInactiveCities([]);
+    }
 
-                          if (inactiveCitiesError) {
-                            console.error(
-                              "Delete inactive cities failed:",
-                              inactiveCitiesError
-                            );
-                          }
+    setAdminCitiesByCountry({});
+    setAdminCitiesLoading({});
+    setAdminCityCounts({});
 
-                          // 5. Database deletion finished.
-                          // Clear frontend state and Admin city caches.
-                          // Do not resave empty country/city arrays back to the database.
+    triggerBroadcastSync();
 
-                          if (onUpdateCountries) {
-                            onUpdateCountries([]);
-                          }
+    showToast(
+      "All countries and cities permanently deleted."
+    );
+  } catch (error) {
+    console.error(
+      "Delete all locations failed:",
+      error
+    );
 
-                          if (onUpdateCities) {
-                            onUpdateCities([]);
-                          }
-
-                          if (onUpdateInactiveCountries) {
-                            onUpdateInactiveCountries([]);
-                          }
-
-                          if (onUpdateInactiveCities) {
-                            onUpdateInactiveCities([]);
-                          }
-
-                          setAdminCitiesByCountry({});
-                          setAdminCitiesLoading({});
-
-                          triggerBroadcastSync();
-                          
-
-                          showToast(
-                            "All countries and cities deleted successfully."
-                          );
-                        } catch (error) {
-                          console.error("Delete all locations failed:", error);
-                          showToast(
-                            "Failed to delete all countries and cities. Please try again."
-                          );
-                       }
-                      }}
+    showToast(
+      "Server error while deleting countries and cities."
+    );
+  }
+}}
                     className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl transition-colors cursor-pointer whitespace-nowrap inline-flex items-center gap-1.5"
                     title="Permanently delete all countries and cities"
                   >
@@ -6621,51 +6749,89 @@ const [isSavingCredentials, setIsSavingCredentials] =
                           return;
                         }
 
-                        const client = getSupabaseClient();
+                        const normalizedCountryForDelete =
+  String(countryName || "")
+    .trim()
+    .toUpperCase();
 
-                        if (!client) {
-                          showToast("Database connection unavailable.");
-                          return;
-                        }
+try {
+  const countryCities =
+    await fetchCitiesByCountryFromSupabase(
+      normalizedCountryForDelete
+    );
 
-                        try {
-                          // 1. Delete all cities under this country
-                          const { error: cityDeleteError } = await client
-                            .from("cities")
-                            .delete()
-                            .ilike("country", countryName);
+  const expectedCityCount =
+    await fetchCityCountByCountryFromSupabase(
+      normalizedCountryForDelete
+    );
 
-                          if (cityDeleteError) {
-                            console.error(
-                              "Failed to delete cities for country:",
-                              cityDeleteError
-                            );
+  if (
+    countryCities.length !== expectedCityCount
+  ) {
+    console.error(
+      "Could not load every city before deleting country.",
+      {
+        country: normalizedCountryForDelete,
+        expectedCityCount,
+        loadedCities: countryCities.length
+      }
+    );
 
-                            showToast(
-                              "Failed to delete cities under this country."
-                            );
+    showToast(
+      "Could not safely load all cities. Country was not deleted."
+    );
 
-                            return;
-                          }
+    return;
+  }
 
-                          // 2. Delete the country itself
-                          const { error: countryDeleteError } = await client
-                            .from("countries")
-                            .delete()
-                            .ilike("name", countryName);
+  for (const city of countryCities) {
+    const cityId =
+      `${normalizedCountryForDelete}:::${String(
+        city.name || ""
+      )
+        .trim()
+        .toUpperCase()}`;
 
-                          if (countryDeleteError) {
-                            console.error(
-                              "Failed to delete country:",
-                              countryDeleteError
-                            );
+    const cityDeleted =
+      await deleteFromSupabase(
+        "cities",
+        cityId
+      );
 
-                            showToast(
-                              "Failed to delete country from database."
-                            );
+    if (!cityDeleted) {
+      showToast(
+        `Failed to delete city "${city.name}". Country deletion stopped.`
+      );
 
-                            return;
-                          }
+      return;
+    }
+
+    await deleteFromSupabase(
+      "inactive_cities",
+      cityId
+    );
+  }
+
+  const countryDeleted =
+    await deleteFromSupabase(
+      "countries",
+      normalizedCountryForDelete
+    );
+
+  if (!countryDeleted) {
+    showToast(
+      "Failed to delete country from database."
+    );
+
+    return;
+  }
+
+  await deleteFromSupabase(
+    "inactive_countries",
+    normalizedCountryForDelete
+  );
+
+                          
 
                           // 3. Update frontend country list
                           // 3. Remove the deleted country from frontend state.
@@ -6816,26 +6982,24 @@ const [isSavingCredentials, setIsSavingCredentials] =
                                                 return;
                                               }
 
-                                              const client = getSupabaseClient();
-
-                                              if (!client) {
-                                                showToast("Database connection unavailable.");
-                                                return;
-                                              }
-
                                               try {
-                                                const { error } = await client
-                                                  .from("cities")
-                                                  .delete()
-                                                  .ilike("name", ct.name)
-                                                  .ilike("country", ct.country);
+                                                  const deleted = await deleteFromSupabase(
+                                                    "cities",
+                                                    cityKey
+                                                  );
 
-                                                if (error) {
-                                                  console.error("City deletion failed:", error);
-                                                  showToast("Failed to delete city from database.");
-                                                  return;
-                                                }
+                                                  if (!deleted) {
+                                                    console.error(
+                                                      "City deletion failed:",
+                                                      cityKey
+                                                    );
 
+                                                    showToast(
+                                                      "Failed to delete city from database."
+                                                    );
+
+                                                    return;
+                                                  }
                                                 const normalizedCountry = String(ct.country || "")
                                               .trim()
                                               .toUpperCase();
@@ -9100,13 +9264,39 @@ const [isSavingCredentials, setIsSavingCredentials] =
                 {/* Modal Footer Actions */}
                 <div className="flex items-center justify-between gap-3 pt-4 border-t border-slate-100 flex-wrap">
                   <button
-                    onClick={() => {
-                      if (confirm(`Are you sure you want to permanently delete organizer "${viewingOrgDetails.organizationName}"?`)) {
-                        onDeleteOrganizer(viewingOrgDetails.id);
-                        setViewingOrgDetails(null);
-                        showToast("Organizer deleted.");
-                      }
-                    }}
+                    onClick={async () => {
+                    const organizerName =
+                      viewingOrgDetails.organizationName ||
+                      viewingOrgDetails.email ||
+                      "Organizer";
+
+                    if (
+                      !confirm(
+                        `Are you sure you want to permanently delete organizer "${organizerName}"? This will also delete the organizer login account and associated conferences.`
+                      )
+                    ) {
+                      return;
+                    }
+
+                    const result =
+                      await onDeleteOrganizer(
+                        viewingOrgDetails.id
+                      );
+
+                    if (!result.success) {
+                      showToast(
+                        result.error ||
+                          "Failed to delete organizer."
+                      );
+                      return;
+                    }
+
+                    setViewingOrgDetails(null);
+
+                    showToast(
+                      `Organizer "${organizerName}" permanently deleted.`
+                    );
+                  }}
                     className="px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs rounded-xl transition-colors cursor-pointer flex items-center gap-1.5"
                   >
                     <Trash2 className="h-4 w-4" /> Delete Organizer
@@ -9114,12 +9304,35 @@ const [isSavingCredentials, setIsSavingCredentials] =
 
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => {
-                        onVerifyOrganizer(viewingOrgDetails.id);
-                        const updated = { ...viewingOrgDetails, isVerified: !viewingOrgDetails.isVerified };
-                        setViewingOrgDetails(updated);
-                        showToast(updated.isVerified ? "Organizer verified!" : "Organizer unverified.");
-                      }}
+                      onClick={async () => {
+                      const result =
+                        await onVerifyOrganizer(
+                          viewingOrgDetails.id
+                        );
+
+                      if (!result.success) {
+                        showToast(
+                          result.error ||
+                            "Unable to update organizer verification."
+                        );
+                        return;
+                      }
+
+                      setViewingOrgDetails((current) =>
+                        current
+                          ? {
+                              ...current,
+                              isVerified: result.isVerified
+                            }
+                          : current
+                      );
+
+                      showToast(
+                        result.isVerified
+                          ? "Organizer verified!"
+                          : "Organizer unverified."
+                      );
+                    }}
                       className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl transition-colors cursor-pointer"
                     >
                       {viewingOrgDetails.isVerified ? "Unverify Organizer" : "Verify Organizer"}

@@ -12,8 +12,28 @@ import { Conference, Category, OrganizerProfile, ConferenceStatus, LiveStatus, N
 import { compressImageFile } from "../shared/utils/imageUtils";
 import { ImageUploaderField } from "../shared/components/ImageUploaderField";
 import { isConferenceCompleted } from "../shared/utils/expirationUtils";
+import { resolveConferenceTimeZone } from "../shared/utils/timezoneUtils";
 import { slugify, getConferenceSlug } from "../shared/utils/slugUtils";
 import { fetchCitiesByCountryFromSupabase } from "../database/supabase";
+
+const getTodayInTimeZone = (timeZone: string): string => {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+
+  const values: Record<string, string> = {};
+
+  for (const part of parts) {
+    if (part.type !== "literal") {
+      values[part.type] = part.value;
+    }
+  }
+
+  return `${values.year}-${values.month}-${values.day}`;
+};
 
 const getCleanImageSrc = (src?: string, fallback = ""): string => {
   if (!src) return fallback;
@@ -173,7 +193,6 @@ export default function OrganizerPortal({
   const [formStartDate, setFormStartDate] = useState("");
   const [formEndDate, setFormEndDate] = useState("");
   const [formTime, setFormTime] = useState("");
-  const [formTimeZone, setFormTimeZone] = useState("GMT+9 (Tokyo)");
   const [formCountry, setFormCountry] = useState(
   () => (countriesList && countriesList[0]) || ""
 );
@@ -181,32 +200,45 @@ const [formState, setFormState] = useState("");
 const [formCity, setFormCity] = useState("");
 
 // Cities loaded from Supabase only for the selected conference country
-const [conferenceCountryCities, setConferenceCountryCities] = useState<
-  Array<{ name: string; country: string }>
->([]);
+    const [conferenceCountryCities, setConferenceCountryCities] = useState<
+      Array<{
+        name: string;
+        country: string;
+        timeZone: string;
+      }>
+    >([]);
 
-const [formVenue, setFormVenue] = useState("");
+    const [formVenue, setFormVenue] = useState("");
 
-useEffect(() => {
-  const loadConferenceCities = async () => {
-    if (!formCountry) {
-      setConferenceCountryCities([]);
-      return;
-    }
+    useEffect(() => {
+      const loadConferenceCities = async () => {
+        if (!formCountry) {
+          setConferenceCountryCities([]);
+          return;
+        }
 
-    try {
-      const rows = await fetchCitiesByCountryFromSupabase(
-        formCountry.trim().toUpperCase()
-      );
+        try {
+          const rows = await fetchCitiesByCountryFromSupabase(
+            formCountry.trim().toUpperCase()
+          );
 
-      setConferenceCountryCities(
-        Array.isArray(rows)
-          ? rows.map((city) => ({
-              name: String(city.name || "").trim().toUpperCase(),
-              country: String(city.country || formCountry)
-                .trim()
-                .toUpperCase()
-            }))
+          setConferenceCountryCities(
+            Array.isArray(rows)
+              ? rows.map((city) => ({
+        name: String(city.name || "")
+          .trim()
+          .toUpperCase(),
+
+        country: String(
+          city.country || formCountry
+        )
+          .trim()
+          .toUpperCase(),
+
+        timeZone: String(
+          city.timeZone || ""
+        ).trim()
+      }))
           : []
       );
     } catch (error) {
@@ -559,7 +591,6 @@ useEffect(() => {
     setFormStartDate("");
     setFormEndDate("");
     setFormTime("09:00 AM");
-    setFormTimeZone("GMT+9 (Tokyo)");
     const defaultCountry = (countriesList && countriesList[0]) || "";
     const matchingCities = (citiesList || []).filter((c) => c.country.trim().toLowerCase() === defaultCountry.trim().toLowerCase()).map((c) => c.name);
     setFormCountry(defaultCountry);
@@ -583,7 +614,6 @@ useEffect(() => {
     setFormStartDate(conf.startDate || "");
     setFormEndDate(conf.endDate || "");
     setFormTime(conf.time || "09:00 AM");
-    setFormTimeZone(conf.timeZone || "GMT+9 (Tokyo)");
     setFormCountry(conf.country || (countriesList && countriesList[0]) || "");
     setFormState(conf.state || "");
     setFormCity(conf.city || "");
@@ -597,8 +627,40 @@ useEffect(() => {
   };
 
   const handleConferenceFormSubmit = async (e: React.FormEvent, isDraft: boolean = false) => {
-    e.preventDefault();
-    const todayStr = new Date().toISOString().split("T")[0];
+  e.preventDefault();
+
+ const selectedCityTimeZone =
+  conferenceCountryCities.find(
+    (city) =>
+      String(city.name || "")
+        .trim()
+        .toUpperCase() ===
+      String(formCity || "")
+        .trim()
+        .toUpperCase()
+  )?.timeZone?.trim() || "";
+
+if (
+  formCountry.trim() &&
+  formCity.trim() &&
+  !selectedCityTimeZone
+) {
+  showToast(
+    `Timezone is not configured for "${formCity}". Please contact the administrator before submitting this conference.`
+  );
+  return;
+}
+
+const conferenceTimeZone =
+  resolveConferenceTimeZone(
+    selectedCityTimeZone,
+    formCountry,
+    formCity
+  );
+
+const todayStr =
+  getTodayInTimeZone(conferenceTimeZone);
+
 
     if (!formTitle.trim()) {
       showToast("Conference title is required.");
@@ -625,10 +687,10 @@ useEffect(() => {
         category: formCategory || activeCategories[0]?.name || "General",
         bannerImage: formBannerImage?.trim() ? formBannerImage.trim() : DEFAULT_CONFERENCE_IMAGE,
         description: formDescription,
-        startDate: formStartDate || new Date().toISOString().split("T")[0],
-        endDate: formEndDate || formStartDate || new Date().toISOString().split("T")[0],
+        startDate: formStartDate || todayStr,
+        endDate: formEndDate || formStartDate || todayStr,
         time: formTime,
-        timeZone: formTimeZone,
+        timeZone: conferenceTimeZone,
         country: formCountry,
         state: formState,
         city: formCity,
@@ -1377,14 +1439,22 @@ useEffect(() => {
 
                     {/* Dates */}
                     <div className="space-y-1">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-700">Start Date *</label>
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                        Start Date *
+                      </label>
+
                       <input
                         type="date"
                         required
-                        min={new Date().toISOString().split("T")[0]}
+                        min={getTodayInTimeZone(
+                          resolveConferenceTimeZone("", formCountry, formCity)
+                        )}
                         value={formStartDate || ""}
                         onChange={(e) => {
-                          const todayStr = new Date().toISOString().split("T")[0];
+                          const todayStr = getTodayInTimeZone(
+                            resolveConferenceTimeZone("", formCountry, formCity)
+                          );
+
                           if (e.target.value && e.target.value < todayStr) {
                             showToast("Past dates cannot be selected.");
                             setFormStartDate(todayStr);
@@ -1397,15 +1467,27 @@ useEffect(() => {
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-700">End Date *</label>
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                        End Date *
+                      </label>
+
                       <input
                         type="date"
                         required
-                        min={formStartDate || new Date().toISOString().split("T")[0]}
+                        min={
+                          formStartDate ||
+                          getTodayInTimeZone(
+                            resolveConferenceTimeZone("", formCountry, formCity)
+                          )
+                        }
                         value={formEndDate || ""}
                         onChange={(e) => {
-                          const todayStr = new Date().toISOString().split("T")[0];
+                          const todayStr = getTodayInTimeZone(
+                            resolveConferenceTimeZone("", formCountry, formCity)
+                          );
+
                           const minVal = formStartDate || todayStr;
+
                           if (e.target.value && e.target.value < minVal) {
                             showToast("End date cannot be in the past or prior to start date.");
                             setFormEndDate(minVal);

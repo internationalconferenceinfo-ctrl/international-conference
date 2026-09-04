@@ -20,7 +20,10 @@ import {
 import { Conference, Category, OrganizerProfile, ConferenceStatus, LiveStatus, Banner, formatConferenceDate, BannerContentItem, UserFeedback, SubscriberItem } from "../shared/types";
 import { compressImageToTargetSize } from "../shared/utils/imageUtils";
 import { ImageUploaderField } from "../shared/components/ImageUploaderField";
-import { isConferenceCompleted } from "../shared/utils/expirationUtils";
+import {
+  isConferenceCompleted,
+  getConferenceStartTimestamp
+} from "../shared/utils/expirationUtils";
 import { slugify, getConferenceSlug } from "../shared/utils/slugUtils";
 import { OFFICIAL_CONTACT_INFO, OFFICIAL_SOCIAL_LINKS, ContactInfo, SocialLinks } from "../constants/contactConfig";
 import { aboutUsContent } from "../content/aboutUs";
@@ -1396,16 +1399,32 @@ const trustedOrganizersList = useMemo(() => {
       return matchesSearch && matchesCategory && matchesCountry && matchesCity && matchesLiveStatus;
     });
 
-    const todayStr = new Date().toISOString().split("T")[0];
+    const now = new Date();
 
-    // Hide all past dates (yesterday and earlier): only today and future dates are shown
-    const activeList = list.filter((c) => (c.endDate || c.startDate || "").split("T")[0] >= todayStr);
+// Keep a conference visible through 11:59:59 PM on its End Date
+// in the conference's own IANA timezone.
+const activeList = list.filter(
+  (c) => !isConferenceCompleted(c, now)
+);
 
-    if (selectedLiveStatus === LiveStatus.Upcoming) {
-      const upcomingList = activeList.filter((c) => (c.startDate || "").split("T")[0] > todayStr);
-      upcomingList.sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
-      return upcomingList;
-    }
+if (selectedLiveStatus === LiveStatus.Upcoming) {
+  const upcomingList = activeList.filter((c) => {
+    const startMs = getConferenceStartTimestamp(c);
+
+    return (
+      startMs !== null &&
+      startMs > now.getTime()
+    );
+  });
+
+  upcomingList.sort(
+    (a, b) =>
+      (getConferenceStartTimestamp(a) ?? 0) -
+      (getConferenceStartTimestamp(b) ?? 0)
+  );
+
+  return upcomingList;
+}
 
     if (sortBy === "Upcoming") {
       activeList.sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());

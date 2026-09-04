@@ -102,6 +102,7 @@ CREATE TABLE IF NOT EXISTS public.conferences (
     sub_category TEXT,
     slug TEXT,
     country TEXT,
+    state TEXT,
     city TEXT,
     location TEXT,
     address TEXT,
@@ -227,6 +228,7 @@ CREATE TABLE IF NOT EXISTS public.cities (
     id TEXT PRIMARY KEY DEFAULT uuid_generate_v4()::text,
     name TEXT NOT NULL,
     country TEXT,
+    time_zone TEXT,
     status TEXT DEFAULT 'Active',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
