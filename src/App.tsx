@@ -2292,49 +2292,180 @@ useEffect(() => {
     return { success: true, isActive: !nextDeactivated };
   };
 
-  const handleDeleteConference = async (confId: string) => {
-    const conf = conferences.find((c) => c.id === confId);
-    if (conf && conf.bannerImage) {
-      const storageInfo = extractStoragePathFromUrl(conf.bannerImage);
-      if (storageInfo) {
-        try {
-          const client = getSupabaseClient();
-          if (client) {
-            await client.storage.from(storageInfo.bucket).remove([storageInfo.path]);
+  const handleDeleteConference = async (
+  confId: string
+): Promise<{
+  success: boolean;
+  error?: string;
+  warning?: string;
+}> => {
+  const conf = conferences.find(
+    (c) => c.id === confId
+  );
+
+  if (!conf) {
+    return {
+      success: false,
+      error: "Conference not found."
+    };
+  }
+
+  const deleteResult =
+    await deleteRecordFromSupabase(
+      "conferences",
+      confId
+    );
+
+  if (!deleteResult.success) {
+    console.error(
+      "Conference deletion failed:",
+      deleteResult.error
+    );
+
+    return {
+      success: false,
+      error:
+        deleteResult.error ||
+        "Database deletion failed."
+    };
+  }
+
+  setConferences((prev) =>
+    prev.filter((c) => c.id !== confId)
+  );
+
+  const freshConfs =
+    await fetchFromSupabase<
+      Conference[]
+    >(
+      "conferences",
+      true
+    );
+
+  if (
+    freshConfs &&
+    Array.isArray(freshConfs)
+  ) {
+    setConferences(
+      ensureConferenceSlugs(
+        freshConfs
+      )
+    );
+  }
+
+  let storageWarning = "";
+
+  if (conf.bannerImage) {
+    const storageInfo =
+      extractStoragePathFromUrl(
+        conf.bannerImage
+      );
+
+    if (storageInfo) {
+      try {
+        if (authUser?.role === "ADMIN") {
+          const response =
+            await adminFetch(
+              "/api/admin/uploads/image",
+              {
+                method: "DELETE",
+                credentials: "same-origin",
+                headers: {
+                  "Content-Type":
+                    "application/json"
+                },
+                body: JSON.stringify({
+                  path: storageInfo.path
+                })
+              }
+            );
+
+          const body = await response
+            .json()
+            .catch(() => ({}));
+
+          if (
+            !response.ok ||
+            !body?.success
+          ) {
+            storageWarning =
+              body?.error ||
+              "Conference deleted, but its stored image could not be removed.";
+
+            console.warn(
+              "Conference image cleanup failed:",
+              storageWarning
+            );
           }
-        } catch (err) {
-          console.error("Storage image removal error:", err);
+        } else {
+          const client =
+            getSupabaseClient();
+
+          if (client) {
+            const { error } =
+              await client.storage
+                .from(storageInfo.bucket)
+                .remove([
+                  storageInfo.path
+                ]);
+
+            if (error) {
+              storageWarning =
+                error.message ||
+                "Conference deleted, but its stored image could not be removed.";
+
+              console.warn(
+                "Conference image cleanup failed:",
+                error
+              );
+            }
+          }
         }
-      }
-    }
-    await deleteRecordFromSupabase("conferences", confId);
-    await deleteFromSupabase("conferences", confId);
+      } catch (error) {
+        storageWarning =
+          error instanceof Error
+            ? error.message
+            : "Conference deleted, but its stored image could not be removed.";
 
-    const freshConfs = await fetchFromSupabase<Conference[]>("conferences", true);
-    if (freshConfs && Array.isArray(freshConfs)) {
-      setConferences(ensureConferenceSlugs(freshConfs));
-    } else {
-      setConferences((prev) => prev.filter((c) => c.id !== confId));
-    }
-    triggerBroadcastSync();
-
-    if (conf) {
-      if (conf.organizerId && authUser?.role === "ADMIN") {
-        addNotification(
-          "Conference Deleted 🗑️",
-          `Your conference '${conf.title}' was deleted by Admin.`,
-          "warning",
-          conf.organizerId
+        console.warn(
+          "Conference image cleanup failed:",
+          error
         );
       }
-      logAudit(
-        "Deleted Conference",
-        `Permanently removed conference '${conf.title}'`,
-        authUser?.name || (authUser?.role === "ADMIN" ? "Super Admin" : "Organizer"),
-        authUser?.role || "ORGANIZER"
-      );
     }
+  }
+
+  triggerBroadcastSync();
+
+  if (
+    conf.organizerId &&
+    authUser?.role === "ADMIN"
+  ) {
+    addNotification(
+      "Conference Deleted 🗑️",
+      `Your conference '${conf.title}' was deleted by Admin.`,
+      "warning",
+      conf.organizerId
+    );
+  }
+
+  logAudit(
+    "Deleted Conference",
+    `Permanently removed conference '${conf.title}'`,
+    authUser?.name ||
+      (authUser?.role === "ADMIN"
+        ? "Super Admin"
+        : "Organizer"),
+    authUser?.role || "ORGANIZER"
+  );
+
+  return {
+    success: true,
+    ...(storageWarning
+      ? { warning: storageWarning }
+      : {})
   };
+};
 
   const handleDeleteDraft = async (confId: string) => {
     await deleteRecordFromSupabase("conferences", confId);
@@ -2350,92 +2481,230 @@ useEffect(() => {
   };
 
   // Admin functions
-  const handleApproveConference = async (confId: string) => {
-    const conf = conferences.find((c) => c.id === confId);
-    if (!conf) return;
+ const handleApproveConference = async (
+  confId: string
+): Promise<{
+  success: boolean;
+  error?: string;
+}> => {
+  const conf = conferences.find(
+    (c) => c.id === confId
+  );
 
-    // Only already-published conferences reserve public URL slugs. Pending,
-    // rejected and draft duplicates must never force a lone public event to -1.
-    const publicSlugSource = conferences.filter(
-      (item) => item.id !== confId && item.status === ConferenceStatus.Approved
-    );
-    const publicSlug = generateUniqueConferenceSlug(conf.title || conf.shortTitle || "conference", publicSlugSource, confId);
-
-    const approvedConf: Conference = {
-      ...conf,
-      slug: publicSlug,
-      status: ConferenceStatus.Approved,
-      isDeactivated: false,
-      history: [
-        ...(Array.isArray(conf.history) ? conf.history : []),
-        { 
-          timestamp: new Date().toISOString(), 
-          action: "Approved by Admin", 
-          actor: "Super Admin" 
-        }
-      ],
+  if (!conf) {
+    return {
+      success: false,
+      error: "Conference not found."
     };
+  }
 
-    const saveResult = await saveRecordToSupabase("conferences", approvedConf);
-    if (!saveResult.success) {
-      console.error("Failed to approve conference:", saveResult.error);
-      return;
-    }
-    // Update immediately so Admin/Organizer views do not depend on a second read.
-    setConferences((prev) => ensureConferenceSlugs(prev.map((item) => item.id === confId ? approvedConf : item)));
-    const freshConfs = await fetchFromSupabase<Conference[]>("conferences", true);
-    if (freshConfs && Array.isArray(freshConfs)) {
-      setConferences(ensureConferenceSlugs(freshConfs));
-    }
-    triggerBroadcastSync();
+  // Only already-published conferences reserve public URL slugs.
+  const publicSlugSource = conferences.filter(
+    (item) =>
+      item.id !== confId &&
+      item.status === ConferenceStatus.Approved
+  );
 
-    addNotification(
-      "Conference Approved! 🎉",
-      `Your conference '${conf.title}' has been published.`,
-      "success",
-      conf.organizerId
+  const publicSlug =
+    generateUniqueConferenceSlug(
+      conf.title ||
+        conf.shortTitle ||
+        "conference",
+      publicSlugSource,
+      confId
     );
-    logAudit("Approved Submission", `Approved and published conference '${conf.title}'`, "Super Admin", "ADMIN");
+
+  const approvedConf: Conference = {
+    ...conf,
+    slug: publicSlug,
+    status: ConferenceStatus.Approved,
+    isDeactivated: false,
+    history: [
+      ...(Array.isArray(conf.history)
+        ? conf.history
+        : []),
+      {
+        timestamp:
+          new Date().toISOString(),
+        action: "Approved by Admin",
+        actor: "Super Admin"
+      }
+    ]
   };
 
-  const handleRejectConference = async (confId: string, reason: string) => {
-    const conf = conferences.find((c) => c.id === confId);
-    if (!conf) return;
-
-    const rejectedConf: Conference = {
-      ...conf,
-      status: ConferenceStatus.Rejected,
-      rejectionReason: reason,
-      history: [
-        ...(Array.isArray(conf.history) ? conf.history : []),
-        { 
-          timestamp: new Date().toISOString(), 
-          action: `Rejected: ${reason}`, 
-          actor: "Super Admin" 
-        }
-      ],
-    };
-
-    const saveResult = await saveRecordToSupabase("conferences", rejectedConf);
-    if (!saveResult.success) {
-      console.error("Failed to reject conference:", saveResult.error);
-      return;
-    }
-    setConferences((prev) => ensureConferenceSlugs(prev.map((item) => item.id === confId ? rejectedConf : item)));
-    const freshConfs = await fetchFromSupabase<Conference[]>("conferences", true);
-    if (freshConfs && Array.isArray(freshConfs)) {
-      setConferences(ensureConferenceSlugs(freshConfs));
-    }
-    triggerBroadcastSync();
-
-    addNotification(
-      "Conference Rejected",
-      `Your conference '${conf.title}' was rejected by the administrator.`,
-      "error",
-      conf.organizerId
+  const saveResult =
+    await saveRecordToSupabase(
+      "conferences",
+      approvedConf
     );
-    logAudit("Rejected Submission", `Rejected conference '${conf.title}'. Reason: ${reason}`, "Super Admin", "ADMIN");
+
+  if (!saveResult.success) {
+    console.error(
+      "Failed to approve conference:",
+      saveResult.error
+    );
+
+    return {
+      success: false,
+      error:
+        saveResult.error ||
+        "Database update failed."
+    };
+  }
+
+  setConferences((prev) =>
+    ensureConferenceSlugs(
+      prev.map((item) =>
+        item.id === confId
+          ? approvedConf
+          : item
+      )
+    )
+  );
+
+  const freshConfs =
+    await fetchFromSupabase<
+      Conference[]
+    >(
+      "conferences",
+      true
+    );
+
+  if (
+    freshConfs &&
+    Array.isArray(freshConfs)
+  ) {
+    setConferences(
+      ensureConferenceSlugs(
+        freshConfs
+      )
+    );
+  }
+
+  triggerBroadcastSync();
+
+  addNotification(
+    "Conference Approved! 🎉",
+    `Your conference '${conf.title}' has been published.`,
+    "success",
+    conf.organizerId
+  );
+
+  logAudit(
+    "Approved Submission",
+    `Approved and published conference '${conf.title}'`,
+    "Super Admin",
+    "ADMIN"
+  );
+
+  return {
+    success: true
   };
+};
+const handleRejectConference = async (
+  confId: string,
+  reason: string
+): Promise<{
+  success: boolean;
+  error?: string;
+}> => {
+  const conf = conferences.find(
+    (c) => c.id === confId
+  );
+
+  if (!conf) {
+    return {
+      success: false,
+      error: "Conference not found."
+    };
+  }
+
+  const rejectedConf: Conference = {
+    ...conf,
+    status: ConferenceStatus.Rejected,
+    rejectionReason: reason,
+    history: [
+      ...(Array.isArray(conf.history)
+        ? conf.history
+        : []),
+      {
+        timestamp:
+          new Date().toISOString(),
+        action: `Rejected: ${reason}`,
+        actor: "Super Admin"
+      }
+    ]
+  };
+
+  const saveResult =
+    await saveRecordToSupabase(
+      "conferences",
+      rejectedConf
+    );
+
+  if (!saveResult.success) {
+    console.error(
+      "Failed to reject conference:",
+      saveResult.error
+    );
+
+    return {
+      success: false,
+      error:
+        saveResult.error ||
+        "Database update failed."
+    };
+  }
+
+  setConferences((prev) =>
+    ensureConferenceSlugs(
+      prev.map((item) =>
+        item.id === confId
+          ? rejectedConf
+          : item
+      )
+    )
+  );
+
+  const freshConfs =
+    await fetchFromSupabase<
+      Conference[]
+    >(
+      "conferences",
+      true
+    );
+
+  if (
+    freshConfs &&
+    Array.isArray(freshConfs)
+  ) {
+    setConferences(
+      ensureConferenceSlugs(
+        freshConfs
+      )
+    );
+  }
+
+  triggerBroadcastSync();
+
+  addNotification(
+    "Conference Rejected",
+    `Your conference '${conf.title}' was rejected by the administrator.`,
+    "error",
+    conf.organizerId
+  );
+
+  logAudit(
+    "Rejected Submission",
+    `Rejected conference '${conf.title}'. Reason: ${reason}`,
+    "Super Admin",
+    "ADMIN"
+  );
+
+  return {
+    success: true
+  };
+};
 
   const handleToggleFeatureConference = async (confId: string) => {
     const conf = conferences.find((c) => c.id === confId);
@@ -2452,20 +2721,96 @@ useEffect(() => {
     logAudit("Toggled Featured Conference", `Changed featured flag for '${conf.title}'`, "Super Admin", "ADMIN");
   };
 
-  const handleToggleVerifyConference = async (confId: string) => {
-    const conf = conferences.find((c) => c.id === confId);
-    if (!conf) return;
+const handleToggleVerifyConference = async (
+  confId: string
+): Promise<{
+  success: boolean;
+  isVerified: boolean;
+  error?: string;
+}> => {
+  const conf = conferences.find(
+    (c) => c.id === confId
+  );
 
-    const toggledConf = { ...conf, isVerified: !conf.isVerified };
-    await saveRecordToSupabase("conferences", toggledConf);
-    const freshConfs = await fetchFromSupabase<Conference[]>("conferences", true);
-    if (freshConfs && Array.isArray(freshConfs)) {
-      setConferences(ensureConferenceSlugs(freshConfs));
-    }
-    triggerBroadcastSync();
+  if (!conf) {
+    return {
+      success: false,
+      isVerified: false,
+      error: "Conference not found."
+    };
+  }
 
-    logAudit("Toggled Verified Conference", `Changed verification badge for '${conf.title}'`, "Super Admin", "ADMIN");
+  const nextState = !conf.isVerified;
+
+  const toggledConf = {
+    ...conf,
+    isVerified: nextState
   };
+
+  const saved =
+    await saveRecordToSupabase(
+      "conferences",
+      toggledConf
+    );
+
+  if (!saved.success) {
+    console.error(
+      "Conference verification update failed:",
+      saved.error
+    );
+
+    return {
+      success: false,
+      isVerified: Boolean(conf.isVerified),
+      error:
+        saved.error ||
+        "Database update failed."
+    };
+  }
+
+  setConferences((current) =>
+    current.map((item) =>
+      item.id === confId
+        ? toggledConf
+        : item
+    )
+  );
+
+  const freshConfs =
+    await fetchFromSupabase<
+      Conference[]
+    >(
+      "conferences",
+      true
+    );
+
+  if (
+    freshConfs &&
+    Array.isArray(freshConfs)
+  ) {
+    setConferences(
+      ensureConferenceSlugs(
+        freshConfs
+      )
+    );
+  }
+
+  triggerBroadcastSync();
+
+  logAudit(
+    "Toggled Verified Conference",
+    `Set conference '${conf.title}' verification to ${
+      nextState ? "verified" : "unverified"
+    }`,
+    "Super Admin",
+    "ADMIN"
+  );
+
+  return {
+    success: true,
+    isVerified: nextState
+  };
+};
 
     const handleVerifyOrganizer = async (
       orgId: string

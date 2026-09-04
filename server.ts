@@ -1645,14 +1645,72 @@ const requireServiceRole = (res: Response) => {
   return true;
 };
 
-app.get("/api/admin/db/:table", requireAdminSession, async (req, res) => {
-  if (!requireServiceRole(res)) return;
-  const table = String(req.params.table || "");
-  if (!ADMIN_DB_TABLES.has(table)) return res.status(400).json({ success: false, error: "Table is not allowed" });
-  const { data, error } = await supabaseServerClient.from(table).select("*");
-  if (error) return res.status(500).json({ success: false, error: error.message });
-  return res.json({ success: true, data: data || [] });
-});
+app.get(
+  "/api/admin/db/:table",
+  requireAdminSession,
+  async (req, res) => {
+    if (!requireServiceRole(res)) return;
+
+    const table = String(
+      req.params.table || ""
+    );
+
+    if (!ADMIN_DB_TABLES.has(table)) {
+      return res.status(400).json({
+        success: false,
+        error: "Table is not allowed"
+      });
+    }
+
+    const page = Math.max(
+      1,
+      Number(req.query.page) || 1
+    );
+
+    const pageSize = Math.min(
+      1000,
+      Math.max(
+        1,
+        Number(req.query.pageSize) || 1000
+      )
+    );
+
+    const from =
+      (page - 1) * pageSize;
+
+    const to =
+      from + pageSize - 1;
+
+    const {
+      data,
+      error,
+      count
+    } = await supabaseServerClient
+      .from(table)
+      .select("*", {
+        count: "exact"
+      })
+      .range(from, to);
+
+    if (error) {
+      return res.status(500).json({
+        success: false,
+        error: error.message
+      });
+    }
+
+    return res.json({
+      success: true,
+      data: data || [],
+      total:
+        typeof count === "number"
+          ? count
+          : 0,
+      page,
+      pageSize
+    });
+  }
+);
 
 app.post("/api/admin/db/upsert", requireAdminSession, async (req, res) => {
   if (!requireServiceRole(res)) return;
@@ -2572,9 +2630,69 @@ app.get("/sitemap.xml", async (req, res) => {
     addUrl("/terms-of-service", "yearly", "0.3");
 
     // Conferences
-    const { data: conferences } = await supabaseServerClient
-      .from("conferences")
-      .select("*");
+    const conferences: any[] = [];
+const CONFERENCE_PAGE_SIZE = 1000;
+let conferenceFrom = 0;
+let conferenceTotal: number | null = null;
+
+while (true) {
+  const {
+    data: conferencePage,
+    error: conferenceError,
+    count
+  } = await supabaseServerClient
+    .from("conferences")
+    .select("*", {
+      count: "exact"
+    })
+    .range(
+      conferenceFrom,
+      conferenceFrom +
+        CONFERENCE_PAGE_SIZE -
+        1
+    );
+
+  if (conferenceError) {
+    throw conferenceError;
+  }
+
+  const rows = Array.isArray(
+    conferencePage
+  )
+    ? conferencePage
+    : [];
+
+  if (
+    conferenceTotal === null &&
+    typeof count === "number"
+  ) {
+    conferenceTotal = count;
+  }
+
+  conferences.push(...rows);
+
+  if (rows.length === 0) {
+    break;
+  }
+
+  conferenceFrom += rows.length;
+
+  if (
+    conferenceTotal !== null &&
+    conferences.length >=
+      conferenceTotal
+  ) {
+    break;
+  }
+
+  if (
+    conferenceTotal === null &&
+    rows.length <
+      CONFERENCE_PAGE_SIZE
+  ) {
+    break;
+  }
+}
 
     for (const conference of conferences || []) {
       const status = String(conference.status || "").toLowerCase();
@@ -2675,9 +2793,68 @@ app.get("/sitemap.xml", async (req, res) => {
     }
 
     // Organizers
-    const { data: organizers } = await supabaseServerClient
-      .from("organizers")
-      .select("*");
+    // Organizers
+const organizers: any[] = [];
+const ORGANIZER_PAGE_SIZE = 1000;
+let organizerFrom = 0;
+let organizerTotal: number | null = null;
+
+while (true) {
+  const {
+    data: organizerPage,
+    error: organizerError,
+    count
+  } = await supabaseServerClient
+    .from("organizers")
+    .select("*", {
+      count: "exact"
+    })
+    .range(
+      organizerFrom,
+      organizerFrom +
+        ORGANIZER_PAGE_SIZE -
+        1
+    );
+
+  if (organizerError) {
+    throw organizerError;
+  }
+
+  const rows = Array.isArray(
+    organizerPage
+  )
+    ? organizerPage
+    : [];
+
+  if (
+    organizerTotal === null &&
+    typeof count === "number"
+  ) {
+    organizerTotal = count;
+  }
+
+  organizers.push(...rows);
+
+  if (rows.length === 0) {
+    break;
+  }
+
+  organizerFrom += rows.length;
+
+  if (
+    organizerTotal !== null &&
+    organizers.length >= organizerTotal
+  ) {
+    break;
+  }
+
+  if (
+    organizerTotal === null &&
+    rows.length < ORGANIZER_PAGE_SIZE
+  ) {
+    break;
+  }
+}
 
     for (const organizer of organizers || []) {
       if (

@@ -736,18 +736,114 @@ async function tryAdminServerDelete(table: string, id: string): Promise<AdminSer
   }
 }
 
-async function tryAdminServerRead(table: string): Promise<AdminServerResult> {
-  if (!ADMIN_READ_PREFERRED_TABLES.has(table) || typeof fetch === "undefined" || !getAdminTabToken()) return { handled: false, success: false };
+async function tryAdminServerRead(
+  table: string
+): Promise<AdminServerResult> {
+  if (
+    !ADMIN_READ_PREFERRED_TABLES.has(table) ||
+    typeof fetch === "undefined" ||
+    !getAdminTabToken()
+  ) {
+    return {
+      handled: false,
+      success: false
+    };
+  }
+
   try {
-    const response = await adminFetch(`/api/admin/db/${encodeURIComponent(table)}`, { credentials: "same-origin" });
-    if (response.status === 401) return { handled: false, success: false };
-    const body = await response.json().catch(() => ({}));
-    return { handled: true, success: response.ok && body.success === true, data: body.data, error: body.error };
-  } catch {
-    return { handled: false, success: false };
+    const PAGE_SIZE = 1000;
+    const allRows: any[] = [];
+    let page = 1;
+    let totalRows: number | null = null;
+
+    while (true) {
+      const response = await adminFetch(
+        `/api/admin/db/${encodeURIComponent(
+          table
+        )}?page=${page}&pageSize=${PAGE_SIZE}`,
+        {
+          credentials: "same-origin",
+          cache: "no-store"
+        }
+      );
+
+      if (response.status === 401) {
+        return {
+          handled: false,
+          success: false
+        };
+      }
+
+      const body = await response
+        .json()
+        .catch(() => ({}));
+
+      if (
+        !response.ok ||
+        body?.success !== true
+      ) {
+        return {
+          handled: true,
+          success: false,
+          error:
+            body?.error ||
+            "Admin database read failed."
+        };
+      }
+
+      const rows = Array.isArray(
+        body?.data
+      )
+        ? body.data
+        : [];
+
+      if (
+        totalRows === null &&
+        typeof body?.total === "number"
+      ) {
+        totalRows = body.total;
+      }
+
+      allRows.push(...rows);
+
+      if (rows.length === 0) {
+        break;
+      }
+
+      if (
+        totalRows !== null &&
+        allRows.length >= totalRows
+      ) {
+        break;
+      }
+
+      if (
+        totalRows === null &&
+        rows.length < PAGE_SIZE
+      ) {
+        break;
+      }
+
+      page++;
+    }
+
+    return {
+      handled: true,
+      success: true,
+      data: allRows
+    };
+  } catch (error) {
+    console.warn(
+      `[Admin Server Read Error] Table ${table}:`,
+      error
+    );
+
+    return {
+      handled: false,
+      success: false
+    };
   }
 }
-
 /**
  * Save data to Supabase relational database directly
  */
@@ -1272,20 +1368,88 @@ export async function fetchFromSupabase<T = any>(key: string, forceRefresh: bool
     }
 
     try {
-      const { data: tableData, error } = await client.from(snakeTable).select('*');
-      if (!error && tableData !== null) {
-        const normalized = normalizeFromTable(snakeTable, tableData) as unknown as T;
-        queryCache.set(key, { data: normalized, timestamp: Date.now() });
-        return normalized;
-      }
-      if (error) {
-        console.warn(`[Supabase Relational Fetch Notice] Table ${snakeTable}:`, error.message);
-      }
-    } catch (err) {
-      console.warn("[Supabase Fetch Error]:", err);
-    } finally {
-      inflightRequests.delete(key);
+  const PAGE_SIZE = 1000;
+  const allRows: any[] = [];
+  let from = 0;
+  let totalRows: number | null = null;
+
+  while (true) {
+    const {
+      data: pageData,
+      error,
+      count
+    } = await client
+      .from(snakeTable)
+      .select("*", {
+        count: "exact"
+      })
+      .range(
+        from,
+        from + PAGE_SIZE - 1
+      );
+
+    if (error) {
+      console.warn(
+        `[Supabase Relational Fetch Notice] Table ${snakeTable}:`,
+        error.message
+      );
+      return null;
     }
+
+    const rows = Array.isArray(pageData)
+      ? pageData
+      : [];
+
+    if (
+      totalRows === null &&
+      typeof count === "number"
+    ) {
+      totalRows = count;
+    }
+
+    allRows.push(...rows);
+
+    if (rows.length === 0) {
+      break;
+    }
+
+    from += rows.length;
+
+    if (
+      totalRows !== null &&
+      allRows.length >= totalRows
+    ) {
+      break;
+    }
+
+    if (
+      totalRows === null &&
+      rows.length < PAGE_SIZE
+    ) {
+      break;
+    }
+  }
+
+  const normalized =
+    normalizeFromTable(
+      snakeTable,
+      allRows
+    ) as unknown as T;
+
+  queryCache.set(key, {
+    data: normalized,
+    timestamp: Date.now()
+  });
+
+  return normalized;
+} catch (err) {
+  console.warn(
+    "[Supabase Fetch Error]:",
+    err
+  );
+} finally {
+  inflightRequests.delete(key);
+}
 
     return null;
   })();

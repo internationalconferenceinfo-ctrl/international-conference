@@ -67,10 +67,27 @@ interface AdminPortalProps {
   onUpdateUserFeedbacks?: (feedbacks: UserFeedback[]) => void;
   subscriberEmails?: SubscriberItem[];
   onUpdateSubscriberEmails?: (subscribers: SubscriberItem[]) => void;
-  onApproveConference: (confId: string) => void;
-  onRejectConference: (confId: string, reason: string) => void;
+  onApproveConference: (
+  confId: string
+) => Promise<{
+  success: boolean;
+  error?: string;
+}>;
+  onRejectConference: (
+  confId: string,
+  reason: string
+) => Promise<{
+  success: boolean;
+  error?: string;
+}>;
   onToggleConferenceActive?: (confId: string) => Promise<{ success: boolean; isActive: boolean; error?: string }>;
-  onDeleteConference?: (confId: string) => void;
+  onDeleteConference: (
+  confId: string
+) => Promise<{
+  success: boolean;
+  error?: string;
+  warning?: string;
+}>;
   onToggleFeatureConference: (confId: string) => void;
   onToggleVerifyConference: (confId: string) => void;
   onVerifyOrganizer: (
@@ -3703,19 +3720,44 @@ const [isSavingCredentials, setIsSavingCredentials] =
 
                             <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
                               <button
-                                onClick={() => {
-                                  onApproveConference(conf.id);
-                                  showToast("Conference approved successfully!");
-                                }}
+                                onClick={async () => {
+                                const result =
+                                  await onApproveConference(conf.id);
+
+                                if (!result.success) {
+                                  showToast(
+                                    result.error ||
+                                      "Unable to approve conference."
+                                  );
+                                  return;
+                                }
+
+                                showToast(
+                                  "Conference approved successfully!"
+                                );
+                              }}
                                 className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold cursor-pointer"
                               >
                                 Approve
                               </button>
                               <button
-                                onClick={() => {
-                                  onRejectConference(conf.id, "Does not meet guidelines");
-                                  showToast("Conference rejected.");
-                                }}
+                               onClick={async () => {
+                                const result =
+                                  await onRejectConference(
+                                    conf.id,
+                                    "Does not meet guidelines"
+                                  );
+
+                                if (!result.success) {
+                                  showToast(
+                                    result.error ||
+                                      "Unable to reject conference."
+                                  );
+                                  return;
+                                }
+
+                                showToast("Conference rejected.");
+}}
                                 className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold cursor-pointer"
                               >
                                 Reject
@@ -4453,17 +4495,60 @@ const [isSavingCredentials, setIsSavingCredentials] =
                         {selectedCompletedIds.length > 0 && (
                           <button
                             onClick={async () => {
-                              const deleteCount = selectedCompletedIds.length;
-                              if (confirm(`Are you sure you want to permanently delete ${deleteCount} completed conference(s)?`)) {
-                                for (const id of selectedCompletedIds) {
-                                  await onDeleteConference(id);
+                            const idsToDelete = [
+                              ...selectedCompletedIds
+                            ];
+
+                            const deleteCount =
+                              idsToDelete.length;
+
+                            if (
+                              !confirm(
+                                `Are you sure you want to permanently delete ${deleteCount} completed conference(s)?`
+                              )
+                            ) {
+                              showToast(
+                                "Delete action cancelled."
+                              );
+                              return;
+                            }
+
+                            let deletedCount = 0;
+                            let warningCount = 0;
+                            const failedIds: string[] = [];
+
+                            for (const id of idsToDelete) {
+                              const result =
+                                await onDeleteConference(id);
+
+                              if (result.success) {
+                                deletedCount++;
+
+                                if (result.warning) {
+                                  warningCount++;
                                 }
-                                setSelectedCompletedIds([]);
-                                showToast(`Deleted ${deleteCount} completed conference(s).`);
                               } else {
-                                showToast("Delete action cancelled.");
+                                failedIds.push(id);
                               }
-                            }}
+                            }
+
+                            setSelectedCompletedIds(
+                              failedIds
+                            );
+
+                            if (failedIds.length > 0) {
+                              showToast(
+                                `${deletedCount} conference(s) deleted. ${failedIds.length} could not be deleted.`
+                              );
+                              return;
+                            }
+
+                            showToast(
+                              warningCount > 0
+                                ? `${deletedCount} conference(s) deleted. ${warningCount} image cleanup warning(s).`
+                                : `Deleted ${deletedCount} completed conference(s).`
+                            );
+                          }}
                             className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-lg text-xs cursor-pointer flex items-center gap-1.5 transition-colors shadow-2xs"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
@@ -4473,17 +4558,58 @@ const [isSavingCredentials, setIsSavingCredentials] =
                         {filteredAdminConferences.length > 0 && (
                           <button
                             onClick={async () => {
-                              if (confirm(`Are you sure you want to permanently delete all ${filteredAdminConferences.length} completed conference(s)?`)) {
-                                const allIds = filteredAdminConferences.map((c) => c.id);
-                                for (const id of allIds) {
-                                  await onDeleteConference(id);
+                            const allIds =
+                              filteredAdminConferences.map(
+                                (c) => c.id
+                              );
+
+                            if (
+                              !confirm(
+                                `Are you sure you want to permanently delete all ${allIds.length} completed conference(s)?`
+                              )
+                            ) {
+                              showToast(
+                                "Delete action cancelled."
+                              );
+                              return;
+                            }
+
+                            let deletedCount = 0;
+                            let warningCount = 0;
+                            const failedIds: string[] = [];
+
+                            for (const id of allIds) {
+                              const result =
+                                await onDeleteConference(id);
+
+                              if (result.success) {
+                                deletedCount++;
+
+                                if (result.warning) {
+                                  warningCount++;
                                 }
-                                setSelectedCompletedIds([]);
-                                showToast(`Deleted all completed conferences.`);
                               } else {
-                                showToast("Delete action cancelled.");
+                                failedIds.push(id);
                               }
-                            }}
+                            }
+
+                            setSelectedCompletedIds(
+                              failedIds
+                            );
+
+                            if (failedIds.length > 0) {
+                              showToast(
+                                `${deletedCount} conference(s) deleted. ${failedIds.length} could not be deleted.`
+                              );
+                              return;
+                            }
+
+                            showToast(
+                              warningCount > 0
+                                ? `${deletedCount} conference(s) deleted. ${warningCount} image cleanup warning(s).`
+                                : "Deleted all completed conferences."
+                            );
+                          }}
                             className="px-3 py-1.5 bg-rose-100 hover:bg-rose-200 text-rose-800 font-bold rounded-lg text-xs cursor-pointer flex items-center gap-1.5 transition-colors border border-rose-200"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
@@ -4638,14 +4764,33 @@ const [isSavingCredentials, setIsSavingCredentials] =
                                     <Eye className="h-3 w-3" /> View
                                   </button>
                                   <button
-                                    onClick={() => {
-                                      if (confirm(`Are you sure you want to permanently delete completed conference "${conf.title}"?`)) {
-                                        onDeleteConference(conf.id);
-                                        showToast(`Deleted completed conference "${conf.title}".`);
-                                      } else {
-                                        showToast("Delete action cancelled.");
-                                      }
-                                    }}
+                                  onClick={async () => {
+  if (
+    !confirm(
+      `Are you sure you want to permanently delete completed conference "${conf.title}"?`
+    )
+  ) {
+    showToast("Delete action cancelled.");
+    return;
+  }
+
+  const result =
+    await onDeleteConference(conf.id);
+
+                                    if (!result.success) {
+                                      showToast(
+                                        result.error ||
+                                          "Unable to delete conference."
+                                      );
+                                      return;
+                                    }
+
+                                    showToast(
+                                      result.warning
+                                        ? `Conference deleted. Image cleanup warning: ${result.warning}`
+                                        : `Deleted completed conference "${conf.title}".`
+                                    );
+                                  }}
                                     className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded text-[11px] cursor-pointer flex items-center gap-1 transition-colors shadow-2xs"
                                     title="Delete completed conference"
                                   >
@@ -4663,10 +4808,20 @@ const [isSavingCredentials, setIsSavingCredentials] =
                                   </button>
 
                                   <button
-                                    onClick={() => {
-                                      onApproveConference(conf.id);
-                                      showToast("Conference approved!");
-                                    }}
+                                    onClick={async () => {
+                                        const result =
+                                          await onApproveConference(conf.id);
+
+                                        if (!result.success) {
+                                          showToast(
+                                            result.error ||
+                                              "Unable to approve conference."
+                                          );
+                                          return;
+                                        }
+
+                                        showToast("Conference approved!");
+                                      }}
                                     className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded text-[11px] cursor-pointer transition-colors"
                                     title="Approve conference"
                                   >
@@ -4674,13 +4829,32 @@ const [isSavingCredentials, setIsSavingCredentials] =
                                   </button>
 
                                   <button
-                                    onClick={() => {
-                                      const reason = prompt("Enter rejection reason:", "Submission parameters non-compliant");
-                                      if (reason) {
-                                        onRejectConference(conf.id, reason);
-                                        showToast("Conference rejected.");
-                                      }
-                                    }}
+                                   onClick={async () => {
+                                    const reason = prompt(
+                                      "Enter rejection reason:",
+                                      "Submission parameters non-compliant"
+                                    );
+
+                                    if (!reason) {
+                                      return;
+                                    }
+
+                                    const result =
+                                      await onRejectConference(
+                                        conf.id,
+                                        reason
+                                      );
+
+                                    if (!result.success) {
+                                      showToast(
+                                        result.error ||
+                                          "Unable to reject conference."
+                                      );
+                                      return;
+                                    }
+
+                                    showToast("Conference rejected.");
+                                  }}
                                     className="px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded text-[11px] cursor-pointer transition-colors"
                                     title="Reject conference"
                                   >
@@ -4688,12 +4862,32 @@ const [isSavingCredentials, setIsSavingCredentials] =
                                   </button>
 
                                   <button
-                                    onClick={() => {
-                                      if (confirm(`Are you sure you want to delete "${conf.title}"?`)) {
-                                        onDeleteConference(conf.id);
-                                        showToast("Conference deleted.");
-                                      }
-                                    }}
+                                  onClick={async () => {
+  if (
+    !confirm(
+      `Are you sure you want to delete "${conf.title}"?`
+    )
+  ) {
+    return;
+  }
+
+  const result =
+    await onDeleteConference(conf.id);
+
+                                  if (!result.success) {
+                                    showToast(
+                                      result.error ||
+                                        "Unable to delete conference."
+                                    );
+                                    return;
+                                  }
+
+                                  showToast(
+                                    result.warning
+                                      ? `Conference deleted. Image cleanup warning: ${result.warning}`
+                                      : "Conference deleted."
+                                  );
+                                }}
                                     className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded cursor-pointer transition-colors"
                                     title="Delete conference"
                                   >
@@ -4712,10 +4906,20 @@ const [isSavingCredentials, setIsSavingCredentials] =
 
                                   {conf.status !== ConferenceStatus.Approved && (
                                     <button
-                                      onClick={() => {
-                                        onApproveConference(conf.id);
-                                        showToast("Conference approved!");
-                                      }}
+                                      onClick={async () => {
+                                      const result =
+                                        await onApproveConference(conf.id);
+
+                                      if (!result.success) {
+                                        showToast(
+                                          result.error ||
+                                            "Unable to approve conference."
+                                        );
+                                        return;
+                                      }
+
+                                      showToast("Conference approved!");
+                                    }}
                                       className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded text-[11px] cursor-pointer transition-colors"
                                       title="Approve conference"
                                     >
@@ -4749,11 +4953,31 @@ const [isSavingCredentials, setIsSavingCredentials] =
                                   </button>
 
                                   <button
-                                    onClick={() => {
-                                      if (confirm(`Are you sure you want to delete "${conf.title}"?`)) {
-                                        onDeleteConference(conf.id);
-                                        showToast("Conference deleted.");
+                                   onClick={async () => {
+                                      if (
+                                        !confirm(
+                                          `Are you sure you want to delete "${conf.title}"?`
+                                        )
+                                      ) {
+                                        return;
                                       }
+
+                                      const result =
+                                        await onDeleteConference(conf.id);
+
+                                      if (!result.success) {
+                                        showToast(
+                                          result.error ||
+                                            "Unable to delete conference."
+                                        );
+                                        return;
+                                      }
+
+                                      showToast(
+                                        result.warning
+                                          ? `Conference deleted. Image cleanup warning: ${result.warning}`
+                                          : "Conference deleted."
+                                      );
                                     }}
                                     className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded cursor-pointer transition-colors"
                                     title="Delete conference"
@@ -9114,12 +9338,35 @@ try {
 
                 <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 flex-wrap">
                   <button
-                    onClick={() => {
-                      if (confirm(`Are you sure you want to permanently delete conference "${viewingConfDetails.title}"?`)) {
-                        onDeleteConference(viewingConfDetails.id);
-                        setViewingConfDetails(null);
-                        showToast("Conference deleted.");
+                    onClick={async () => {
+                      if (
+                        !confirm(
+                          `Are you sure you want to permanently delete conference "${viewingConfDetails.title}"?`
+                        )
+                      ) {
+                        return;
                       }
+
+                      const result =
+                        await onDeleteConference(
+                          viewingConfDetails.id
+                        );
+
+                      if (!result.success) {
+                        showToast(
+                          result.error ||
+                            "Unable to delete conference."
+                        );
+                        return;
+                      }
+
+                      setViewingConfDetails(null);
+
+                      showToast(
+                        result.warning
+                          ? `Conference deleted. Image cleanup warning: ${result.warning}`
+                          : "Conference deleted."
+                      );
                     }}
                     className="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold text-xs rounded-xl transition-colors cursor-pointer flex items-center gap-1.5"
                   >
