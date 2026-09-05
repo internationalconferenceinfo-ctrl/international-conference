@@ -91,8 +91,16 @@ interface OrganizerPortalProps {
   onUpdateOrganizer: (org: OrganizerProfile) => void;
   onSubmitConference: (conf: Partial<Conference>, isDraft: boolean) => Promise<{ error?: string }>;
   onResubmitConference: (confId: string, updated: Partial<Conference>) => Promise<{ error?: string }>;
-  onDeleteDraft: (confId: string) => void;
-  onDeleteConference?: (confId: string) => Promise<void> | void;
+  onDeleteDraft: (
+  confId: string
+  ) => Promise<{ success: boolean; error?: string }>;
+  onDeleteConference?: (
+  confId: string
+) => Promise<{
+  success: boolean;
+  error?: string;
+  warning?: string;
+}>;
   onToggleConferenceActive?: (confId: string) => Promise<{ success: boolean; isActive: boolean; error?: string }>;
   onAddNotification: (title: string, message: string, type: "success" | "warning" | "info" | "error", orgId: string) => void;
   onClearNotifications: () => void;
@@ -552,6 +560,20 @@ useEffect(() => {
       return false;
     });
   }, [conferences, activeOrgId, activeProfile, authUser]);
+
+  const sortConferencesNewestFirst = (items: Conference[]) => {
+  return [...items].sort((a, b) => {
+    const aTime = new Date(
+      a.createdAt || a.updatedAt || a.startDate || 0
+    ).getTime();
+
+    const bTime = new Date(
+      b.createdAt || b.updatedAt || b.startDate || 0
+    ).getTime();
+
+    return bTime - aTime;
+  });
+};
 
   const isPendingStatus = (status?: string) => {
     if (!status) return false;
@@ -1152,6 +1174,30 @@ const todayStr =
                         </span>
                       )}
                     </button>
+                    <button
+                        onClick={() => {
+                          setActiveMenu("MANAGE_CONFERENCES");
+                          if (window.innerWidth < 1024) {
+                            setIsSidebarOpen(false);
+                          }
+                        }}
+                        className={`w-full flex items-center justify-between text-left py-1.5 px-2.5 rounded-lg transition-colors cursor-pointer ${
+                          activeMenu === "MANAGE_CONFERENCES"
+                            ? "text-white font-bold bg-white/20 border-l-2 border-blue-400 pl-2"
+                            : "text-slate-300 hover:text-white"
+                        }`}
+                      >
+                        <span className="flex items-center gap-2">
+                          <Layers className="h-3.5 w-3.5 text-blue-300" />
+                          <span>Draft Conferences</span>
+                        </span>
+
+                        {stats.draft > 0 && (
+                          <span className="bg-blue-500/30 text-blue-200 text-[10px] px-1.5 py-0.2 rounded-full font-bold">
+                            {stats.draft}
+                          </span>
+                        )}
+                      </button>
                   </div>
                 )}
               </div>
@@ -1202,7 +1248,7 @@ const todayStr =
                 {activeMenu === "APPROVED_CONFERENCES" && "Approved Conferences"}
                 {activeMenu === "REJECTED_CONFERENCES" && "Rejected Conferences"}
                 {activeMenu === "COMPLETED_CONFERENCES" && "Completed Conferences"}
-                {activeMenu === "MANAGE_CONFERENCES" && "All Conferences & Drafts"}
+                {activeMenu === "MANAGE_CONFERENCES" && "Draft Conferences"}
                 {activeMenu === "MANAGE_PROFILE" && "Profile"}
               </h2>
             </div>
@@ -1631,7 +1677,9 @@ const todayStr =
 
             {/* SECTION 2.5: PENDING CONFERENCES */}
             {activeMenu === "PENDING_CONFERENCES" && (() => {
-              const pendingConfs = orgConferences.filter((c) => isPendingStatus(c.status));
+              const pendingConfs = sortConferencesNewestFirst(
+                orgConferences.filter((c) => isPendingStatus(c.status))
+              );
               const totalPages = Math.max(1, Math.ceil(pendingConfs.length / ORG_ITEMS_PER_PAGE));
               const paginated = pendingConfs.slice((pendingPage - 1) * ORG_ITEMS_PER_PAGE, pendingPage * ORG_ITEMS_PER_PAGE);
 
@@ -1744,7 +1792,13 @@ const todayStr =
 
             {/* SECTION 3: APPROVED CONFERENCES */}
             {activeMenu === "APPROVED_CONFERENCES" && (() => {
-              const approvedConfs = orgConferences.filter((c) => c.status === ConferenceStatus.Approved && !isConferenceCompleted(c));
+              const approvedConfs = sortConferencesNewestFirst(
+                  orgConferences.filter(
+                    (c) =>
+                      c.status === ConferenceStatus.Approved &&
+                      !isConferenceCompleted(c)
+                  )
+                );
               const totalPages = Math.max(1, Math.ceil(approvedConfs.length / ORG_ITEMS_PER_PAGE));
               const paginated = approvedConfs.slice((approvedPage - 1) * ORG_ITEMS_PER_PAGE, approvedPage * ORG_ITEMS_PER_PAGE);
 
@@ -1830,15 +1884,29 @@ const todayStr =
                                       </button>
                                       <button
                                         onClick={async () => {
-                                          if (confirm(`Are you sure you want to permanently delete "${conf.title}"?`)) {
-                                            await onDeleteConference?.(conf.id);
-                                            showToast(`Conference "${conf.title}" deleted successfully.`);
-                                          } else {
-                                            showToast("Delete action cancelled.");
-                                          }
-                                        }}
-                                        className="px-2.5 py-1 bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold rounded text-[11px] cursor-pointer inline-flex items-center gap-1 transition-colors"
-                                        title="Delete Conference"
+                                          if (
+                                              confirm(
+                                                `Are you sure you want to permanently delete "${conf.title}"?`
+                                              )
+                                            ) {
+                                              const result = await onDeleteConference?.(conf.id);
+
+                                              if (result?.success) {
+                                                showToast(
+                                                  result.warning ||
+                                                    `Conference "${conf.title}" deleted successfully.`
+                                                );
+                                              } else {
+                                                showToast(
+                                                  result?.error ||
+                                                    `Unable to delete conference "${conf.title}".`
+                                                );
+                                              }
+                                            } else {
+                                              showToast("Delete action cancelled.");
+                                            }
+                                            }}
+                                            className="px-2.5 py-1 bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold rounded text-[11px] cursor-pointer inline-flex items-center gap-1 transition-colors"
                                       >
                                         <Trash2 className="h-3.5 w-3.5" /> Delete
                                       </button>
@@ -1885,7 +1953,11 @@ const todayStr =
 
             {/* SECTION 4: REJECTED CONFERENCES */}
             {activeMenu === "REJECTED_CONFERENCES" && (() => {
-              const rejectedConfs = orgConferences.filter((c) => c.status === ConferenceStatus.Rejected);
+              const rejectedConfs = sortConferencesNewestFirst(
+                orgConferences.filter(
+                  (c) => c.status === ConferenceStatus.Rejected
+                )
+              );
               const totalPages = Math.max(1, Math.ceil(rejectedConfs.length / ORG_ITEMS_PER_PAGE));
               const paginated = rejectedConfs.slice((rejectedPage - 1) * ORG_ITEMS_PER_PAGE, rejectedPage * ORG_ITEMS_PER_PAGE);
 
@@ -1979,7 +2051,9 @@ const todayStr =
 
             {/* SECTION 4.5: COMPLETED CONFERENCES */}
             {activeMenu === "COMPLETED_CONFERENCES" && (() => {
-              const completedConfs = orgConferences.filter((c) => isConferenceCompleted(c));
+              const completedConfs = sortConferencesNewestFirst(
+                orgConferences.filter((c) => isConferenceCompleted(c))
+              );
               const totalPages = Math.max(1, Math.ceil(completedConfs.length / ORG_ITEMS_PER_PAGE));
               const paginated = completedConfs.slice((completedPage - 1) * ORG_ITEMS_PER_PAGE, completedPage * ORG_ITEMS_PER_PAGE);
 
@@ -1995,10 +2069,29 @@ const todayStr =
                         <button
                           onClick={async () => {
                             if (confirm(`Are you sure you want to permanently delete ${selectedCompletedIds.length} completed conference(s)?`)) {
+                              let successCount = 0;
+                              let failureCount = 0;
+
                               for (const id of selectedCompletedIds) {
-                                if (onDeleteConference) await onDeleteConference(id);
+                                const result = await onDeleteConference?.(id);
+
+                                if (result?.success) {
+                                  successCount++;
+                                } else {
+                                  failureCount++;
+                                }
                               }
-                              showToast(`${selectedCompletedIds.length} completed conference(s) deleted successfully.`);
+
+                              if (failureCount === 0) {
+                                showToast(
+                                  `${successCount} completed conference(s) deleted successfully.`
+                                );
+                              } else {
+                                showToast(
+                                  `${successCount} deleted, ${failureCount} failed.`
+                                );
+                              }
+
                               setSelectedCompletedIds([]);
                             } else {
                               showToast("Delete action cancelled.");
@@ -2013,17 +2106,41 @@ const todayStr =
                       {completedConfs.length > 0 && (
                         <button
                           onClick={async () => {
-                            if (confirm(`Are you sure you want to permanently delete all ${completedConfs.length} completed conference(s)?`)) {
-                              const allIds = completedConfs.map((c) => c.id);
-                              for (const id of allIds) {
-                                if (onDeleteConference) await onDeleteConference(id);
-                              }
-                              showToast(`All ${completedConfs.length} completed conference(s) deleted successfully.`);
-                              setSelectedCompletedIds([]);
-                            } else {
-                              showToast("Delete action cancelled.");
-                            }
-                          }}
+  if (
+    confirm(
+      `Are you sure you want to permanently delete all ${completedConfs.length} completed conference(s)?`
+    )
+  ) {
+    const allIds = completedConfs.map((c) => c.id);
+
+    let successCount = 0;
+    let failureCount = 0;
+
+    for (const id of allIds) {
+      const result = await onDeleteConference?.(id);
+
+      if (result?.success) {
+        successCount++;
+      } else {
+        failureCount++;
+      }
+    }
+
+    if (failureCount === 0) {
+      showToast(
+        `All ${successCount} completed conference(s) deleted successfully.`
+      );
+    } else {
+      showToast(
+        `${successCount} deleted, ${failureCount} failed.`
+      );
+    }
+
+    setSelectedCompletedIds([]);
+  } else {
+    showToast("Delete action cancelled.");
+  }
+}}
                           className="w-full min-[420px]:w-auto px-3 py-1.5 bg-rose-100 hover:bg-rose-200 text-rose-800 font-bold rounded-xl text-xs cursor-pointer flex items-center justify-center gap-1.5 transition-colors border border-rose-200"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
@@ -2120,14 +2237,29 @@ const todayStr =
                                     </button>
                                     <button
                                       onClick={async () => {
-                                        if (confirm(`Are you sure you want to permanently delete completed conference "${conf.title}"?`)) {
-                                          if (onDeleteConference) await onDeleteConference(conf.id);
-                                          showToast(`Conference "${conf.title}" deleted successfully.`);
+                                       if (
+                                          confirm(
+                                            `Are you sure you want to permanently delete completed conference "${conf.title}"?`
+                                          )
+                                        ) {
+                                          const result = await onDeleteConference?.(conf.id);
+
+                                          if (result?.success) {
+                                            showToast(
+                                              result.warning ||
+                                                `Conference "${conf.title}" deleted successfully.`
+                                            );
+                                          } else {
+                                            showToast(
+                                              result?.error ||
+                                                `Unable to delete conference "${conf.title}".`
+                                            );
+                                          }
                                         } else {
-                                          showToast("Delete action cancelled.");
-                                        }
-                                      }}
-                                      className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded text-[11px] cursor-pointer inline-flex items-center gap-1 transition-colors shadow-2xs"
+                                                showToast("Delete action cancelled.");
+                                              }
+                                              }}
+                                              className="px-2.5 py-1 bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold rounded text-[11px] cursor-pointer inline-flex items-center gap-1 transition-colors"
                                       title="Delete completed conference"
                                     >
                                       <Trash2 className="h-3.5 w-3.5" /> Delete
@@ -2173,9 +2305,23 @@ const todayStr =
               );
             })()}
 
-            {/* SECTION 5: ALL CONFERENCES & DRAFTS */}                          ``                               
+            {/* SECTION 5: ALL CONFERENCES & DRAFTS */}                                                    
             {activeMenu === "MANAGE_CONFERENCES" && (() => {
-              const filteredConfs = orgConferences.filter((c) => !searchQuery || c.title.toLowerCase().includes(searchQuery.toLowerCase()));
+              const filteredConfs = sortConferencesNewestFirst(
+              orgConferences.filter((c) => {
+              const isDraft =
+                c.status === ConferenceStatus.Draft ||
+                String(c.status || "").trim().toLowerCase() === "draft";
+
+              const matchesSearch =
+                !searchQuery ||
+                String(c.title || "")
+                  .toLowerCase()
+                  .includes(searchQuery.toLowerCase());
+
+            return isDraft && matchesSearch;
+              })
+            );
               const totalPages = Math.max(1, Math.ceil(filteredConfs.length / ORG_ITEMS_PER_PAGE));
               const paginated = filteredConfs.slice((managePage - 1) * ORG_ITEMS_PER_PAGE, managePage * ORG_ITEMS_PER_PAGE);
 
@@ -2183,7 +2329,7 @@ const todayStr =
                 <div className="space-y-4">
                   <div className="bg-white rounded-xl sm:rounded-2xl border border-slate-200 overflow-hidden shadow-2xs min-w-0">
                     <div className="p-3 sm:p-4 sm:px-6 border-b border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 min-w-0">
-                      <h3 className="font-bold text-slate-800 text-sm">All My Conferences ({filteredConfs.length})</h3>
+                      <h3 className="font-bold text-slate-800 text-sm">Draft Conferences ({filteredConfs.length})</h3>
                       <div className="w-full sm:w-auto flex items-center gap-2">
                         <div className="relative w-full sm:w-auto">
                           <Search className="h-3.5 w-3.5 text-slate-400 absolute left-3 top-2.5" />
@@ -2201,7 +2347,7 @@ const todayStr =
                     {filteredConfs.length === 0 ? (
                       <div className="text-center px-4 py-10 sm:py-16 min-w-0">
                         <FileText className="h-12 w-12 text-slate-300 mx-auto mb-3" />
-                        <p className="text-slate-700 font-bold text-sm">No conferences created yet</p>
+                        <p className="text-slate-700 font-bold text-sm">No draft conferences found</p>
                         <button
                           onClick={() => {
                             resetConferenceForm();
@@ -2256,8 +2402,10 @@ const todayStr =
                                     </span>
                                   </td>
                                   <td className="p-4 pr-6 text-right space-x-2">
-                                    {(isPendingStatus(conf.status) || conf.status === ConferenceStatus.Rejected) && (
-                                      <button
+                                    {(isPendingStatus(conf.status) ||
+                                        conf.status === ConferenceStatus.Rejected ||
+                                        conf.status === ConferenceStatus.Draft) && (
+                                        <button
                                         onClick={() => startEditConference(conf)}
                                         className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
                                         title="Edit Conference"
@@ -2323,14 +2471,28 @@ const todayStr =
                                     )}
                                     {conf.status === ConferenceStatus.Draft && (
                                       <button
-                                        onClick={() => {
-                                          if (confirm(`Are you sure you want to permanently delete draft "${conf.title}"?`)) {
-                                            onDeleteDraft(conf.id);
-                                            showToast(`Draft "${conf.title}" deleted successfully.`);
+                                        onClick={async () => {
+                                        if (
+                                          confirm(
+                                            `Are you sure you want to permanently delete draft "${conf.title}"?`
+                                          )
+                                        ) {
+                                          const result = await onDeleteDraft(conf.id);
+
+                                          if (result.success) {
+                                            showToast(
+                                              `Draft "${conf.title}" deleted successfully.`
+                                            );
                                           } else {
-                                            showToast("Delete action cancelled.");
+                                            showToast(
+                                              result.error ||
+                                                `Unable to delete draft "${conf.title}".`
+                                            );
                                           }
-                                        }}
+                                        } else {
+                                          showToast("Delete action cancelled.");
+                                        }
+                                      }}
                                         className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
                                         title="Delete Draft"
                                       >
@@ -3062,9 +3224,25 @@ const todayStr =
                     showToast("Delete action cancelled.");
                     return;
                   }
-                  if (onDeleteConference) await onDeleteConference(viewingCompletedConference.id);
-                  setViewingCompletedConference(null);
-                  showToast(`Conference "${viewingCompletedConference.title}" deleted successfully.`);
+                      const result = await onDeleteConference?.(
+                        viewingCompletedConference.id
+                      );
+
+                      if (result?.success) {
+                        const deletedTitle = viewingCompletedConference.title;
+
+                        setViewingCompletedConference(null);
+
+                        showToast(
+                          result.warning ||
+                            `Conference "${deletedTitle}" deleted successfully.`
+                        );
+                      } else {
+                        showToast(
+                          result?.error ||
+                            `Unable to delete conference "${viewingCompletedConference.title}".`
+                        );
+                      }
                 }}
                 className="w-full sm:w-auto px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-1.5"
               >

@@ -2897,6 +2897,88 @@ const [isSavingCredentials, setIsSavingCredentials] =
     }
   };
 
+  const handleResetOrganizers = async () => {
+  setResetStatus(null);
+
+  if (!resetAdminPassword) {
+    setResetStatus({
+      type: "error",
+      msg: "Super Admin password is required."
+    });
+    return;
+  }
+
+  const warning =
+    "This will permanently delete ALL organizers, their login accounts, and their associated conferences. " +
+    "Other application data will remain unchanged. " +
+    "This action cannot be undone.";
+
+  if (
+    !window.confirm(
+      `Permanently delete ALL organizers?\n\n${warning}`
+    )
+  ) {
+    return;
+  }
+
+  setIsResettingDb(true);
+
+  try {
+    const res = await adminFetch("/api/admin/reset-database", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        adminPassword: resetAdminPassword,
+        scope: "organizers"
+      })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok || !data?.success) {
+      setResetStatus({
+        type: "error",
+        msg:
+          data?.error ||
+          "Failed to delete organizers."
+      });
+      return;
+    }
+
+    setResetStatus({
+      type: "success",
+      msg:
+        data.message ||
+        "All organizers successfully deleted!"
+    });
+
+    setResetAdminPassword("");
+
+    showToast(
+      "Organizer database deletion complete!"
+    );
+
+    setTimeout(() => {
+      window.location.reload();
+    }, 1500);
+  } catch (error) {
+    console.error(
+      "Organizer database reset failed:",
+      error
+    );
+
+    setResetStatus({
+      type: "error",
+      msg:
+        "Server error while deleting organizers."
+    });
+  } finally {
+    setIsResettingDb(false);
+  }
+};
+
   // Reusable bulk toggle
   const toggleSelectAll = (allIds: string[]) => {
     if (selectedIds.length === allIds.length) {
@@ -4139,6 +4221,25 @@ const [isSavingCredentials, setIsSavingCredentials] =
                       className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500 text-xs"
                     />
                   </div>
+
+                  <button
+                      type="button"
+                      onClick={handleResetOrganizers}
+                      disabled={isResettingDb || !resetAdminPassword}
+                      className="w-full py-3.5 bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-xs rounded-2xl transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      {isResettingDb ? (
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Users className="h-4 w-4" />
+                      )}
+
+                      <span>
+                        {isResettingDb
+                          ? "Deleting Organizers..."
+                          : "Delete All Organizers"}
+                      </span>
+                    </button>
 
                   <button
                     type="button"

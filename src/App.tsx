@@ -2467,18 +2467,50 @@ useEffect(() => {
   };
 };
 
-  const handleDeleteDraft = async (confId: string) => {
-    await deleteRecordFromSupabase("conferences", confId);
-    await deleteFromSupabase("conferences", confId);
-    const freshConfs = await fetchFromSupabase<Conference[]>("conferences", true);
-    if (freshConfs && Array.isArray(freshConfs)) {
-      setConferences(ensureConferenceSlugs(freshConfs));
-    } else {
-      setConferences((prev) => prev.filter((c) => c.id !== confId));
-    }
-    triggerBroadcastSync();
-    logAudit("Deleted Draft", `Removed draft conference ID ${confId}`, "Organizer", "ORGANIZER");
-  };
+const handleDeleteDraft = async (
+  confId: string
+): Promise<{ success: boolean; error?: string }> => {
+  const result = await deleteRecordFromSupabase(
+    "conferences",
+    confId
+  );
+
+  if (!result.success) {
+    return {
+      success: false,
+      error:
+        result.error ||
+        "Unable to delete draft conference."
+    };
+  }
+
+  const freshConfs =
+    await fetchFromSupabase<Conference[]>(
+      "conferences",
+      true
+    );
+
+  if (freshConfs && Array.isArray(freshConfs)) {
+    setConferences(
+      ensureConferenceSlugs(freshConfs)
+    );
+  } else {
+    setConferences((prev) =>
+      prev.filter((c) => c.id !== confId)
+    );
+  }
+
+  triggerBroadcastSync();
+
+  logAudit(
+    "Deleted Draft",
+    `Removed draft conference ID ${confId}`,
+    "Organizer",
+    "ORGANIZER"
+  );
+
+  return { success: true };
+};
 
   // Admin functions
  const handleApproveConference = async (

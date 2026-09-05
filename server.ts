@@ -231,12 +231,45 @@ if (
 ) {
   const conferenceSlug = segments[1];
 
-  const { data: conferenceRows, error } =
-    await supabaseServerClient
-      .from("conferences")
-      .select(
-        "title,description,category,topic,category_name,country,city,slug,status,is_deactivated"
-      );
+  const conferenceRows: any[] = [];
+let error: any = null;
+
+const SEO_CONFERENCE_PAGE_SIZE = 1000;
+let seoConferenceFrom = 0;
+
+while (true) {
+  const {
+    data: conferencePage,
+    error: conferencePageError
+  } = await supabaseServerClient
+    .from("conferences")
+    .select(
+      "title,description,category,country,city,slug,status,is_deactivated"
+    )
+    .range(
+      seoConferenceFrom,
+      seoConferenceFrom +
+        SEO_CONFERENCE_PAGE_SIZE -
+        1
+    );
+
+  if (conferencePageError) {
+    error = conferencePageError;
+    break;
+  }
+
+  const rows = Array.isArray(conferencePage)
+    ? conferencePage
+    : [];
+
+  conferenceRows.push(...rows);
+
+  if (rows.length < SEO_CONFERENCE_PAGE_SIZE) {
+    break;
+  }
+
+  seoConferenceFrom += rows.length;
+}
 
   if (!error && Array.isArray(conferenceRows)) {
     const conference = conferenceRows.find((item: any) => {
@@ -281,8 +314,6 @@ if (
 
       const topic = String(
         conference.category ||
-        conference.topic ||
-        conference.category_name ||
         "International Conference"
       ).trim();
 
@@ -319,12 +350,45 @@ if (
 ) {
   const organizerSlug = segments[1];
 
-  const { data: organizerRows, error } =
-    await supabaseServerClient
-      .from("organizers")
-      .select(
-        "slug,organization_name,name,about_organization,country,city,is_suspended"
-      );
+  const organizerRows: any[] = [];
+let error: any = null;
+
+const SEO_ORGANIZER_PAGE_SIZE = 1000;
+let seoOrganizerFrom = 0;
+
+while (true) {
+  const {
+    data: organizerPage,
+    error: organizerPageError
+  } = await supabaseServerClient
+    .from("organizers")
+    .select(
+      "slug,name,about_organization,country,city,is_suspended"
+    )
+    .range(
+      seoOrganizerFrom,
+      seoOrganizerFrom +
+        SEO_ORGANIZER_PAGE_SIZE -
+        1
+    );
+
+  if (organizerPageError) {
+    error = organizerPageError;
+    break;
+  }
+
+  const rows = Array.isArray(organizerPage)
+    ? organizerPage
+    : [];
+
+  organizerRows.push(...rows);
+
+  if (rows.length < SEO_ORGANIZER_PAGE_SIZE) {
+    break;
+  }
+
+  seoOrganizerFrom += rows.length;
+}
 
   if (!error && Array.isArray(organizerRows)) {
     const organizer = organizerRows.find((item: any) => {
@@ -341,7 +405,6 @@ if (
       ).trim();
 
       const organizerName = String(
-        item.organization_name ||
         item.name ||
         "Conference Organizer"
       ).trim();
@@ -357,7 +420,6 @@ if (
 
     if (organizer) {
       const organizerName = String(
-        organizer.organization_name ||
         organizer.name ||
         "Conference Organizer"
       ).trim();
@@ -403,12 +465,45 @@ if (segments.length === 3) {
   const citySlug = segments[1];
   const topicSlug = segments[2];
 
-  const { data: conferences, error } =
-    await supabaseServerClient
-      .from("conferences")
-      .select(
-        "category,topic,category_name,country,city,status,is_deactivated"
-      );
+const conferences: any[] = [];
+let error: any = null;
+
+const SEO_THREE_SLUG_PAGE_SIZE = 1000;
+let seoThreeSlugFrom = 0;
+
+while (true) {
+  const {
+    data: conferencePage,
+    error: conferencePageError
+  } = await supabaseServerClient
+    .from("conferences")
+    .select(
+      "category,country,city,status,is_deactivated"
+    )
+    .range(
+      seoThreeSlugFrom,
+      seoThreeSlugFrom +
+        SEO_THREE_SLUG_PAGE_SIZE -
+        1
+    );
+
+  if (conferencePageError) {
+    error = conferencePageError;
+    break;
+  }
+
+  const rows = Array.isArray(conferencePage)
+    ? conferencePage
+    : [];
+
+  conferences.push(...rows);
+
+  if (rows.length < SEO_THREE_SLUG_PAGE_SIZE) {
+    break;
+  }
+
+  seoThreeSlugFrom += rows.length;
+}
 
   if (!error && Array.isArray(conferences)) {
     const match = conferences.find(
@@ -431,11 +526,9 @@ if (segments.length === 3) {
         }
 
         const topic = String(
-          conference.category ||
-          conference.topic ||
-          conference.category_name ||
-          ""
-        ).trim();
+        conference.category ||
+        "International Conference"
+      ).trim();
 
         return (
           sitemapSlugify(
@@ -460,8 +553,6 @@ if (segments.length === 3) {
 
       const topic = String(
         match.category ||
-        match.topic ||
-        match.category_name ||
         ""
       ).trim();
 
@@ -488,12 +579,45 @@ if (
   const firstSlug = segments[0];
   const secondSlug = segments[1];
 
-  const { data: conferences, error } =
-    await supabaseServerClient
-      .from("conferences")
-      .select(
-        "category,topic,category_name,country,city,status,is_deactivated"
-      );
+const conferences: any[] = [];
+let error: any = null;
+
+const SEO_TWO_SLUG_PAGE_SIZE = 1000;
+let seoTwoSlugFrom = 0;
+
+while (true) {
+  const {
+    data: conferencePage,
+    error: conferencePageError
+  } = await supabaseServerClient
+    .from("conferences")
+    .select(
+      "category,country,city,status,is_deactivated"
+    )
+    .range(
+      seoTwoSlugFrom,
+      seoTwoSlugFrom +
+        SEO_TWO_SLUG_PAGE_SIZE -
+        1
+    );
+
+  if (conferencePageError) {
+    error = conferencePageError;
+    break;
+  }
+
+  const rows = Array.isArray(conferencePage)
+    ? conferencePage
+    : [];
+
+  conferences.push(...rows);
+
+  if (rows.length < SEO_TWO_SLUG_PAGE_SIZE) {
+    break;
+  }
+
+  seoTwoSlugFrom += rows.length;
+}
 
   if (!error && Array.isArray(conferences)) {
     const visibleConferences = conferences.filter(
@@ -515,11 +639,9 @@ if (
       }
     );
 
-    const getTopic = (conference: any) =>
+   const getTopic = (conference: any) =>
       String(
         conference.category ||
-        conference.topic ||
-        conference.category_name ||
         ""
       ).trim();
 
@@ -621,12 +743,45 @@ if (
   if (segments.length === 1) {
     const slug = segments[0];
 
-    const { data: conferences, error } =
-  await supabaseServerClient
+  const conferences: any[] = [];
+let error: any = null;
+
+const SEO_SINGLE_SLUG_PAGE_SIZE = 1000;
+let seoSingleSlugFrom = 0;
+
+while (true) {
+  const {
+    data: conferencePage,
+    error: conferencePageError
+  } = await supabaseServerClient
     .from("conferences")
     .select(
-      "category,topic,category_name,country,city,status,is_deactivated"
+      "category,country,city,status,is_deactivated"
+    )
+    .range(
+      seoSingleSlugFrom,
+      seoSingleSlugFrom +
+        SEO_SINGLE_SLUG_PAGE_SIZE -
+        1
     );
+
+  if (conferencePageError) {
+    error = conferencePageError;
+    break;
+  }
+
+  const rows = Array.isArray(conferencePage)
+    ? conferencePage
+    : [];
+
+  conferences.push(...rows);
+
+  if (rows.length < SEO_SINGLE_SLUG_PAGE_SIZE) {
+    break;
+  }
+
+  seoSingleSlugFrom += rows.length;
+}
 
     if (!error && Array.isArray(conferences)) {
       const visibleConferences = conferences.filter((conference: any) => {
@@ -677,22 +832,18 @@ if (
 
       const topicMatch = visibleConferences.find((conference: any) => {
         const topic =
-          conference.category ||
-          conference.topic ||
-          conference.category_name ||
-          "";
+        conference.category ||
+        "";
 
         return sitemapSlugify(topic) === slug;
       });
 
       if (topicMatch) {
         const topic =
-          String(
-            topicMatch.category ||
-            topicMatch.topic ||
-            topicMatch.category_name ||
-            ""
-          ).trim();
+        String(
+          topicMatch.category ||
+          ""
+        ).trim();
 
         if (topic) {
           return {
@@ -866,18 +1017,66 @@ function isConferenceExpired(conf: any, referenceTime: Date = new Date()): boole
  */
 async function syncCompletedConferencesStatusServer(): Promise<{ updatedCount: number }> {
   try {
-    const { data: rows, error } = await supabaseServerClient.from("conferences").select("*");
     let allConferences: any[] = [];
+      let conferenceReadError: any = null;
 
-    if (!error && Array.isArray(rows)) {
-      allConferences = rows;
-    } else {
-      const { data: storeData } = await supabaseServerClient.from("app_store").select("*").eq("key", "conferences").maybeSingle();
-      if (storeData) {
-        const val = storeData.data || storeData.payload || storeData.value;
-        if (Array.isArray(val)) allConferences = val;
+      const CONFERENCE_STATUS_PAGE_SIZE = 1000;
+      let conferenceFrom = 0;
+
+      while (true) {
+        const { data: rows, error } =
+          await supabaseServerClient
+            .from("conferences")
+            .select("*")
+            .range(
+              conferenceFrom,
+              conferenceFrom +
+                CONFERENCE_STATUS_PAGE_SIZE -
+                1
+            );
+
+        if (error) {
+          conferenceReadError = error;
+          break;
+        }
+
+        const pageRows = Array.isArray(rows)
+          ? rows
+          : [];
+
+        allConferences.push(...pageRows);
+
+        if (
+          pageRows.length <
+          CONFERENCE_STATUS_PAGE_SIZE
+        ) {
+          break;
+        }
+
+        conferenceFrom += pageRows.length;
       }
-    }
+
+      if (conferenceReadError) {
+        allConferences = [];
+
+        const { data: storeData } =
+          await supabaseServerClient
+            .from("app_store")
+            .select("*")
+            .eq("key", "conferences")
+            .maybeSingle();
+
+        if (storeData) {
+          const val =
+            storeData.data ||
+            storeData.payload ||
+            storeData.value;
+
+          if (Array.isArray(val)) {
+            allConferences = val;
+          }
+        }
+      }
 
     let updatedCount = 0;
     for (const conf of allConferences) {
@@ -2296,29 +2495,61 @@ app.post("/api/admin/reset-database", rateLimit("admin-reset", 20, 60 * 60 * 100
     error: "Invalid Admin password. Delete operation aborted."
   });
 }
+              // Collect Organizer Auth user IDs before deleting organizer records.
+        // This applies to both a full reset and Organizer-only reset.
+        let organizerAuthUserIds: string[] = [];
 
-          // Collect Organizer Auth user IDs before deleting organizer records.
-      let organizerAuthUserIds: string[] = [];
+        if (scope === "all" || scope === "organizers") {
+          const organizerRows: any[] = [];
+          const ORGANIZER_RESET_PAGE_SIZE = 1000;
+          let organizerResetFrom = 0;
 
-      if (scope === "all") {
-        const { data: organizerRows, error: organizerRowsError } =
-          await supabaseServerClient
-            .from("organizers")
-            .select("id, auth_user_id");
+          while (true) {
+            const {
+              data: organizerPage,
+              error: organizerRowsError
+            } = await supabaseServerClient
+              .from("organizers")
+              .select("id, auth_user_id")
+              .range(
+                organizerResetFrom,
+                organizerResetFrom + ORGANIZER_RESET_PAGE_SIZE - 1
+              );
 
-        if (organizerRowsError && !isMissingTableError(organizerRowsError)) {
-          return res.status(500).json({
-            success: false,
-            error: `Unable to prepare Organizer account deletion: ${organizerRowsError.message}`
-          });
+            if (organizerRowsError) {
+              if (!isMissingTableError(organizerRowsError)) {
+                return res.status(500).json({
+                  success: false,
+                  error: `Unable to prepare Organizer account deletion: ${organizerRowsError.message}`
+                });
+              }
+
+              break;
+            }
+
+            const rows = Array.isArray(organizerPage)
+              ? organizerPage
+              : [];
+
+            organizerRows.push(...rows);
+
+            if (rows.length < ORGANIZER_RESET_PAGE_SIZE) {
+              break;
+            }
+
+            organizerResetFrom += rows.length;
+          }
+
+          organizerAuthUserIds = organizerRows
+            .map((organizer: any) =>
+              String(
+                organizer.auth_user_id ||
+                organizer.id ||
+                ""
+              ).trim()
+            )
+            .filter(Boolean);
         }
-
-        organizerAuthUserIds = (organizerRows || [])
-          .map((organizer: any) =>
-            String(organizer.auth_user_id || organizer.id || "").trim()
-          )
-          .filter(Boolean);
-      }
 
     const selectedSection = scope === "all" ? null : DATABASE_RESET_SECTIONS[scope];
     const targets = selectedSection?.targets || FULL_RESET_TARGETS;
@@ -2359,7 +2590,7 @@ app.post("/api/admin/reset-database", rateLimit("admin-reset", 20, 60 * 60 * 100
     const failures: string[] = [];
 
     // Clear Organizer security records safely before deleting organizers.
-    if (scope === "all") {
+    if (scope === "all" || scope === "organizers") {
       const organizerSecurityTables = [
         "organizer_auth_secrets",
         "organizer_legacy_auth"
@@ -2425,12 +2656,28 @@ app.post("/api/admin/reset-database", rateLimit("admin-reset", 20, 60 * 60 * 100
     }
 
     // Delete Organizer users from Supabase Auth after database records are cleared.
-      if (scope === "all" && organizerAuthUserIds.length > 0) {
-        for (const authUserId of organizerAuthUserIds) {
-          const { error: authDeleteError } =
-            await supabaseServerClient.auth.admin.deleteUser(authUserId);
+      if (
+          (scope === "all" || scope === "organizers") &&
+          organizerAuthUserIds.length > 0
+        ) {
+      for (const authUserId of organizerAuthUserIds) {
+        const { error: authDeleteError } =
+          await supabaseServerClient.auth.admin.deleteUser(authUserId);
 
-          if (authDeleteError) {
+        if (authDeleteError) {
+          const authStatus = Number(
+            (authDeleteError as any)?.status || 0
+          );
+
+          const authMessage = String(
+            authDeleteError.message || ""
+          );
+
+          const alreadyMissing =
+            authStatus === 404 ||
+            /not found/i.test(authMessage);
+
+          if (!alreadyMissing) {
             return res.status(500).json({
               success: false,
               error: `Database records were deleted, but Organizer Auth user "${authUserId}" could not be deleted: ${authDeleteError.message}`,
@@ -2438,6 +2685,7 @@ app.post("/api/admin/reset-database", rateLimit("admin-reset", 20, 60 * 60 * 100
             });
           }
         }
+      }
       }
 
     const label = selectedSection?.label || "the full application database";
@@ -2921,7 +3169,7 @@ ${sitemapEntries}
 // Robots.txt
 app.get("/robots.txt", (req, res) => {
   res.setHeader("Content-Type", "text/plain");
-  const appUrl = process.env.APP_URL || `https://${req.headers.host || "globalconferencehub.com"}`;
+  const appUrl = process.env.APP_URL || `https://${req.headers.host || "internationalconference.info"}`;
   res.send(`User-agent: *
 Allow: /
 Disallow: /admin/
