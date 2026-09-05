@@ -1,6 +1,5 @@
 import React, { lazy, Suspense, useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { safeSetLocalStorage, safeGetLocalStorage } from "./shared/utils/storageUtils";
 import { adminFetch, setAdminTabToken, clearAdminTabToken, getAdminTabToken } from "./shared/utils/adminSession";
 import { toUpperCaseName } from "./shared/utils/textUtils";
 import { 
@@ -566,7 +565,6 @@ const loadCitiesForCountry = useCallback(
 
       if (changed) {
         setConferences(updated);
-        safeSetLocalStorage("gch_conferences", updated);
         // Database live-status synchronization is server-side so strict RLS
         // never requires a visitor/Organizer browser to update other records.
         triggerBroadcastSync();
@@ -1935,8 +1933,8 @@ useEffect(() => {
       coverImage: updatedOrg.coverImage || matched?.coverImage || "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=1000&q=80",
       organizationWebsite: updatedOrg.organizationWebsite || matched?.organizationWebsite || "",
       aboutOrganization: updatedOrg.aboutOrganization || matched?.aboutOrganization || "",
-      country: updatedOrg.country || matched?.country || "Japan",
-      city: updatedOrg.city || matched?.city || "Tokyo",
+      country: updatedOrg.country || matched?.country || "",
+      city: updatedOrg.city || matched?.city || "",
       isVerified: matched?.isVerified ?? false,
       isSuspended: matched?.isSuspended ?? false,
       isFeatured: matched?.isFeatured ?? false,
@@ -2020,8 +2018,8 @@ useEffect(() => {
         coverImage: "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=1000&q=80",
         organizationWebsite: newConf.organizerWebsite || "",
         aboutOrganization: "",
-        country: newConf.country || "Japan",
-        city: newConf.city || "Tokyo",
+        country: newConf.country || "",
+        city: newConf.city || "",
         isVerified: false,
         isSuspended: false,
         isFeatured: false,

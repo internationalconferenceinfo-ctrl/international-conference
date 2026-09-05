@@ -1871,35 +1871,58 @@ if (hasCategory && hasCountry) {
     return icons[topic] || BookOpen;
   };
 
-  const handleNewsletterSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const email = newsletterEmail.trim();
-    if (!email) return;
+const handleNewsletterSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
 
-    setNewsletterError("");
-    const now = new Date();
-    const formattedDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")} ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+  const email = newsletterEmail.trim();
 
-    const newSub: SubscriberItem = {
-      id: `sub-${Date.now()}`,
-      email: email,
-      date: formattedDate,
-    };
+  if (!email) return;
 
-    const result = await saveRecordToSupabase("subscriber_emails", newSub);
-    if (!result.success) {
-      const duplicate = /duplicate|unique|already exists/i.test(result.error || "");
-      setNewsletterError(duplicate ? "This email is already subscribed to our newsletter!" : "Subscription failed. Please try again.");
-      return;
+  setNewsletterError("");
+
+  try {
+    const response = await fetch("/api/public/newsletter", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        email
+      })
+    });
+
+    const result = await response.json();
+
+    if (!response.ok || !result?.success) {
+      throw new Error(
+        result?.error ||
+        "Subscription failed. Please try again."
+      );
     }
 
-    // Avoid downloading the entire subscriber table to every public visitor.
-    if (onUpdateSubscriberEmails) onUpdateSubscriberEmails([newSub]);
+   if (
+      onUpdateSubscriberEmails &&
+      result?.record
+    ) {
+      onUpdateSubscriberEmails([
+        result.record
+      ]);
+    }
 
     setNewsletterSubscribed(true);
     setNewsletterEmail("");
-    setTimeout(() => setNewsletterSubscribed(false), 5000);
-  };
+
+    setTimeout(() => {
+      setNewsletterSubscribed(false);
+    }, 5000);
+
+  } catch (err: any) {
+    setNewsletterError(
+      err?.message ||
+      "Subscription failed. Please try again."
+    );
+  }
+}; 
 
   return (
     <div className="space-y-10 sm:space-y-12 md:space-y-16 lg:space-y-20 w-full min-w-0">
@@ -3217,8 +3240,8 @@ if (hasCategory && hasCountry) {
                   </div>
                   <div className="min-w-0">
                     <p className="text-[10px] uppercase font-extrabold text-slate-300 tracking-wider">Email Address</p>
-                    <a href={`mailto:${footerContactInfo.email || "ops@internationalconference.org"}`} className="text-xs sm:text-sm font-bold text-white hover:underline break-all block mt-0.5">
-                      {footerContactInfo.email || "ops@internationalconference.org"}
+                    <a href={`mailto:${footerContactInfo.email}`} className="text-xs sm:text-sm font-bold text-white hover:underline break-all block mt-0.5">
+                      {footerContactInfo.email}
                     </a>
                   </div>
                 </div>
@@ -3231,7 +3254,7 @@ if (hasCategory && hasCountry) {
                   <div>
                     <p className="text-[10px] uppercase font-extrabold text-slate-300 tracking-wider">Phone Number</p>
                     <a href={`tel:${(footerContactInfo.phone || "").replace(/[^0-9+]/g, "")}`} className="text-xs sm:text-sm font-bold text-white hover:underline block mt-0.5">
-                      {footerContactInfo.phone || "+1 (555) 304-4581"}
+                      {footerContactInfo.phone}
                     </a>
                   </div>
                 </div>
@@ -4287,11 +4310,11 @@ if (hasCategory && hasCountry) {
             <ul className="space-y-3">
               <li className="flex items-center gap-2">
                 <Mail className="h-4 w-4 text-slate-300 shrink-0" />
-                <span className="break-all">{footerContactInfo.email || "ops@internationalconference.org"}</span>
+                <span className="break-all">{footerContactInfo.email}</span>
               </li>
               <li className="flex items-center gap-2">
                 <Phone className="h-4 w-4 text-slate-300 shrink-0" />
-                <span>{footerContactInfo.phone || "+1 (555) 304-4581"}</span>
+                <span>{footerContactInfo.phone}</span>
               </li>
               {footerContactInfo.address && (
                 <li className="flex items-start gap-2">

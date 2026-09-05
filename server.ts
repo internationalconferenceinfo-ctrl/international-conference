@@ -3,7 +3,6 @@
 import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
-import { GoogleGenAI, Type } from "@google/genai";
 import { createClient } from "@supabase/supabase-js";
 import dotenv from "dotenv";
 import crypto from "crypto";
@@ -1096,16 +1095,6 @@ async function syncCompletedConferencesStatusServer(): Promise<{ updatedCount: n
   }
 }
 
-// Initialize Gemini SDK
-const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY || "dummy-key",
-  httpOptions: {
-    headers: {
-      "User-Agent": "aistudio-build",
-    },
-  },
-});
-
 // Health check endpoint
 app.get("/api/health", (req, res) => {
   res.json({
@@ -1495,8 +1484,8 @@ app.post("/api/organizer/migrate-login", rateLimit("organizer-migrate-login", 8,
       try {
         await supabaseServerClient
           .from("organizers")
-          .delete()
-          .eq("id", createdUserId);
+          .update({ auth_user_id: null })
+          .eq("id", organizer.id);
       } catch {}
 
       try {
@@ -2777,6 +2766,95 @@ app.post("/api/collaboration/submit", rateLimit("collaboration", 10, 60 * 60 * 1
   }
 });
 
+// Public Newsletter Subscription Endpoint
+app.post(
+  "/api/public/newsletter",
+  rateLimit("public-newsletter", 10, 60 * 60 * 1000),
+  async (req, res) => {
+    if (!requireServiceRole(res)) return;
+
+    try {
+      const email = String(req.body?.email || "")
+        .trim()
+        .toLowerCase();
+
+      if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+        return res.status(400).json({
+          success: false,
+          error: "Enter a valid email address."
+        });
+      }
+
+      const {
+        data: existingSubscriber,
+        error: existingError
+      } = await supabaseServerClient
+        .from("subscriber_emails")
+        .select("id,email")
+        .eq("email", email)
+        .maybeSingle();
+
+      if (existingError) {
+        return res.status(500).json({
+          success: false,
+          error: existingError.message
+        });
+      }
+
+      if (existingSubscriber) {
+        return res.status(409).json({
+          success: false,
+          error: "This email is already subscribed to our newsletter."
+        });
+      }
+
+      const newSubscriber = {
+        id: `sub-${Date.now()}-${crypto.randomBytes(4).toString("hex")}`,
+        email
+      };
+
+      const { data, error } = await supabaseServerClient
+        .from("subscriber_emails")
+        .insert(newSubscriber)
+        .select();
+
+      if (error) {
+        if (
+          String(error.code || "") === "23505" ||
+          /duplicate|already exists/i.test(error.message || "")
+        ) {
+          return res.status(409).json({
+            success: false,
+            error: "This email is already subscribed to our newsletter."
+          });
+        }
+
+        return res.status(500).json({
+          success: false,
+          error: error.message
+        });
+      }
+
+      return res.json({
+        success: true,
+        message: "Subscribed successfully.",
+        record: data?.[0] || newSubscriber
+      });
+    } catch (err: any) {
+      console.error("[Newsletter Subscription Error]:", err);
+
+      return res.status(500).json({
+        success: false,
+        error:
+          err?.message ||
+          "Server error while subscribing to the newsletter."
+      });
+    }
+  }
+);
+
+
+
 // Public Feedback Submission Endpoint
 app.post("/api/public/feedback", rateLimit("public-feedback", 10, 60 * 60 * 1000), async (req, res) => {
   try {
@@ -3179,209 +3257,6 @@ Disallow: /api/
 Sitemap: ${appUrl}/sitemap.xml`);
 });
 
-// AI: Duplicate Detection
-app.post("/api/gemini/detect-duplicate", rateLimit("gemini", 30, 60 * 1000), async (req, res) => {
-  try {
-    const { newConference, existingConferences } = req.body;
-
-    if (!newConference) {
-      return res.status(400).json({ error: "Missing newConference payload" });
-    }
-
-    if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === "dummy-key") {
-      return res.json({
-        isDuplicate: false,
-        likelihood: "LOW",
-        matchedConferenceId: null,
-        warningMessage: "Gemini API Key is not configured. Duplicate check bypassed.",
-      });
-    }
-
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: `Evaluate if the following proposed conference is a duplicate of any existing conferences in our database.
-Check based on Title (or highly similar titles), Organizer Name, Dates (same/overlapping days), and Location (same city/venue/online status).
-
-New Proposed Conference:
-${JSON.stringify(newConference, null, 2)}
-
-Existing Database Conferences:
-${JSON.stringify(existingConferences || [], null, 2)}
-`,
-      config: {
-        systemInstruction: "You are an AI-powered quality reviewer for International Conference. You must check for identical or highly similar/duplicate conference entries in the database.",
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            isDuplicate: { type: Type.BOOLEAN, description: "Whether a highly similar conference exists that might be a duplicate" },
-            likelihood: { type: Type.STRING, description: "Duplicate probability: HIGH, MEDIUM, or LOW" },
-            matchedConferenceId: { type: Type.STRING, description: "The ID of the matching duplicate conference if found, or null/empty string" },
-            warningMessage: { type: Type.STRING, description: "Detailed explanation of why it is flagged, or reassurance if it is unique" },
-          },
-          required: ["isDuplicate", "likelihood", "warningMessage"],
-        },
-      },
-    });
-
-    const resultText = response.text || "{}";
-    const resultObj = JSON.parse(resultText);
-    res.json(resultObj);
-  } catch (error: any) {
-    console.error("AI Duplicate Detection Error:", error);
-    res.status(500).json({
-      isDuplicate: false,
-      likelihood: "LOW",
-      matchedConferenceId: null,
-      warningMessage: `Failed to execute AI analysis: ${error.message}. Proceeding safely.`,
-    });
-  }
-});
-
-// AI: Quality Score
-app.post("/api/gemini/quality-score", rateLimit("gemini", 30, 60 * 1000), async (req, res) => {
-  try {
-    const { conference } = req.body;
-
-    if (!conference) {
-      return res.status(400).json({ error: "Missing conference payload" });
-    }
-
-    if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === "dummy-key") {
-      return res.json({
-        score: 75,
-        breakdown: {
-          completeness: 80,
-          clarity: 70,
-          validity: 80,
-          seo: 70,
-        },
-        feedback: "Default score calculated (Gemini API Key is not configured).",
-        suggestions: ["Connect a real Gemini API key to calculate exact quality scores based on descriptions."],
-      });
-    }
-
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: `Analyze the following conference submission and calculate an overall Quality Score (0-100).
-Evaluate it on these aspects:
-1. Completeness: Are all optional and required fields provided?
-2. Clarity: Is the description detailed, readable, and professional?
-3. Validity: Are registration links, websites, and venues realistic?
-4. SEO: Are SEO Title, SEO Description, and Keywords descriptive and search-optimized?
-
-Conference Details:
-${JSON.stringify(conference, null, 2)}
-`,
-      config: {
-        systemInstruction: "You are an AI-powered quality score assessor for International Conference. You evaluate academic and professional conference profiles to help administrators review listings faster.",
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            score: { type: Type.INTEGER, description: "Overall quality score between 0 and 100" },
-            breakdown: {
-              type: Type.OBJECT,
-              properties: {
-                completeness: { type: Type.INTEGER, description: "Completeness score (0-100)" },
-                clarity: { type: Type.INTEGER, description: "Clarity and professional formatting score (0-100)" },
-                validity: { type: Type.INTEGER, description: "Link/venue validation score (0-100)" },
-                seo: { type: Type.INTEGER, description: "SEO optimization score (0-100)" },
-              },
-              required: ["completeness", "clarity", "validity", "seo"],
-            },
-            feedback: { type: Type.STRING, description: "Brief evaluation summary of the conference quality" },
-            suggestions: {
-              type: Type.ARRAY,
-              items: { type: Type.STRING },
-              description: "List of actionable recommendations to increase the score to 100",
-            },
-          },
-          required: ["score", "breakdown", "feedback", "suggestions"],
-        },
-      },
-    });
-
-    const resultText = response.text || "{}";
-    const resultObj = JSON.parse(resultText);
-    res.json(resultObj);
-  } catch (error: any) {
-    console.error("AI Quality Score Error:", error);
-    res.status(500).json({
-      score: 60,
-      breakdown: {
-        completeness: 60,
-        clarity: 60,
-        validity: 60,
-        seo: 60,
-      },
-      feedback: `AI calculation failed: ${error.message}`,
-      suggestions: ["Try updating conference fields and recalculating."],
-    });
-  }
-});
-
-// AI: Conference Summary (for SEO)
-app.post("/api/gemini/summarize", rateLimit("gemini", 30, 60 * 1000), async (req, res) => {
-  const { description, title } = req.body || {};
-  try {
-    if (!description) {
-      return res.status(400).json({ error: "Missing description" });
-    }
-
-    if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === "dummy-key") {
-      return res.json({
-        summary: description.substring(0, 160) + "...",
-        seoTitle: title || "Conference",
-        seoDescription: description.substring(0, 150),
-        keywords: ["conference", "academic", "professional"],
-      });
-    }
-
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: `Generate SEO-optimized content for a conference listing.
-
-Conference Title: ${title || "Conference"}
-Description: ${description}
-
-Generate:
-1. A compelling 150-160 character meta description
-2. An optimized SEO title (under 60 characters)
-3. 5-8 relevant SEO keywords
-
-Return as JSON.`,
-      config: {
-        systemInstruction: "You are an SEO expert for academic and professional conference listings. Generate high-quality search engine optimized content.",
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            summary: { type: Type.STRING, description: "Concise conference summary" },
-            seoTitle: { type: Type.STRING, description: "SEO-optimized title under 60 chars" },
-            seoDescription: { type: Type.STRING, description: "Meta description 150-160 chars" },
-            keywords: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Relevant keywords" },
-          },
-          required: ["summary", "seoTitle", "seoDescription", "keywords"],
-        },
-      },
-    });
-
-    const resultText = response.text || "{}";
-    const resultObj = JSON.parse(resultText);
-    res.json(resultObj);
-  } catch (error: any) {
-    console.error("AI Summary Error:", error);
-    res.status(500).json({
-      summary: (description || "").substring(0, 160) + "...",
-      seoTitle: title || "Conference",
-      seoDescription: (description || "").substring(0, 150),
-      keywords: ["conference", "academic", "professional"],
-    });
-  }
-});
-
-
 const setupProductionFrontend = () => {
   const distPath = path.join(process.cwd(), "dist");
 
@@ -3462,9 +3337,6 @@ async function startServer() {
 
     console.log(`📊 API endpoints:`);
     console.log(`  - /api/health`);
-    console.log(`  - /api/gemini/detect-duplicate`);
-    console.log(`  - /api/gemini/quality-score`);
-    console.log(`  - /api/gemini/summarize`);
     console.log(`  - /sitemap.xml`);
     console.log(`  - /robots.txt`);
   });

@@ -13,9 +13,9 @@ export interface SocialLinks {
 }
 
 export const OFFICIAL_CONTACT_INFO: ContactInfo = {
-  email: "ops@internationalconference.org",
-  phone: "+1 (555) 304-4581",
-  address: "500 Innovation Way, Suite 400, Boston, MA 02108, USA"
+  email: "",
+  phone: "",
+  address: ""
 };
 
 export const OFFICIAL_SOCIAL_LINKS: SocialLinks = {
