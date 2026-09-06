@@ -5933,10 +5933,10 @@ const [isSavingCredentials, setIsSavingCredentials] =
                       return;
                     }
 
-                    if (newBannerDescText.trim().length > 100) {
-                      showToast("Banner description must be 100 characters or fewer.");
-                      return;
-                    }
+                    if (newBannerDescText.trim().length > 150) {
+                    showToast("Banner description must be 150 characters or fewer.");
+                    return;
+                  }
 
                     const bannerId = `banner-${Date.now()}-${Math.random()
                       .toString(36)
@@ -6156,10 +6156,10 @@ const [isSavingCredentials, setIsSavingCredentials] =
                         placeholder="e.g. Discover vetted international academic conferences, submit research papers, and connect with peer-reviewed scientific councils worldwide."
                         value={newBannerDescText}
                         onChange={(e) => setNewBannerDescText(e.target.value)}
-                        maxLength={100}
+                        maxLength={150}
                         className="w-full bg-white border border-slate-200 rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                       />
-                      <p className="text-[10px] text-right text-slate-400">{newBannerDescText.length}/100 characters</p>
+                      <p className="text-[10px] text-right text-slate-400">{newBannerDescText.length}/150 characters</p>
                     </div>
 
                     {/* Position / Order Place */}

@@ -198,7 +198,7 @@ function sanitizeForTable(table: string, data: any[]): any[] {
         ""
       )
         .trim()
-        .slice(0, 100),
+        .slice(0, 150),
 
       image_url: imageUrl,
 
