@@ -1009,8 +1009,10 @@ useEffect(() => {
           );
 
           if (foundOrg) {
-            nextOrgId = foundOrg.id;
-          }
+          nextOrgId = foundOrg.id;
+        } else {
+          nextTab = "NOT_FOUND";
+        }
         }
       }
       else {
@@ -1103,7 +1105,7 @@ useEffect(() => {
           }
 
           if (!matchedAnyFilter && !nextConf) {
-            nextTab = "HOME";
+            nextTab = "NOT_FOUND";
           }
         }
       }
@@ -2373,8 +2375,9 @@ useEffect(() => {
                     "application/json"
                 },
                 body: JSON.stringify({
-                  path: storageInfo.path
-                })
+                bucket: storageInfo.bucket,
+                path: storageInfo.path
+              })
               }
             );
 
@@ -5072,8 +5075,14 @@ const handleEditCategory = async (
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] font-sans selection:bg-blue-600 selection:text-white flex flex-col pt-[68px] sm:pt-[76px]">
-      {renderNavbar()}
+    <div
+  className={`min-h-screen bg-[#F8FAFC] text-[#0F172A] font-sans selection:bg-blue-600 selection:text-white flex flex-col ${
+    publicTab === "NOT_FOUND"
+      ? ""
+      : "pt-[68px] sm:pt-[76px]"
+  }`}
+>
+      {publicTab !== "NOT_FOUND" && renderNavbar()}
       
       <main className="flex-1 w-full min-w-0 px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8">
         <AnimatePresence mode="wait">

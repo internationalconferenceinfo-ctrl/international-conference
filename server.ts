@@ -863,6 +863,15 @@ while (true) {
 const app = express();
 app.disable("x-powered-by");
 app.set("trust proxy", 1);
+
+// Banner images arrive as compressed base64.
+// Give ONLY this protected upload endpoint a larger JSON limit.
+app.use(
+  "/api/admin/uploads/banner-image",
+  express.json({ limit: "2mb" })
+);
+
+// Keep the normal API body limit small everywhere else.
 app.use(express.json({ limit: "256kb" }));
 app.use((_req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
@@ -1924,6 +1933,233 @@ app.delete("/api/admin/db/:table/:id", requireAdminSession, async (req, res) => 
   if (error) return res.status(500).json({ success: false, error: error.message });
   return res.json({ success: true });
 });
+
+// Secure Admin banner image upload.
+// The browser never uploads directly to Supabase Storage.
+// Admin session is verified first, then the server uses the service role.
+app.post(
+  "/api/admin/uploads/banner-image",
+  rateLimit("admin-banner-image-upload", 60, 60 * 60 * 1000),
+  requireAdminSession,
+  async (req, res) => {
+    if (!requireServiceRole(res)) return;
+
+    try {
+      const imageData = String(
+        req.body?.imageData || ""
+      ).trim();
+
+      const rawBannerId = String(
+        req.body?.bannerId || `banner-${Date.now()}`
+      ).trim();
+
+      if (!imageData) {
+        return res.status(400).json({
+          success: false,
+          error: "Banner image is required."
+        });
+      }
+
+      const match = imageData.match(
+        /^data:(image\/(?:png|jpeg|jpg|webp));base64,([A-Za-z0-9+/=\s]+)$/i
+      );
+
+      if (!match) {
+        return res.status(400).json({
+          success: false,
+          error: "Invalid banner image format."
+        });
+      }
+
+      let mimeType = match[1].toLowerCase();
+
+      if (mimeType === "image/jpg") {
+        mimeType = "image/jpeg";
+      }
+
+      const base64Data = match[2].replace(/\s/g, "");
+      const imageBuffer = Buffer.from(base64Data, "base64");
+
+      if (!imageBuffer.length) {
+        return res.status(400).json({
+          success: false,
+          error: "Banner image is empty."
+        });
+      }
+
+      const MAX_IMAGE_BYTES = 1.5 * 1024 * 1024;
+
+      if (imageBuffer.length > MAX_IMAGE_BYTES) {
+        return res.status(413).json({
+          success: false,
+          error: "Banner image must be 1.5 MB or smaller."
+        });
+      }
+
+      const safeBannerId =
+        rawBannerId
+          .replace(/[^a-zA-Z0-9_-]/g, "-")
+          .slice(0, 100) ||
+        `banner-${Date.now()}`;
+
+      const extension =
+        mimeType === "image/png"
+          ? "png"
+          : mimeType === "image/webp"
+            ? "webp"
+            : "jpg";
+
+      const storagePath =
+        `banner-${safeBannerId}-${Date.now()}-${Math.random()
+          .toString(36)
+          .substring(2, 8)}.${extension}`;
+
+      const { error: uploadError } =
+        await supabaseServerClient.storage
+          .from("banner-images")
+          .upload(storagePath, imageBuffer, {
+            contentType: mimeType,
+            upsert: false,
+          });
+
+      if (uploadError) {
+        console.error(
+          "Admin banner image upload failed:",
+          uploadError
+        );
+
+        return res.status(500).json({
+          success: false,
+          error:
+            uploadError.message ||
+            "Unable to upload banner image."
+        });
+      }
+
+      const { data: publicUrlData } =
+        supabaseServerClient.storage
+          .from("banner-images")
+          .getPublicUrl(storagePath);
+
+      const publicUrl =
+        publicUrlData?.publicUrl || "";
+
+      if (!publicUrl) {
+        await supabaseServerClient.storage
+          .from("banner-images")
+          .remove([storagePath]);
+
+        return res.status(500).json({
+          success: false,
+          error: "Unable to generate banner image URL."
+        });
+      }
+
+      return res.json({
+        success: true,
+        publicUrl,
+        storagePath,
+        bucket: "banner-images"
+      });
+    } catch (error: any) {
+      console.error(
+        "Admin banner image upload error:",
+        error
+      );
+
+      return res.status(500).json({
+        success: false,
+        error:
+          error?.message ||
+          "Unable to upload banner image."
+      });
+    }
+  }
+);
+
+// Delete an uploaded conference image from Supabase Storage.
+// Admin session + service-role access are required.
+app.delete(
+  "/api/admin/uploads/image",
+  requireAdminSession,
+  async (req, res) => {
+    if (!requireServiceRole(res)) return;
+
+    try {
+      const bucket = String(
+        req.body?.bucket || ""
+      ).trim();
+
+      const storagePath = String(
+        req.body?.path || ""
+      ).trim();
+
+      if (!bucket) {
+        return res.status(400).json({
+          success: false,
+          error: "Storage bucket is required."
+        });
+      }
+
+      if (!storagePath) {
+        return res.status(400).json({
+          success: false,
+          error: "Storage image path is required."
+        });
+      }
+
+      // Basic safety validation.
+      if (
+        bucket.includes("..") ||
+        bucket.includes("/") ||
+        bucket.includes("\\") ||
+        storagePath.includes("..") ||
+        storagePath.startsWith("/") ||
+        storagePath.includes("\\")
+      ) {
+        return res.status(400).json({
+          success: false,
+          error: "Invalid storage path."
+        });
+      }
+
+      const { error } =
+        await supabaseServerClient.storage
+          .from(bucket)
+          .remove([storagePath]);
+
+      if (error) {
+        console.error(
+          "Admin image cleanup failed:",
+          error
+        );
+
+        return res.status(500).json({
+          success: false,
+          error:
+            error.message ||
+            "Unable to delete stored image."
+        });
+      }
+
+      return res.json({
+        success: true
+      });
+    } catch (error: any) {
+      console.error(
+        "Admin image cleanup error:",
+        error
+      );
+
+      return res.status(500).json({
+        success: false,
+        error:
+          error?.message ||
+          "Unable to delete stored image."
+      });
+    }
+  }
+);
 
 // Permanently delete an organizer, their login account,
 // conferences, notifications, and organizer auth records.
@@ -3247,11 +3483,16 @@ ${sitemapEntries}
 // Robots.txt
 app.get("/robots.txt", (req, res) => {
   res.setHeader("Content-Type", "text/plain");
-  const appUrl = process.env.APP_URL || `https://${req.headers.host || "internationalconference.info"}`;
+
+  const appUrl =
+    process.env.APP_URL ||
+    `https://${req.headers.host || "internationalconference.info"}`;
+
   res.send(`User-agent: *
 Allow: /
-Disallow: /admin/
-Disallow: /organizer/dashboard/
+
+Disallow: /admin-portal
+Disallow: /organizer-portal
 Disallow: /api/
 
 Sitemap: ${appUrl}/sitemap.xml`);

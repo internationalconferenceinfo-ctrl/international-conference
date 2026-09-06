@@ -202,11 +202,7 @@ interface Associate {
   isVerified?: boolean;
 }
 
-interface TextItem {
-  id: string;
-  content: string;
-  status: "Active" | "Inactive";
-}
+
 
 interface AboutUsContent {
   id: string;
@@ -314,8 +310,6 @@ export default function AdminPortal({
 // Shared state sourced from Supabase
 const [mediaPartners, setMediaPartners] = useState<MediaPartner[]>([]);
 const [associates, setAssociates] = useState<Associate[]>([]);
-const [bannerTitles, setBannerTitles] = useState<TextItem[]>([]);
-const [bannerDescs, setBannerDescs] = useState<TextItem[]>([]);
 const [bannerContents, setBannerContents] = useState<BannerContentItem[]>([]);
 
 // Location Excel bulk upload progress
@@ -530,23 +524,19 @@ const citiesList = citiesListProp || [];
   // Initial fetch for Admin Portal settings directly from Supabase
   useEffect(() => {
     Promise.all([
-      fetchFromSupabase<MediaPartner[]>("media_partners", true),
-      fetchFromSupabase<Associate[]>("associates", true),
-      fetchFromSupabase<TextItem[]>("banner_titles", true),
-      fetchFromSupabase<TextItem[]>("banner_descs", true),
-      fetchFromSupabase<BannerContentItem[]>("banner_contents", true),
-      fetchFromSupabase<SubscriberItem[]>("subscriber_emails", true),
-      fetchFromSupabase<UserFeedback[]>("user_feedbacks", true)
-    ]).then(([mpData, assocData, btData, bdData, bcData, subData, fbData]) => {
-      if (mpData !== null && Array.isArray(mpData)) setMediaPartners(mpData);
-      if (assocData !== null && Array.isArray(assocData)) setAssociates(assocData);
-      if (btData !== null && Array.isArray(btData)) setBannerTitles(btData);
-      if (bdData !== null && Array.isArray(bdData)) setBannerDescs(bdData);
-      if (bcData !== null && Array.isArray(bcData)) setBannerContents(bcData);
-      if (subData !== null && Array.isArray(subData)) setSubscriberEmails(subData);
-      if (fbData !== null && Array.isArray(fbData)) setUserFeedbacks(fbData);
-      isAdminLoaded.current = true;
-    }).catch(() => {
+  fetchFromSupabase<MediaPartner[]>("media_partners", true),
+  fetchFromSupabase<Associate[]>("associates", true),
+  fetchFromSupabase<BannerContentItem[]>("banner_contents", true),
+  fetchFromSupabase<SubscriberItem[]>("subscriber_emails", true),
+  fetchFromSupabase<UserFeedback[]>("user_feedbacks", true)
+]).then(([mpData, assocData, bcData, subData, fbData]) => {
+  if (mpData !== null && Array.isArray(mpData)) setMediaPartners(mpData);
+  if (assocData !== null && Array.isArray(assocData)) setAssociates(assocData);
+  if (bcData !== null && Array.isArray(bcData)) setBannerContents(bcData);
+  if (subData !== null && Array.isArray(subData)) setSubscriberEmails(subData);
+  if (fbData !== null && Array.isArray(fbData)) setUserFeedbacks(fbData);
+  isAdminLoaded.current = true;
+}).catch(() => {
       isAdminLoaded.current = true;
     });
   }, []);
@@ -2714,46 +2704,114 @@ const handleCancelAboutUsEdit = () => {
 const [isSavingCredentials, setIsSavingCredentials] =
   useState(false);
 
-  const handleChangePassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setPasswordFeedback(null);
+  const handleChangePassword = async (
+  e: React.FormEvent
+) => {
+  e.preventDefault();
 
-    if (newPassword !== confirmPassword) {
-      setPasswordFeedback({ type: "error", msg: "New passwords do not match." });
-      return;
-    }
-    if (newPassword.length < 6) {
-      setPasswordFeedback({ type: "error", msg: "New password must be at least 6 characters long." });
-      return;
-    }
+  setPasswordFeedback(null);
 
-    setIsChangingPassword(true);
-    try {
-      const res = await adminFetch("/api/admin/change-password", {
+  if (!currentPassword.trim()) {
+    setPasswordFeedback({
+      type: "error",
+      msg: "Please enter your current password."
+    });
+    return;
+  }
+
+  if (!newPassword.trim()) {
+    setPasswordFeedback({
+      type: "error",
+      msg: "Please enter a new password."
+    });
+    return;
+  }
+
+  if (newPassword.length < 6) {
+    setPasswordFeedback({
+      type: "error",
+      msg: "New password must be at least 6 characters long."
+    });
+    return;
+  }
+
+  if (newPassword !== confirmPassword) {
+    setPasswordFeedback({
+      type: "error",
+      msg: "New passwords do not match."
+    });
+    return;
+  }
+
+  if (currentPassword === newPassword) {
+    setPasswordFeedback({
+      type: "error",
+      msg: "New password must be different from your current password."
+    });
+    return;
+  }
+
+  setIsChangingPassword(true);
+
+  try {
+    const res = await adminFetch(
+      "/api/admin/update-credentials",
+      {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json"
+        },
         body: JSON.stringify({
           currentPassword,
           newPassword,
           confirmPassword
         })
-      });
-      const data = await res.json();
-      if (data && data.success) {
-        setPasswordFeedback({ type: "success", msg: data.message || "Admin password changed successfully!" });
-        setCurrentPassword("");
-        setNewPassword("");
-        setConfirmPassword("");
-        showToast("Password updated!");
-      } else {
-        setPasswordFeedback({ type: "error", msg: data.error || "Failed to change password." });
       }
-    } catch (err: any) {
-      setPasswordFeedback({ type: "error", msg: "Server connection failed while updating password." });
-    } finally {
-      setIsChangingPassword(false);
+    );
+
+    const data = await res
+      .json()
+      .catch(() => ({}));
+
+    if (!res.ok || !data.success) {
+      setPasswordFeedback({
+        type: "error",
+        msg:
+          data.error ||
+          "Failed to change password."
+      });
+      return;
     }
-  };
+
+    setPasswordFeedback({
+      type: "success",
+      msg:
+        data.message ||
+        "Admin password changed successfully."
+    });
+
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
+
+    showToast(
+      "Admin password updated successfully!"
+    );
+  } catch (error) {
+    console.error(
+      "Admin password update failed:",
+      error
+    );
+
+    setPasswordFeedback({
+      type: "error",
+      msg:
+        "Server connection failed while updating password."
+    });
+  } finally {
+    setIsChangingPassword(false);
+  }
+};
 
   const handleUpdateAdminCredentials = async (
   e: React.FormEvent
@@ -4569,27 +4627,101 @@ const [isSavingCredentials, setIsSavingCredentials] =
                     </div>
 
                     {activeMenu === "MANAGE_CONFERENCES" && selectedIds.length > 0 && (
-                      <div className="flex items-center gap-2 bg-[#37494E] text-white px-3 py-1.5 rounded-lg text-xs font-bold">
-                        <span>{selectedIds.length} Selected</span>
-                        <button
-                          onClick={async () => {
-                            const deleteCount = selectedIds.length;
-                            if (confirm(`Are you sure you want to permanently delete ${deleteCount} selected conference(s)?`)) {
-                              for (const id of selectedIds) {
-                                await onDeleteConference?.(id);
+                    <div className="flex flex-wrap items-center gap-2 bg-[#37494E] text-white px-3 py-1.5 rounded-lg text-xs font-bold">
+
+                      <span>{selectedIds.length} Selected</span>
+
+                      {/* Feature button only shows when exactly ONE conference is selected */}
+                      {selectedIds.length === 1 && (() => {
+                        const selectedConference = conferences.find(
+                          (c) => c.id === selectedIds[0]
+                        );
+
+                        if (!selectedConference) return null;
+
+                        const featuredCount = conferences.filter(
+                          (c) => c.isFeatured && !isConferenceCompleted(c)
+                        ).length;
+
+                        const isAlreadyFeatured =
+                          Boolean(selectedConference.isFeatured);
+
+                        return (
+                          <button
+                            onClick={async () => {
+                              if (
+                                !isAlreadyFeatured &&
+                                featuredCount >= 8
+                              ) {
+                                showToast(
+                                  "Maximum 8 featured conferences allowed."
+                                );
+                                return;
                               }
+
+                              await Promise.resolve(
+                                onToggleFeatureConference(
+                                  selectedConference.id
+                                )
+                              );
+
                               setSelectedIds([]);
-                              showToast(`Deleted ${deleteCount} selected conference(s).`);
-                            } else {
-                              showToast("Delete action cancelled.");
+
+                              showToast(
+                                isAlreadyFeatured
+                                  ? "Conference removed from Featured."
+                                  : "Conference added to Featured."
+                              );
+                            }}
+                            className={`px-2.5 py-1 rounded text-[10px] cursor-pointer flex items-center gap-1 font-bold transition-colors ${
+                              isAlreadyFeatured
+                                ? "bg-amber-500 hover:bg-amber-600 text-white"
+                                : "bg-emerald-500 hover:bg-emerald-600 text-white"
+                            }`}
+                          >
+                            <Star className="h-3 w-3" />
+
+                            {isAlreadyFeatured
+                              ? "Remove Feature"
+                              : "Feature"}
+                          </button>
+                        );
+                      })()}
+
+                      <button
+                        onClick={async () => {
+                          const deleteCount =
+                            selectedIds.length;
+
+                          if (
+                            confirm(
+                              `Are you sure you want to permanently delete ${deleteCount} selected conference(s)?`
+                            )
+                          ) {
+                            for (const id of selectedIds) {
+                              await onDeleteConference?.(id);
                             }
-                          }}
-                          className="px-2 py-1 bg-rose-500 hover:bg-rose-600 rounded text-[10px] cursor-pointer flex items-center gap-1"
-                        >
-                          <Trash2 className="h-3 w-3" /> Delete Selected
-                        </button>
-                      </div>
-                    )}
+
+                            setSelectedIds([]);
+
+                            showToast(
+                              `Deleted ${deleteCount} selected conference(s).`
+                            );
+                          } else {
+                            showToast(
+                              "Delete action cancelled."
+                            );
+                          }
+                        }}
+                        className="px-2 py-1 bg-rose-500 hover:bg-rose-600 rounded text-[10px] cursor-pointer flex items-center gap-1"
+                      >
+                        <Trash2 className="h-3 w-3" />
+
+                        Delete Selected
+                      </button>
+
+                    </div>
+                  )}
 
                     {activeMenu === "COMPLETED_CONFERENCES" && (
                       <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
@@ -4850,9 +4982,16 @@ const [isSavingCredentials, setIsSavingCredentials] =
                                   conf.status === ConferenceStatus.Approved ? "bg-emerald-100 text-emerald-700" :
                                   conf.status === ConferenceStatus.PendingReview ? "bg-amber-100 text-amber-700" : "bg-rose-100 text-rose-700"
                                 }`}>
-                                  {conf.status}
+                                  {conf.status} 
                                 </span>
                               )}
+                              
+                              {conf.isFeatured && (
+                                    <span className="ml-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700 border border-amber-200 inline-flex items-center gap-1">
+                                      <Star className="h-3 w-3" />
+                                      Featured
+                                    </span>
+                                  )}
                             </td>
                             <td className="p-3 text-right whitespace-nowrap">
                               {activeMenu === "COMPLETED_CONFERENCES" ? (

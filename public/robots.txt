@@ -1,6 +1,8 @@
 User-agent: *
 Allow: /
-Sitemap: https://internationalconference.info/sitemap.xml
-Disallow: /admin/
-Disallow: /organizer/dashboard/
+
+Disallow: /admin-portal
+Disallow: /organizer-portal
 Disallow: /api/
+
+Sitemap: https://internationalconference.info/sitemap.xml

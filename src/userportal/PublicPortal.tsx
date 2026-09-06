@@ -1460,8 +1460,28 @@ if (selectedLiveStatus === LiveStatus.Upcoming) {
 
   // Top Featured Section
   const featuredConferences = useMemo(() => {
-    return approvedConferences.filter((c) => c.isFeatured).slice(0, 3);
-  }, [approvedConferences]);
+  return approvedConferences
+    .filter((c) => c.isFeatured)
+    .slice(0, 8);
+}, [approvedConferences]);
+
+  const formatDisplayText = (text: string) => {
+  if (!text) return "";
+
+  const smallWords = ["and", "or", "of", "in", "on", "for", "the", "to"];
+
+  return text
+    .toLowerCase()
+    .split(/\s+/)
+    .map((word, index) => {
+      if (index !== 0 && smallWords.includes(word)) {
+        return word;
+      }
+
+      return word.charAt(0).toUpperCase() + word.slice(1);
+    })
+    .join(" ");
+};
 
   // Selected keyword for dynamic display
   const selectedKeyword = useMemo(() => {
@@ -1474,31 +1494,35 @@ if (selectedLiveStatus === LiveStatus.Upcoming) {
 
   // Dynamic page heading with required H1 formats
   const pageHeadingTitle = useMemo(() => {
-    const hasCategory = selectedCategory !== "All";
-    const hasCity = selectedCity !== "All";
-    const hasCountry = selectedCountry !== "All";
+  const hasCategory = selectedCategory !== "All";
+  const hasCity = selectedCity !== "All";
+  const hasCountry = selectedCountry !== "All";
 
-    if (hasCategory && hasCity && hasCountry) {
-      return `${selectedCategory} Conferences in ${selectedCity}, ${selectedCountry}`;
-    }
-    if (hasCategory && hasCity) {
-      return `${selectedCategory} Conferences in ${selectedCity}`;
-    }
-    if (hasCategory && hasCountry) {
-      return `${selectedCategory} Conferences in ${selectedCountry}`;
-    }
-    if (hasCategory) {
-      return `${selectedCategory} Conferences`;
-    }
-    if (hasCity && hasCountry) {
-      return `International Conferences in ${selectedCity}, ${selectedCountry}`;
-    }
-    if (hasCity) {
-      return `International Conferences in ${selectedCity}`;const [footerContactInfo, setFooterContactInfo] = useState<ContactInfo>({ ...OFFICIAL_CONTACT_INFO });
-    }
-    if (hasCountry) {
-      return `International Conferences in ${selectedCountry}`;
-    }
+  const displayCategory = formatDisplayText(selectedCategory);
+  const displayCity = formatDisplayText(selectedCity);
+  const displayCountry = formatDisplayText(selectedCountry);
+
+  if (hasCategory && hasCity && hasCountry) {
+    return `${displayCategory} Conferences in ${displayCity}, ${displayCountry}`;
+  }
+  if (hasCategory && hasCity) {
+    return `${displayCategory} Conferences in ${displayCity}`;
+  }
+  if (hasCategory && hasCountry) {
+    return `${displayCategory} Conferences in ${displayCountry}`;
+  }
+  if (hasCategory) {
+    return `${displayCategory} Conferences`;
+  }
+  if (hasCity && hasCountry) {
+    return `International Conferences in ${displayCity}, ${displayCountry}`;
+  }
+  if (hasCity) {
+    return `International Conferences in ${displayCity}`;
+  }
+  if (hasCountry) {
+    return `International Conferences in ${displayCountry}`;
+  }
     if (searchTerm !== "") {
       if (searchTerm.startsWith("/")) {
         const country = searchTerm.slice(1).trim();
@@ -1517,9 +1541,9 @@ const filterDescription = useMemo(() => {
 
   const replacePlaceholders = (template: string) => {
     return template
-      .replace(/\{TOPIC\}/g, hasCategory ? selectedCategory : "")
-      .replace(/\{CITY\}/g, hasCity ? selectedCity : "")
-      .replace(/\{COUNTRY\}/g, hasCountry ? selectedCountry : "")
+          .replace(/\{TOPIC\}/g, hasCategory ? formatDisplayText(selectedCategory) : "")
+    .replace(/\{CITY\}/g, hasCity ? formatDisplayText(selectedCity) : "")
+    .replace(/\{COUNTRY\}/g, hasCountry ? formatDisplayText(selectedCountry) : "")
       .replace(/\s+,/g, ",")
       .replace(/,\s*,/g, ",")
       .replace(/\s{2,}/g, " ")
@@ -2121,7 +2145,175 @@ const handleNewsletterSubmit = async (e: React.FormEvent) => {
           </section>
         )}
 
+{/* Featured Conferences */}
+{featuredConferences.length > 0 && (
+  <section className="space-y-4 sm:space-y-5 md:space-y-6 min-w-0">
 
+    {/* Heading */}
+    <div>
+      <div className="flex items-center gap-2 mb-1">
+        <Star className="h-6 w-6 text-amber-500 fill-amber-500" />
+
+        <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight font-display">
+          Featured Conferences
+        </h2>
+      </div>
+
+      <p className="text-slate-500 text-xs sm:text-sm">
+        Explore selected upcoming international conferences recommended by our team.
+      </p>
+    </div>
+
+    {/* Featured Conference Grid */}
+    <div className="grid grid-cols-1 min-[520px]:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-5 lg:gap-6">
+
+      {featuredConferences.map(
+        (conf, confIdx) => {
+          const org = organizers.find(
+            (o) =>
+              o.id === conf.organizerId
+          );
+
+          const orgName =
+            org?.organizationName ||
+            conf.organizerName ||
+            "Verified Organizer";
+
+          const confSlug =
+            getConferenceSlug(
+              conf,
+              conferences
+            );
+
+          const confUrl =
+            `/conference/${confSlug}`;
+
+          return (
+            <motion.div
+              key={
+                conf.id
+                  ? `featured-${conf.id}-${confIdx}`
+                  : `featured-conf-${confIdx}`
+              }
+              initial={{
+                opacity: 0,
+                y: 15
+              }}
+              animate={{
+                opacity: 1,
+                y: 0
+              }}
+              whileHover={{
+                y: -4
+              }}
+              onClick={() => {
+                window.open(
+                  confUrl,
+                  "_blank"
+                );
+              }}
+              className="group bg-white border border-slate-200 rounded-xl sm:rounded-2xl overflow-hidden flex flex-col h-full min-w-0 relative transition-all duration-300 hover:border-blue-500 shadow-sm hover:shadow-lg cursor-pointer"
+            >
+
+              {/* Featured Badge */}
+              <div className="absolute top-3 right-3 z-10">
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-500 text-white rounded-full text-[9px] sm:text-[10px] font-bold shadow-md">
+                  <Star className="h-3 w-3 fill-white" />
+                  Featured
+                </span>
+              </div>
+
+              {/* Conference Image */}
+              <div className="w-full aspect-[16/9] bg-slate-100 overflow-hidden">
+                <img
+                  src={getCleanImageSrc(
+                    conf.bannerImage,
+                    "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=800&q=80"
+                  )}
+                  alt={conf.title}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  loading="lazy"
+                  referrerPolicy="no-referrer"
+                />
+              </div>
+
+              {/* Card Content */}
+              <div className="p-3.5 sm:p-4 flex-1 flex flex-col justify-between gap-3">
+
+                <div className="space-y-2.5">
+
+                  {/* Category */}
+                  <span className="inline-block text-[9px] sm:text-[10px] font-extrabold bg-indigo-50 text-indigo-700 border border-indigo-200 px-2.5 py-0.5 rounded-lg tracking-wider uppercase">
+                    {conf.category}
+                  </span>
+
+                  {/* Conference Title */}
+                  <h3 className="font-extrabold text-slate-900 group-hover:text-blue-600 transition-colors text-xs sm:text-sm leading-snug break-words font-display line-clamp-3">
+                    {conf.title}
+                  </h3>
+
+                  {/* Organizer */}
+                  <div className="flex items-start gap-1.5 text-slate-500 text-[10px] sm:text-[11px] font-medium">
+                    <Users className="h-3.5 w-3.5 text-blue-500 shrink-0 mt-0.5" />
+
+                    <span className="line-clamp-1">
+                      Hosted by{" "}
+                      <strong className="text-slate-800 font-semibold">
+                        {orgName}
+                      </strong>
+                    </span>
+                  </div>
+
+                </div>
+
+                {/* Date + Location */}
+                <div className="space-y-2 pt-3 border-t border-slate-100">
+
+                  <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] text-blue-900 font-bold">
+                    <Calendar className="h-3.5 w-3.5 text-blue-600 shrink-0" />
+
+                    <span className="truncate">
+                      {formatConferenceDate(
+                        conf.startDate
+                      )}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] text-emerald-900 font-bold">
+                    <MapPin className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+
+                    <span className="truncate">
+                      {conf.city},{" "}
+                      {conf.country}
+                    </span>
+                  </div>
+
+                  {/* View More */}
+                  <a
+                    href={confUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) =>
+                      e.stopPropagation()
+                    }
+                    className="w-full mt-1 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-xl text-[11px] sm:text-xs transition-all shadow-xs hover:shadow-md flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    View More
+
+                    <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  </a>
+
+                </div>
+
+              </div>
+            </motion.div>
+          );
+        }
+      )}
+
+    </div>
+  </section>
+)}
 
       {/* International Conference Countries */}
       <section className="space-y-4 sm:space-y-5 md:space-y-6 min-w-0">
@@ -2475,9 +2667,10 @@ const handleNewsletterSubmit = async (e: React.FormEvent) => {
               <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight font-display mt-1 leading-tight break-words">
                 {pageHeadingTitle}
               </h1>
-              <p className="text-slate-500 text-sm mt-1 font-medium">
-                Currently showing {filteredConferences.length} approved {filteredConferences.length === 1 ? "conference" : "conferences"}
-              </p>
+              <h2 className="text-lg sm:text-xl font-bold text-slate-800 mt-2">
+                Currently showing {filteredConferences.length} upcoming{" "}
+                {filteredConferences.length === 1 ? "conference" : "conferences"}
+              </h2>
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
@@ -2703,14 +2896,14 @@ const handleNewsletterSubmit = async (e: React.FormEvent) => {
               <div className="space-y-6 flex-1">
                 {/* Subheading displaying count after filter */}
                 <div className="flex items-center justify-between pb-3 border-b border-slate-200">
-                  <h3 className="text-base md:text-lg font-bold text-slate-900 font-display flex items-center gap-2">
-                    <CheckCircle2 className="h-4.5 w-4.5 text-blue-600 shrink-0" />
-                    <span>
-                      {filteredConferences.length > 0
-                        ? `Currently showing ${filteredConferences.length} approved ${filteredConferences.length === 1 ? "conference" : "conferences"}`
-                        : "Currently showing 0 approved conferences"}
-                    </span>
-                  </h3>
+                 <h2 className="text-base md:text-lg font-bold text-slate-900 font-display flex items-center gap-2">
+                  <CheckCircle2 className="h-4.5 w-4.5 text-blue-600 shrink-0" />
+                  <span>
+                    {filteredConferences.length > 0
+                      ? `Currently showing ${filteredConferences.length} upcoming ${filteredConferences.length === 1 ? "conference" : "conferences"}`
+                      : "Currently showing 0 upcoming conferences"}
+                  </span>
+                </h2>
                 </div>
 
                 {isSlashSearch && slashCountryLabel && (
@@ -3875,6 +4068,51 @@ const handleNewsletterSubmit = async (e: React.FormEvent) => {
         </section>
       )}
 
+      {/* 404 - Page Not Found */}
+{tab === "NOT_FOUND" && (
+  <section className="min-h-[60vh] flex items-center justify-center px-4 py-12 sm:py-16 md:py-20">
+    <div className="w-full max-w-2xl text-center bg-white border border-slate-200 rounded-3xl shadow-sm px-6 py-10 sm:px-10 sm:py-14">
+
+      <div className="text-7xl sm:text-8xl font-extrabold text-blue-600 leading-none">
+        404
+      </div>
+
+      <h1 className="mt-5 text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-900 font-display">
+        Page Not Found
+      </h1>
+
+      <p className="mt-3 text-sm sm:text-base text-slate-500 leading-relaxed max-w-lg mx-auto">
+        The page you are looking for does not exist, may have been removed,
+        or the link may be incorrect.
+      </p>
+
+      <div className="mt-7 flex flex-col sm:flex-row items-center justify-center gap-3">
+
+        <button
+          type="button"
+          onClick={() => {
+            window.location.href = "/";
+          }}
+          className="w-full sm:w-auto px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl transition-colors cursor-pointer"
+        >
+          Go to Home
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            window.location.href = "/conferences";
+          }}
+          className="w-full sm:w-auto px-6 py-3 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 text-sm font-bold rounded-xl transition-colors cursor-pointer"
+        >
+          Browse Conferences
+        </button>
+
+      </div>
+    </div>
+  </section>
+)}
+
      {/* Privacy Policy Tab */}
 {tab === "PRIVACY" && (
   <section className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14">
@@ -4173,7 +4411,8 @@ const handleNewsletterSubmit = async (e: React.FormEvent) => {
       )}
 
       {/* Footer Section */}
-      <footer className="bg-[#37494E] text-slate-300 border-t border-[#2b3a3e] rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 lg:p-12 space-y-8 sm:space-y-10 relative z-10 overflow-hidden shadow-lg min-w-0">
+        {tab !== "NOT_FOUND" && (
+        <footer className="bg-[#37494E] text-slate-300 border-t border-[#2b3a3e] rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 lg:p-12 space-y-8 sm:space-y-10 relative z-10 overflow-hidden shadow-lg min-w-0">
         {/* 5-Column Grid Layout: Logo, Quick Links, Contact Info, Follow Us, Newsletter */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 sm:gap-8">
           
@@ -4291,6 +4530,18 @@ const handleNewsletterSubmit = async (e: React.FormEvent) => {
                   Testimonials
                 </button>
               </li>
+              {/* Blog section */}
+              <li>
+                  <a
+                    href="https://example.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-blue-300 transition-colors cursor-pointer"
+                  >
+                    Blog
+                  </a>
+                </li>
+
               <li>
                 <button onClick={onLoginClick} className="hover:text-blue-300 transition-colors cursor-pointer">
                   Login
@@ -4428,7 +4679,7 @@ const handleNewsletterSubmit = async (e: React.FormEvent) => {
           </div>
         </div>
       </footer>
-
+)}
       {/* Feedback Pop-Up Modal */}
       <AnimatePresence>
         {userFeedbackSubmitted && !isFeedbackModalOpen && (

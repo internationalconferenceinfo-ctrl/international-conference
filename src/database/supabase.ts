@@ -158,31 +158,72 @@ function sanitizeForTable(table: string, data: any[]): any[] {
   }
 
   if (table === "banners") {
-    return data.map((item: any) => {
-      const isActive = item.status ? (item.status === "Active") : (item.active !== undefined ? Boolean(item.active) : true);
-      const statusStr = isActive ? "Active" : "Inactive";
-      const img = item.imageUrl || item.image_url || item.image || "";
-      const lnk = item.linkUrl || item.link_url || item.link || "";
-      const ord = typeof item.place === "number" ? item.place : (typeof item.order === "number" ? item.order : 1);
-      const desc = String(item.description || item.content || "").trim().slice(0, 100);
-      return {
-        id: String(item.id),
-        title: String(item.title || "").trim().slice(0, 50),
-        description: desc,
-        content: desc,
-        image: img,
-        image_url: img,
-        link: lnk,
-        link_url: lnk,
-        active: isActive,
-        status: statusStr,
-        place: ord,
-        order: ord,
-        created_at: item.createdAt || item.created_at || new Date().toISOString(),
-        updated_at: item.updatedAt || item.updated_at || new Date().toISOString()
-      };
-    });
-  }
+  return data.map((item: any) => {
+    const isActive =
+      item.status === "Inactive" ||
+      item.status === "Deactivated" ||
+      item.active === false
+        ? false
+        : true;
+
+    const imageUrl =
+      item.imageUrl ||
+      item.image_url ||
+      item.image ||
+      "";
+
+    const linkUrl =
+      item.linkUrl ||
+      item.link_url ||
+      item.link ||
+      "";
+
+    const place =
+      typeof item.place === "number"
+        ? item.place
+        : typeof item.order === "number"
+          ? item.order
+          : 1;
+
+    return {
+      id: String(item.id),
+
+      title: String(item.title || "")
+        .trim()
+        .slice(0, 50),
+
+      description: String(
+        item.description ||
+        item.content ||
+        ""
+      )
+        .trim()
+        .slice(0, 100),
+
+      image_url: imageUrl,
+
+      link_url: linkUrl,
+
+      active: isActive,
+
+      status: isActive
+        ? "Active"
+        : "Inactive",
+
+      place,
+
+      created_at:
+        item.createdAt ||
+        item.created_at ||
+        new Date().toISOString(),
+
+      updated_at:
+        item.updatedAt ||
+        item.updated_at ||
+        new Date().toISOString()
+    };
+  });
+}
 
   if (table === "banner_contents") {
     return data.map((item: any) => ({
@@ -1833,50 +1874,68 @@ export function onSupabaseAuthStateChange(callback: (user: SupabaseAuthUser | nu
 /**
  * Upload banner image to Supabase Storage ('banner-images' bucket)
  */
+/**
+ * Securely upload a banner image through the protected Admin backend.
+ * The browser does NOT upload directly to Supabase Storage.
+ */
 export async function uploadBannerImageToSupabase(
   imageData: string,
   bannerId?: string
 ): Promise<{ publicUrl: string; storagePath: string } | null> {
-  const client = getSupabaseClient();
-  if (!client) return null;
-
   try {
-    if (!imageData || !imageData.startsWith("data:")) {
-      return { publicUrl: imageData, storagePath: "" };
-    }
-
-    const match = imageData.match(/^data:([^;]+);base64,(.+)$/);
-    if (!match) return null;
-
-    const mimeType = match[1];
-    const base64Data = match[2];
-    const byteCharacters = atob(base64Data);
-    const byteNumbers = new Array(byteCharacters.length);
-    for (let i = 0; i < byteCharacters.length; i++) {
-      byteNumbers[i] = byteCharacters.charCodeAt(i);
-    }
-    const byteArray = new Uint8Array(byteNumbers);
-    const blob = new Blob([byteArray], { type: mimeType });
-
-    const ext = mimeType.includes("png") ? "png" : mimeType.includes("webp") ? "webp" : "jpg";
-    const storagePath = `banner-${bannerId || Date.now()}-${Math.random().toString(36).substring(2, 7)}.${ext}`;
-
-    const { error: uploadError } = await client.storage
-      .from("banner-images")
-      .upload(storagePath, blob, {
-        contentType: mimeType.includes("jpg") ? "image/jpeg" : mimeType,
-        upsert: true,
-      });
-
-    if (uploadError) {
-      console.warn("[Supabase Storage Banner Upload Notice]:", uploadError);
+    if (!imageData) {
       return null;
     }
 
-    const { data: urlData } = client.storage.from("banner-images").getPublicUrl(storagePath);
-    return { publicUrl: urlData.publicUrl, storagePath };
-  } catch (err) {
-    console.error("[Supabase Storage Banner Upload Error]:", err);
+    // External URL - no upload required.
+    if (!imageData.startsWith("data:")) {
+      return {
+        publicUrl: imageData,
+        storagePath: ""
+      };
+    }
+
+    const response = await adminFetch(
+      "/api/admin/uploads/banner-image",
+      {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          imageData,
+          bannerId: bannerId || `banner-${Date.now()}`
+        })
+      }
+    );
+
+    const result = await response.json().catch(() => null);
+
+    if (
+      !response.ok ||
+      !result?.success ||
+      !result?.publicUrl ||
+      !result?.storagePath
+    ) {
+      console.warn(
+        "[Admin Banner Upload Failed]:",
+        result?.error || `HTTP ${response.status}`
+      );
+
+      return null;
+    }
+
+    return {
+      publicUrl: String(result.publicUrl),
+      storagePath: String(result.storagePath)
+    };
+  } catch (error) {
+    console.error(
+      "[Admin Banner Upload Error]:",
+      error
+    );
+
     return null;
   }
 }
@@ -1900,29 +1959,67 @@ export function extractStoragePathFromUrl(imageUrl?: string): { bucket: string; 
 /**
  * Delete a banner image from Supabase Storage
  */
-export async function deleteBannerImageFromSupabase(storagePathOrUrl: string): Promise<boolean> {
-  const client = getSupabaseClient();
-  if (!client || !storagePathOrUrl) return false;
+/**
+ * Securely delete a banner image through the protected Admin backend.
+ */
+export async function deleteBannerImageFromSupabase(
+  storagePathOrUrl: string
+): Promise<boolean> {
+  if (!storagePathOrUrl) {
+    return false;
+  }
 
   try {
     let pathToDelete = storagePathOrUrl;
+
     if (storagePathOrUrl.startsWith("http")) {
-      const info = extractStoragePathFromUrl(storagePathOrUrl);
-      if (info && info.bucket === "banner-images") {
-        pathToDelete = info.path;
-      } else {
+      const info =
+        extractStoragePathFromUrl(storagePathOrUrl);
+
+      if (
+        !info ||
+        info.bucket !== "banner-images"
+      ) {
         return false;
       }
+
+      pathToDelete = info.path;
     }
 
-    const { error } = await client.storage.from("banner-images").remove([pathToDelete]);
-    if (error) {
-      console.warn("[Supabase Storage Banner Delete Warning]:", error);
+    const response = await adminFetch(
+      "/api/admin/uploads/image",
+      {
+        method: "DELETE",
+        credentials: "same-origin",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          bucket: "banner-images",
+          path: pathToDelete
+        })
+      }
+    );
+
+    if (!response.ok) {
+      const result =
+        await response.json().catch(() => null);
+
+      console.warn(
+        "[Admin Banner Delete Failed]:",
+        result?.error || `HTTP ${response.status}`
+      );
+
       return false;
     }
+
     return true;
-  } catch (err) {
-    console.error("[Supabase Storage Banner Delete Error]:", err);
+  } catch (error) {
+    console.error(
+      "[Admin Banner Delete Error]:",
+      error
+    );
+
     return false;
   }
 }
