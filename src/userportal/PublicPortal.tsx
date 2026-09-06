@@ -4533,8 +4533,8 @@ const handleNewsletterSubmit = async (e: React.FormEvent) => {
               {/* Blog section */}
               <li>
                   <a
-                    href="https://example.com"
-                    target="_blank"
+                    href="https://global-international-conferences.blogspot.com/"
+                    target="_blank "
                     rel="noopener noreferrer"
                     className="hover:text-blue-300 transition-colors cursor-pointer"
                   >
