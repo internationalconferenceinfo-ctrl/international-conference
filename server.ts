@@ -1937,6 +1937,124 @@ app.delete("/api/admin/db/:table/:id", requireAdminSession, async (req, res) => 
 // Secure Admin banner image upload.
 // The browser never uploads directly to Supabase Storage.
 // Admin session is verified first, then the server uses the service role.
+
+app.post(
+  "/api/admin/uploads/banner-image/sign",
+  requireAdminSession,
+  async (req, res) => {
+    if (!requireServiceRole(res)) return;
+
+    try {
+      const bannerId = String(
+        req.body?.bannerId || ""
+      ).trim();
+
+      const mimeType = String(
+        req.body?.mimeType || ""
+      ).trim().toLowerCase();
+
+      const extension = String(
+        req.body?.extension || ""
+      ).trim().toLowerCase();
+
+      const size = Number(
+        req.body?.size || 0
+      );
+
+      if (!bannerId) {
+        return res.status(400).json({
+          success: false,
+          error: "Banner ID is required."
+        });
+      }
+
+      const allowedMimeTypes = new Set([
+        "image/png",
+        "image/jpeg",
+        "image/webp"
+      ]);
+
+      if (!allowedMimeTypes.has(mimeType)) {
+        return res.status(400).json({
+          success: false,
+          error: "Unsupported banner image type."
+        });
+      }
+
+      const allowedExtensions = new Set([
+        "png",
+        "jpg",
+        "webp"
+      ]);
+
+      if (!allowedExtensions.has(extension)) {
+        return res.status(400).json({
+          success: false,
+          error: "Unsupported banner image extension."
+        });
+      }
+
+      const MAX_BANNER_BYTES =
+        5 * 1024 * 1024;
+
+      if (
+        !Number.isFinite(size) ||
+        size <= 0 ||
+        size > MAX_BANNER_BYTES
+      ) {
+        return res.status(413).json({
+          success: false,
+          error:
+            "Banner image must be 5 MB or smaller."
+        });
+      }
+
+      const safeBannerId = bannerId
+        .replace(/[^a-zA-Z0-9_-]/g, "-")
+        .slice(0, 100);
+
+      const storagePath =
+        `${safeBannerId}-${Date.now()}-${crypto
+          .randomBytes(3)
+          .toString("hex")}.${extension}`;
+
+      const { data, error } =
+        await supabaseServerClient.storage
+          .from("banner-images")
+          .createSignedUploadUrl(
+            storagePath
+          );
+
+      if (error || !data?.token) {
+        return res.status(500).json({
+          success: false,
+          error:
+            error?.message ||
+            "Unable to create banner upload token."
+        });
+      }
+
+      return res.json({
+        success: true,
+        token: data.token,
+        storagePath
+      });
+    } catch (error: any) {
+      console.error(
+        "Banner signed upload error:",
+        error
+      );
+
+      return res.status(500).json({
+        success: false,
+        error:
+          error?.message ||
+          "Unable to prepare banner upload."
+      });
+    }
+  }
+);
+
 app.post(
   "/api/admin/uploads/banner-image",
   rateLimit("admin-banner-image-upload", 60, 60 * 60 * 1000),
@@ -1987,14 +2105,14 @@ app.post(
         });
       }
 
-      const MAX_IMAGE_BYTES = 1.5 * 1024 * 1024;
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
-      if (imageBuffer.length > MAX_IMAGE_BYTES) {
-        return res.status(413).json({
-          success: false,
-          error: "Banner image must be 1.5 MB or smaller."
-        });
-      }
+if (imageBuffer.length > MAX_IMAGE_BYTES) {
+  return res.status(413).json({
+    success: false,
+    error: "Banner image must be 5 MB or smaller."
+  });
+}
 
       const safeBannerId =
         rawBannerId
@@ -2345,23 +2463,556 @@ app.delete(
   }
 );
 
+async function uploadAdminProfileImageToStorage(
+  imageData: string
+): Promise<{
+  publicUrl: string;
+  storagePath: string;
+} | null> {
+  const trimmed = String(imageData || "").trim();
+
+  if (!trimmed) {
+    return null;
+  }
+
+  if (
+    trimmed.startsWith("http://") ||
+    trimmed.startsWith("https://")
+  ) {
+    return {
+      publicUrl: trimmed,
+      storagePath: ""
+    };
+  }
+
+  const match = trimmed.match(
+    /^data:(image\/(?:png|jpeg|jpg|webp));base64,([A-Za-z0-9+/=\s]+)$/i
+  );
+
+  if (!match) {
+    throw new Error("Invalid Admin profile image format.");
+  }
+
+  let mimeType = match[1].toLowerCase();
+
+  if (mimeType === "image/jpg") {
+    mimeType = "image/jpeg";
+  }
+
+  const base64Data = match[2].replace(/\s/g, "");
+  const imageBuffer = Buffer.from(base64Data, "base64");
+
+  if (!imageBuffer.length) {
+    throw new Error("Admin profile image is empty.");
+  }
+
+  const MAX_ADMIN_PROFILE_BYTES = 50 * 1024;
+
+  if (imageBuffer.length > MAX_ADMIN_PROFILE_BYTES) {
+    throw new Error(
+      "Admin profile image must be 50 KB or smaller."
+    );
+  }
+
+  const extension =
+    mimeType === "image/png"
+      ? "png"
+      : mimeType === "image/webp"
+        ? "webp"
+        : "jpg";
+
+  const storagePath =
+    `admin-profile-${Date.now()}-${crypto
+      .randomBytes(3)
+      .toString("hex")}.${extension}`;
+
+  const { error: uploadError } =
+    await supabaseServerClient.storage
+      .from("admin-profile-images")
+      .upload(storagePath, imageBuffer, {
+        contentType: mimeType,
+        upsert: false
+      });
+
+  if (uploadError) {
+    throw new Error(
+      uploadError.message ||
+        "Unable to upload Admin profile image."
+    );
+  }
+
+  const { data: publicUrlData } =
+    supabaseServerClient.storage
+      .from("admin-profile-images")
+      .getPublicUrl(storagePath);
+
+  const publicUrl =
+    publicUrlData?.publicUrl || "";
+
+  if (!publicUrl) {
+    await supabaseServerClient.storage
+      .from("admin-profile-images")
+      .remove([storagePath]);
+
+    throw new Error(
+      "Unable to generate Admin profile image URL."
+    );
+  }
+
+  return {
+    publicUrl,
+    storagePath
+  };
+}
+
+
+async function uploadOrganizerImageToStorage(
+  imageData: string,
+  organizerId: string,
+  imageType: "profile" | "cover"
+): Promise<{
+  publicUrl: string;
+  storagePath: string;
+  bucket: string;
+} | null> {
+  const trimmed = String(imageData || "").trim();
+
+  if (!trimmed) {
+    return null;
+  }
+
+  if (
+    trimmed.startsWith("http://") ||
+    trimmed.startsWith("https://")
+  ) {
+    return {
+      publicUrl: trimmed,
+      storagePath: "",
+      bucket:
+        imageType === "cover"
+          ? "organizer-cover-images"
+          : "organizer-profile-images"
+    };
+  }
+
+  const match = trimmed.match(
+    /^data:(image\/(?:png|jpeg|jpg|webp));base64,([A-Za-z0-9+/=\s]+)$/i
+  );
+
+  if (!match) {
+    throw new Error("Invalid organizer image format.");
+  }
+
+  let mimeType = match[1].toLowerCase();
+
+  if (mimeType === "image/jpg") {
+    mimeType = "image/jpeg";
+  }
+
+  const base64Data = match[2].replace(/\s/g, "");
+  const imageBuffer = Buffer.from(base64Data, "base64");
+
+  if (!imageBuffer.length) {
+    throw new Error("Organizer image is empty.");
+  }
+
+  const MAX_ORGANIZER_IMAGE_BYTES = 50 * 1024;
+
+  if (imageBuffer.length > MAX_ORGANIZER_IMAGE_BYTES) {
+    throw new Error(
+      "Organizer image must be 50 KB or smaller."
+    );
+  }
+
+  const bucket =
+    imageType === "cover"
+      ? "organizer-cover-images"
+      : "organizer-profile-images";
+
+  const safeOrganizerId =
+    organizerId
+      .replace(/[^a-zA-Z0-9_-]/g, "-")
+      .slice(0, 100) ||
+    `organizer-${Date.now()}`;
+
+  const extension =
+    mimeType === "image/png"
+      ? "png"
+      : mimeType === "image/webp"
+        ? "webp"
+        : "jpg";
+
+  const storagePath =
+    `${safeOrganizerId}-${imageType}-${Date.now()}-${crypto
+      .randomBytes(3)
+      .toString("hex")}.${extension}`;
+
+  const { error: uploadError } =
+    await supabaseServerClient.storage
+      .from(bucket)
+      .upload(storagePath, imageBuffer, {
+        contentType: mimeType,
+        upsert: false
+      });
+
+  if (uploadError) {
+    throw new Error(
+      uploadError.message ||
+        "Unable to upload organizer image."
+    );
+  }
+
+  const { data: publicUrlData } =
+    supabaseServerClient.storage
+      .from(bucket)
+      .getPublicUrl(storagePath);
+
+  const publicUrl =
+    publicUrlData?.publicUrl || "";
+
+  if (!publicUrl) {
+    await supabaseServerClient.storage
+      .from(bucket)
+      .remove([storagePath]);
+
+    throw new Error(
+      "Unable to generate organizer image URL."
+    );
+  }
+
+  return {
+    publicUrl,
+    storagePath,
+    bucket
+  };
+}
+
+app.post(
+  "/api/organizer/uploads/image",
+  rateLimit("organizer-image-upload", 30, 60 * 60 * 1000),
+  async (req, res) => {
+    if (!requireServiceRole(res)) return;
+
+    try {
+      const authHeader = String(
+        req.headers.authorization || ""
+      );
+
+      const token = authHeader.startsWith("Bearer ")
+        ? authHeader.slice(7).trim()
+        : "";
+
+      if (!token) {
+        return res.status(401).json({
+          success: false,
+          error: "Organizer authentication required."
+        });
+      }
+
+      const { data: authData, error: authError } =
+        await supabaseServerClient.auth.getUser(token);
+
+      const user = authData?.user;
+
+      if (
+        authError ||
+        !user ||
+        user.user_metadata?.role !== "ORGANIZER"
+      ) {
+        return res.status(401).json({
+          success: false,
+          error: "Organizer authentication required."
+        });
+      }
+
+      const image = String(
+        req.body?.image || ""
+      ).trim();
+
+      const imageType = String(
+        req.body?.imageType || ""
+      ).trim();
+
+      if (
+        imageType !== "profile" &&
+        imageType !== "cover"
+      ) {
+        return res.status(400).json({
+          success: false,
+          error: "Invalid organizer image type."
+        });
+      }
+
+      if (!image) {
+        return res.status(400).json({
+          success: false,
+          error: "Organizer image is required."
+        });
+      }
+
+      const { data: organizer, error: organizerError } =
+        await supabaseServerClient
+          .from("organizers")
+          .select("id, auth_user_id, email")
+          .or(
+            `auth_user_id.eq.${user.id},email.eq.${user.email || ""}`
+          )
+          .limit(1)
+          .maybeSingle();
+
+      if (organizerError) {
+        return res.status(500).json({
+          success: false,
+          error: organizerError.message
+        });
+      }
+
+      const organizerId =
+        String(
+          organizer?.id ||
+          user.id
+        ).trim();
+
+      const result =
+        await uploadOrganizerImageToStorage(
+          image,
+          organizerId,
+          imageType as "profile" | "cover"
+        );
+
+      if (!result) {
+        return res.status(400).json({
+          success: false,
+          error: "Unable to process organizer image."
+        });
+      }
+
+      return res.json({
+        success: true,
+        publicUrl: result.publicUrl,
+        storagePath: result.storagePath,
+        bucket: result.bucket
+      });
+    } catch (error: any) {
+      console.error(
+        "Organizer image upload error:",
+        error
+      );
+
+      return res.status(500).json({
+        success: false,
+        error:
+          error?.message ||
+          "Unable to upload organizer image."
+      });
+    }
+  }
+);
+
+app.delete(
+  "/api/organizer/uploads/image",
+  rateLimit("organizer-image-delete", 60, 60 * 60 * 1000),
+  async (req, res) => {
+    if (!requireServiceRole(res)) return;
+
+    try {
+      const authHeader = String(
+        req.headers.authorization || ""
+      );
+
+      const token = authHeader.startsWith("Bearer ")
+        ? authHeader.slice(7).trim()
+        : "";
+
+      if (!token) {
+        return res.status(401).json({
+          success: false,
+          error: "Organizer authentication required."
+        });
+      }
+
+      const { data: authData, error: authError } =
+        await supabaseServerClient.auth.getUser(token);
+
+      const user = authData?.user;
+
+      if (
+        authError ||
+        !user ||
+        user.user_metadata?.role !== "ORGANIZER"
+      ) {
+        return res.status(401).json({
+          success: false,
+          error: "Organizer authentication required."
+        });
+      }
+
+      const bucket = String(
+        req.body?.bucket || ""
+      ).trim();
+
+      const path = String(
+        req.body?.path || ""
+      ).trim();
+
+      const allowedBuckets = new Set([
+        "organizer-profile-images",
+        "organizer-cover-images"
+      ]);
+
+      if (!allowedBuckets.has(bucket)) {
+        return res.status(400).json({
+          success: false,
+          error: "Invalid organizer image bucket."
+        });
+      }
+
+      if (!path) {
+        return res.status(400).json({
+          success: false,
+          error: "Storage image path is required."
+        });
+      }
+
+      const { data: organizer, error: organizerError } =
+        await supabaseServerClient
+          .from("organizers")
+          .select("id, auth_user_id, email")
+          .or(
+            `auth_user_id.eq.${user.id},email.eq.${user.email || ""}`
+          )
+          .limit(1)
+          .maybeSingle();
+
+      if (organizerError) {
+        return res.status(500).json({
+          success: false,
+          error: organizerError.message
+        });
+      }
+
+      const organizerId =
+        String(
+          organizer?.id ||
+          user.id
+        ).trim();
+
+      // Safety: Organizer can delete only files
+      // that belong to their own organizer ID.
+      if (!path.startsWith(`${organizerId}-`)) {
+        return res.status(403).json({
+          success: false,
+          error: "You cannot delete this organizer image."
+        });
+      }
+
+      const { error: deleteError } =
+        await supabaseServerClient.storage
+          .from(bucket)
+          .remove([path]);
+
+      if (deleteError) {
+        return res.status(500).json({
+          success: false,
+          error:
+            deleteError.message ||
+            "Unable to delete organizer image."
+        });
+      }
+
+      return res.json({
+        success: true
+      });
+    } catch (error: any) {
+      console.error(
+        "Organizer image delete error:",
+        error
+      );
+
+      return res.status(500).json({
+        success: false,
+        error:
+          error?.message ||
+          "Unable to delete organizer image."
+      });
+    }
+  }
+);
+
 app.post("/api/admin/profile", requireAdminSession, async (req, res) => {
   try {
     await adminStoreReady;
-    const { name, avatar } = req.body || {};
-    const previousProfile = currentAdminProfile;
-    currentAdminProfile = {
-      ...currentAdminProfile,
-      name: name || currentAdminProfile.name,
-      avatar: avatar !== undefined ? avatar : currentAdminProfile.avatar,
-      updatedAt: new Date().toISOString()
-    };
+
+const { name, avatar } = req.body || {};
+
+const previousProfile = currentAdminProfile;
+
+let nextAvatar =
+  avatar !== undefined
+    ? String(avatar || "").trim()
+    : currentAdminProfile.avatar;
+
+let uploadedStoragePath = "";
+
+if (
+  avatar !== undefined &&
+  nextAvatar.startsWith("data:")
+) {
+  const uploadResult =
+    await uploadAdminProfileImageToStorage(
+      nextAvatar
+    );
+
+  if (uploadResult) {
+    nextAvatar = uploadResult.publicUrl;
+    uploadedStoragePath =
+      uploadResult.storagePath;
+  }
+}
+
+currentAdminProfile = {
+  ...currentAdminProfile,
+  name: name || currentAdminProfile.name,
+  avatar: nextAvatar,
+  updatedAt: new Date().toISOString()
+};
 
     const persisted = await persistAdminStore();
-    if (!persisted.success) {
-      currentAdminProfile = previousProfile;
-      return res.status(503).json({ success: false, error: `Admin profile could not be saved: ${persisted.error}` });
-    }
+
+if (!persisted.success) {
+  if (uploadedStoragePath) {
+    await supabaseServerClient.storage
+      .from("admin-profile-images")
+      .remove([uploadedStoragePath]);
+  }
+
+  currentAdminProfile = previousProfile;
+
+  return res.status(500).json({
+    success: false,
+    error:
+      persisted.error ||
+      "Unable to save Admin profile."
+  });
+}
+
+if (
+  uploadedStoragePath &&
+  previousProfile.avatar &&
+  previousProfile.avatar !== currentAdminProfile.avatar
+) {
+  const oldInfo = String(previousProfile.avatar).match(
+    /\/storage\/v1\/object\/public\/admin-profile-images\/(.+)$/i
+  );
+
+  if (oldInfo?.[1]) {
+    await supabaseServerClient.storage
+      .from("admin-profile-images")
+      .remove([
+        decodeURIComponent(oldInfo[1])
+      ]);
+  }
+}
 
     return res.json({ success: true, profile: currentAdminProfile, message: "Admin profile updated successfully." });
   } catch (err: any) {
@@ -2464,6 +3115,8 @@ app.post(
             persisted.error
         });
       }
+
+      
 
       return res.json({
         success: true,
@@ -2947,6 +3600,121 @@ app.post(
   }
 });
 
+async function uploadCollaborationLogoToStorage(
+  imageData: string,
+  recordId: string,
+  targetTable: "media_partners" | "associates"
+): Promise<{
+  publicUrl: string;
+  storagePath: string;
+} | null> {
+  const trimmed = String(imageData || "").trim();
+
+  if (!trimmed) {
+    return null;
+  }
+
+  if (
+    trimmed.startsWith("http://") ||
+    trimmed.startsWith("https://")
+  ) {
+    return {
+      publicUrl: trimmed,
+      storagePath: ""
+    };
+  }
+
+  const match = trimmed.match(
+    /^data:(image\/(?:png|jpeg|jpg|webp));base64,([A-Za-z0-9+/=\s]+)$/i
+  );
+
+  if (!match) {
+    throw new Error("Invalid collaboration logo image format.");
+  }
+
+  let mimeType = match[1].toLowerCase();
+
+  if (mimeType === "image/jpg") {
+    mimeType = "image/jpeg";
+  }
+
+  const base64Data = match[2].replace(/\s/g, "");
+  const imageBuffer = Buffer.from(base64Data, "base64");
+
+  if (!imageBuffer.length) {
+    throw new Error("Collaboration logo image is empty.");
+  }
+
+  const MAX_LOGO_BYTES = 50 * 1024;
+
+  if (imageBuffer.length > MAX_LOGO_BYTES) {
+    throw new Error(
+      "Logo image must be 50 KB or smaller."
+    );
+  }
+
+  const bucket =
+    targetTable === "associates"
+      ? "associate-images"
+      : "media-partner-images";
+
+  const safeRecordId =
+    recordId
+      .replace(/[^a-zA-Z0-9_-]/g, "-")
+      .slice(0, 100) ||
+    `${targetTable}-${Date.now()}`;
+
+  const extension =
+    mimeType === "image/png"
+      ? "png"
+      : mimeType === "image/webp"
+        ? "webp"
+        : "jpg";
+
+  const storagePath =
+    `${safeRecordId}-${Date.now()}-${crypto
+      .randomBytes(3)
+      .toString("hex")}.${extension}`;
+
+  const { error: uploadError } =
+    await supabaseServerClient.storage
+      .from(bucket)
+      .upload(storagePath, imageBuffer, {
+        contentType: mimeType,
+        upsert: false
+      });
+
+  if (uploadError) {
+    throw new Error(
+      uploadError.message ||
+        "Unable to upload collaboration logo."
+    );
+  }
+
+  const { data: publicUrlData } =
+    supabaseServerClient.storage
+      .from(bucket)
+      .getPublicUrl(storagePath);
+
+  const publicUrl =
+    publicUrlData?.publicUrl || "";
+
+  if (!publicUrl) {
+    await supabaseServerClient.storage
+      .from(bucket)
+      .remove([storagePath]);
+
+    throw new Error(
+      "Unable to generate collaboration logo URL."
+    );
+  }
+
+  return {
+    publicUrl,
+    storagePath
+  };
+}
+
 // Collaboration / Partner Application Backend Submission Endpoint with 150-char Validation
 app.post("/api/collaboration/submit", rateLimit("collaboration", 10, 60 * 60 * 1000), async (req, res) => {
   try {
@@ -2967,26 +3735,82 @@ app.post("/api/collaboration/submit", rateLimit("collaboration", 10, 60 * 60 * 1
       });
     }
 
-    const targetTable = (category === "Associates" || category === "Our Associates") ? "associates" : "media_partners";
-    const prefix = targetTable === "associates" ? "assoc" : "mp";
+    const targetTable =
+  category === "Associates" ||
+  category === "Our Associates"
+    ? "associates"
+    : "media_partners";
 
-    const newRecord: any = {
-      id: `${prefix}-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-      name: String(name).trim(),
-      ...(targetTable === "associates" ? { category: "Associates" } : { type: "Media Partner" }),
-      description: trimmedDesc.slice(0, 150),
-      logo: String(logo || "").trim() || "https://images.unsplash.com/photo-1541829070764-84a7d30dd3f3?auto=format&fit=crop&w=120&h=120&q=80",
-      website: String(website).trim(),
-      email: String(email || "").trim(),
-      status: "Pending",
-      is_verified: false
-    };
+const prefix =
+  targetTable === "associates"
+    ? "assoc"
+    : "mp";
+
+const recordId =
+  `${prefix}-${Date.now()}-${Math.random()
+    .toString(36)
+    .substring(2, 6)}`;
+
+let logoUrl = "";
+let uploadedStoragePath = "";
+
+const logoInput =
+  String(logo || "").trim();
+
+if (logoInput) {
+  const uploadResult =
+    await uploadCollaborationLogoToStorage(
+      logoInput,
+      recordId,
+      targetTable
+    );
+
+  if (uploadResult) {
+    logoUrl = uploadResult.publicUrl;
+    uploadedStoragePath =
+      uploadResult.storagePath;
+  }
+}
+
+const newRecord: any = {
+  id: recordId,
+  name: String(name).trim(),
+  ...(targetTable === "associates"
+    ? { category: "Associates" }
+    : { type: "Media Partner" }),
+  description: trimmedDesc.slice(0, 150),
+  logo:
+    logoUrl ||
+    "https://images.unsplash.com/photo-1541829070764-84a7d30dd3f3?auto=format&fit=crop&w=120&h=120&q=80",
+  website: String(website).trim(),
+  email: String(email || "").trim(),
+  status: "Pending",
+  is_verified: false
+};
 
     const { data, error } = await (supabaseServerClient.from(targetTable) as any).insert(newRecord).select();
     if (error) {
-      console.warn(`[Backend Collaboration Submit Error] Table ${targetTable}:`, error);
-      return res.status(500).json({ success: false, error: error.message });
-    }
+  console.warn(
+    `[Backend Collaboration Submit Error] Table ${targetTable}:`,
+    error
+  );
+
+  if (uploadedStoragePath) {
+    const bucket =
+      targetTable === "associates"
+        ? "associate-images"
+        : "media-partner-images";
+
+    await supabaseServerClient.storage
+      .from(bucket)
+      .remove([uploadedStoragePath]);
+  }
+
+  return res.status(500).json({
+    success: false,
+    error: error.message
+  });
+}
 
     return res.json({
       success: true,
@@ -3090,6 +3914,119 @@ app.post(
 );
 
 
+async function uploadFeedbackImageToStorage(
+  imageData: string,
+  feedbackId: string
+): Promise<{
+  publicUrl: string;
+  storagePath: string;
+} | null> {
+  const trimmed = String(imageData || "").trim();
+
+  // No image selected
+  if (!trimmed) {
+    return null;
+  }
+
+  // If it is already a normal URL, keep it as-is.
+  if (
+    trimmed.startsWith("http://") ||
+    trimmed.startsWith("https://")
+  ) {
+    return {
+      publicUrl: trimmed,
+      storagePath: ""
+    };
+  }
+
+  const match = trimmed.match(
+    /^data:(image\/(?:png|jpeg|jpg|webp));base64,([A-Za-z0-9+/=\s]+)$/i
+  );
+
+  if (!match) {
+    throw new Error("Invalid feedback image format.");
+  }
+
+  let mimeType = match[1].toLowerCase();
+
+  if (mimeType === "image/jpg") {
+    mimeType = "image/jpeg";
+  }
+
+  const base64Data = match[2].replace(/\s/g, "");
+  const imageBuffer = Buffer.from(base64Data, "base64");
+
+  if (!imageBuffer.length) {
+    throw new Error("Feedback image is empty.");
+  }
+
+  // Extra protection.
+  // Your frontend already compresses feedback images.
+  const MAX_FEEDBACK_IMAGE_BYTES = 150 * 1024;
+
+  if (imageBuffer.length > MAX_FEEDBACK_IMAGE_BYTES) {
+    throw new Error(
+      "Feedback image is too large. Please upload a smaller image."
+    );
+  }
+
+  const safeFeedbackId =
+    feedbackId
+      .replace(/[^a-zA-Z0-9_-]/g, "-")
+      .slice(0, 100) ||
+    `feedback-${Date.now()}`;
+
+  const extension =
+    mimeType === "image/png"
+      ? "png"
+      : mimeType === "image/webp"
+        ? "webp"
+        : "jpg";
+
+  const storagePath =
+    `feedback-${safeFeedbackId}-${Date.now()}-${crypto
+      .randomBytes(3)
+      .toString("hex")}.${extension}`;
+
+  const { error: uploadError } =
+    await supabaseServerClient.storage
+      .from("feedback-images")
+      .upload(storagePath, imageBuffer, {
+        contentType: mimeType,
+        upsert: false
+      });
+
+  if (uploadError) {
+    throw new Error(
+      uploadError.message ||
+        "Unable to upload feedback image."
+    );
+  }
+
+  const { data: publicUrlData } =
+    supabaseServerClient.storage
+      .from("feedback-images")
+      .getPublicUrl(storagePath);
+
+  const publicUrl =
+    publicUrlData?.publicUrl || "";
+
+  if (!publicUrl) {
+    await supabaseServerClient.storage
+      .from("feedback-images")
+      .remove([storagePath]);
+
+    throw new Error(
+      "Unable to generate feedback image URL."
+    );
+  }
+
+  return {
+    publicUrl,
+    storagePath
+  };
+}
+
 
 // Public Feedback Submission Endpoint
 app.post("/api/public/feedback", rateLimit("public-feedback", 10, 60 * 60 * 1000), async (req, res) => {
@@ -3097,7 +4034,7 @@ app.post("/api/public/feedback", rateLimit("public-feedback", 10, 60 * 60 * 1000
     const name = String(req.body?.name || "").trim();
     const text = String(req.body?.text || "").trim();
     const country = String(req.body?.country || "Global").trim();
-    const image = String(req.body?.image || "").trim();
+    const imageInput = String(req.body?.image || "").trim();
     const rating = Math.min(5, Math.max(1, Number(req.body?.rating) || 5));
 
     if (!name || !text) {
@@ -3107,18 +4044,38 @@ app.post("/api/public/feedback", rateLimit("public-feedback", 10, 60 * 60 * 1000
       });
     }
 
-    const newRecord = {
-      id: `fb-${Date.now()}-${crypto.randomBytes(4).toString("hex")}`,
-      name,
-      image,
-      text,
-      rating,
-      status: "Pending",
-      country: country || "Global",
-      date: new Date().toISOString(),
-      is_verified: false,
-      created_at: new Date().toISOString()
-    };
+   const feedbackId = `fb-${Date.now()}-${crypto
+  .randomBytes(4)
+  .toString("hex")}`;
+
+let feedbackImageUrl = "";
+let uploadedStoragePath = "";
+
+if (imageInput) {
+  const uploadResult =
+    await uploadFeedbackImageToStorage(
+      imageInput,
+      feedbackId
+    );
+
+  if (uploadResult) {
+    feedbackImageUrl = uploadResult.publicUrl;
+    uploadedStoragePath = uploadResult.storagePath;
+  }
+}
+
+const newRecord = {
+  id: feedbackId,
+  name,
+  image: feedbackImageUrl,
+  text,
+  rating,
+  status: "Pending",
+  country: country || "Global",
+  date: new Date().toISOString(),
+  is_verified: false,
+  created_at: new Date().toISOString()
+};
 
     const { data, error } = await supabaseServerClient
       .from("user_feedbacks")
@@ -3126,13 +4083,19 @@ app.post("/api/public/feedback", rateLimit("public-feedback", 10, 60 * 60 * 1000
       .select();
 
     if (error) {
-      console.error("[Backend Feedback Submit Error]:", error);
+  console.error("[Backend Feedback Submit Error]:", error);
 
-      return res.status(500).json({
-        success: false,
-        error: error.message
-      });
-    }
+  if (uploadedStoragePath) {
+    await supabaseServerClient.storage
+      .from("feedback-images")
+      .remove([uploadedStoragePath]);
+  }
+
+  return res.status(500).json({
+    success: false,
+    error: error.message
+  });
+}
 
     return res.json({
       success: true,

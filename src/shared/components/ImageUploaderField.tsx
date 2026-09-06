@@ -16,6 +16,7 @@ interface ImageUploaderFieldProps {
   quality?: number;
   className?: string;
   darkBg?: boolean;
+  maxFileSizeKB?: number;
 }
 
 export const ImageUploaderField: React.FC<ImageUploaderFieldProps> = ({
@@ -30,6 +31,7 @@ export const ImageUploaderField: React.FC<ImageUploaderFieldProps> = ({
   maxWidth = 1200,
   maxHeight = 1200,
   quality = 0.8,
+  maxFileSizeKB = 20,
   className = "",
   darkBg = false,
 }) => {
@@ -46,12 +48,21 @@ export const ImageUploaderField: React.FC<ImageUploaderFieldProps> = ({
       let compressedDataUrl: string;
 
       // Strict hard limit of 20 KB for all images
-      compressedDataUrl = await compressImageToTargetSize(file, 20);
-      // Verify final compressed size is strictly under 20 KB (20 * 1024 bytes)
-      const base64Str = compressedDataUrl.split(",")[1] || "";
-      const approxBytes = Math.round((base64Str.length * 3) / 4);
-      if (approxBytes > 20 * 1024) {
-        setErrorMsg("Image exceeds maximum allowed size (20 KB). Please select a smaller file.");
+      compressedDataUrl = await compressImageToTargetSize(
+  file,
+  maxFileSizeKB
+);
+
+const base64Str =
+  compressedDataUrl.split(",")[1] || "";
+
+const approxBytes =
+  Math.round((base64Str.length * 3) / 4);
+
+if (approxBytes > maxFileSizeKB * 1024) {
+  setErrorMsg(
+    `Image exceeds maximum allowed size (${maxFileSizeKB} KB). Please select a smaller file.`
+  );
         if (fileInputRef.current) fileInputRef.current.value = "";
         return;
       }

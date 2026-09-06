@@ -910,6 +910,7 @@ const todayStr =
                 placeholder="https://example.com/logo.png"
                 maxWidth={500}
                 maxHeight={500}
+                maxFileSizeKB={50}
                 aspectHint="Square logo recommended (e.g. 300x300)"
                 isLogo={true}
               />
@@ -2893,6 +2894,7 @@ const todayStr =
                             placeholder="https://example.com/logo.png"
                             maxWidth={500}
                             maxHeight={500}
+                            maxFileSizeKB={50}
                             aspectHint="Square logo (300x300 recommended)"
                             isLogo={true}
                           />
@@ -2904,6 +2906,7 @@ const todayStr =
                             placeholder="https://example.com/cover.jpg"
                             maxWidth={1200}
                             maxHeight={500}
+                            maxFileSizeKB={50}
                             aspectHint="Landscape banner (1200x400 recommended)"
                             isLogo={false}
                           />

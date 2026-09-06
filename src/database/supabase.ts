@@ -1887,7 +1887,7 @@ export async function uploadBannerImageToSupabase(
       return null;
     }
 
-    // External URL - no upload required.
+    // External URL: no Storage upload needed.
     if (!imageData.startsWith("data:")) {
       return {
         publicUrl: imageData,
@@ -1895,8 +1895,53 @@ export async function uploadBannerImageToSupabase(
       };
     }
 
-    const response = await adminFetch(
-      "/api/admin/uploads/banner-image",
+    const match = imageData.match(
+      /^data:(image\/(?:png|jpeg|jpg|webp));base64,([A-Za-z0-9+/=\s]+)$/i
+    );
+
+    if (!match) {
+      console.warn("Invalid banner image format.");
+      return null;
+    }
+
+    let mimeType = match[1].toLowerCase();
+
+    if (mimeType === "image/jpg") {
+      mimeType = "image/jpeg";
+    }
+
+    const base64Data = match[2].replace(/\s/g, "");
+
+    const binaryString = atob(base64Data);
+    const bytes = new Uint8Array(binaryString.length);
+
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+
+    const MAX_BANNER_BYTES = 5 * 1024 * 1024;
+
+    if (bytes.length > MAX_BANNER_BYTES) {
+      console.warn("Banner image must be 5 MB or smaller.");
+      return null;
+    }
+
+    const extension =
+      mimeType === "image/png"
+        ? "png"
+        : mimeType === "image/webp"
+          ? "webp"
+          : "jpg";
+
+    const safeBannerId = String(
+      bannerId || `banner-${Date.now()}`
+    )
+      .replace(/[^a-zA-Z0-9_-]/g, "-")
+      .slice(0, 100);
+
+    // Ask protected backend only for a signed upload token.
+    const signResponse = await adminFetch(
+      "/api/admin/uploads/banner-image/sign",
       {
         method: "POST",
         credentials: "same-origin",
@@ -1904,31 +1949,77 @@ export async function uploadBannerImageToSupabase(
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          imageData,
-          bannerId: bannerId || `banner-${Date.now()}`
+          bannerId: safeBannerId,
+          mimeType,
+          extension,
+          size: bytes.length
         })
       }
     );
 
-    const result = await response.json().catch(() => null);
+    const signResult =
+      await signResponse.json().catch(() => null);
 
     if (
-      !response.ok ||
-      !result?.success ||
-      !result?.publicUrl ||
-      !result?.storagePath
+      !signResponse.ok ||
+      !signResult?.success ||
+      !signResult?.token ||
+      !signResult?.storagePath
     ) {
       console.warn(
-        "[Admin Banner Upload Failed]:",
-        result?.error || `HTTP ${response.status}`
+        "[Admin Banner Signed Upload Failed]:",
+        signResult?.error ||
+          `HTTP ${signResponse.status}`
       );
 
       return null;
     }
 
+    const client = getSupabaseClient();
+
+    if (!client) {
+      return null;
+    }
+
+    const storagePath =
+      String(signResult.storagePath);
+
+    const { error: uploadError } =
+      await client.storage
+        .from("banner-images")
+        .uploadToSignedUrl(
+          storagePath,
+          String(signResult.token),
+          bytes,
+          {
+            contentType: mimeType
+          }
+        );
+
+    if (uploadError) {
+      console.warn(
+        "[Banner Direct Storage Upload Failed]:",
+        uploadError
+      );
+
+      return null;
+    }
+
+    const { data: publicUrlData } =
+      client.storage
+        .from("banner-images")
+        .getPublicUrl(storagePath);
+
+    const publicUrl =
+      publicUrlData?.publicUrl || "";
+
+    if (!publicUrl) {
+      return null;
+    }
+
     return {
-      publicUrl: String(result.publicUrl),
-      storagePath: String(result.storagePath)
+      publicUrl,
+      storagePath
     };
   } catch (error) {
     console.error(
@@ -1939,7 +2030,6 @@ export async function uploadBannerImageToSupabase(
     return null;
   }
 }
-
 /**
  * Extract bucket and path from Supabase storage URL
  */

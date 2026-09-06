@@ -1907,6 +1907,132 @@ useEffect(() => {
   const handleRegisterOrganizer = async (updatedOrg: Partial<OrganizerProfile>) => {
     if (!authUser) return;
 
+    const uploadOrganizerImage = async (
+  imageValue: string | undefined,
+  imageType: "profile" | "cover"
+): Promise<string> => {
+  const value = String(imageValue || "").trim();
+
+  if (!value || !value.startsWith("data:")) {
+    return value;
+  }
+
+  const client = getSupabaseClient();
+
+  if (!client) {
+    throw new Error("Supabase client is unavailable.");
+  }
+
+  const { data: sessionData } =
+    await client.auth.getSession();
+
+  const token =
+    sessionData.session?.access_token;
+
+  if (!token) {
+    throw new Error(
+      "Organizer authentication session expired. Please sign in again."
+    );
+  }
+
+  const response = await fetch(
+    "/api/organizer/uploads/image",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        image: value,
+        imageType
+      })
+    }
+  );
+
+  const result =
+    await response.json().catch(() => ({}));
+
+  if (
+    !response.ok ||
+    !result.success ||
+    !result.publicUrl
+  ) {
+    throw new Error(
+      result.error ||
+        "Unable to upload organizer image."
+    );
+  }
+
+  return String(result.publicUrl);
+};
+
+const deleteOrganizerStorageImage = async (
+  imageUrl: string | undefined,
+  imageType: "profile" | "cover"
+) => {
+  const url = String(imageUrl || "").trim();
+
+  if (!url) return;
+
+  const bucket =
+    imageType === "cover"
+      ? "organizer-cover-images"
+      : "organizer-profile-images";
+
+  const marker =
+    `/storage/v1/object/public/${bucket}/`;
+
+  const markerIndex = url.indexOf(marker);
+
+  if (markerIndex === -1) {
+    return;
+  }
+
+  const storagePath = decodeURIComponent(
+    url.substring(markerIndex + marker.length)
+  );
+
+  if (!storagePath) return;
+
+  const client = getSupabaseClient();
+
+  if (!client) {
+    return;
+  }
+
+  const { data: sessionData } =
+    await client.auth.getSession();
+
+  const token =
+    sessionData.session?.access_token;
+
+  if (!token) {
+    return;
+  }
+
+  try {
+    await fetch(
+      "/api/organizer/uploads/image",
+      {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          bucket,
+          path: storagePath
+        })
+      }
+    );
+  } catch (error) {
+    console.warn(
+      "Organizer old image cleanup failed:",
+      error
+    );
+  }
+};
     const targetOrgId = authUser.organizerId;
     const targetEmail = authUser.email?.toLowerCase().trim();
 
@@ -1925,36 +2051,169 @@ useEffect(() => {
     const orgId = matched?.id || targetOrgId || `org-${Date.now()}`;
     const orgName = updatedOrg.organizationName || matched?.organizationName || authUser.name || "Organizer";
     const uniqueSlug = generateUniqueOrganizerSlug(orgName, currentOrgs, orgId);
+const nextLogo =
+  updatedOrg.logo ||
+  matched?.logo ||
+  "https://images.unsplash.com/photo-1599305445671-ac291c95aba9?auto=format&fit=crop&w=120&h=120&q=80";
+
+const nextCoverImage =
+  updatedOrg.coverImage ||
+  matched?.coverImage ||
+  "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=1000&q=80";
+
+const uploadedLogo =
+  await uploadOrganizerImage(
+    nextLogo,
+    "profile"
+  );
+
+const uploadedCoverImage =
+  await uploadOrganizerImage(
+    nextCoverImage,
+    "cover"
+  );
+
 
     const finalOrg: OrganizerProfile = {
-      id: orgId,
-      email: authUser.email || matched?.email || "",
-      organizationName: orgName,
-      contactPerson: updatedOrg.contactPerson || matched?.contactPerson || authUser.name || "",
-      logo: updatedOrg.logo || matched?.logo || "https://images.unsplash.com/photo-1599305445671-ac291c95aba9?auto=format&fit=crop&w=120&h=120&q=80",
-      coverImage: updatedOrg.coverImage || matched?.coverImage || "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=1000&q=80",
-      organizationWebsite: updatedOrg.organizationWebsite || matched?.organizationWebsite || "",
-      aboutOrganization: updatedOrg.aboutOrganization || matched?.aboutOrganization || "",
-      country: updatedOrg.country || matched?.country || "",
-      city: updatedOrg.city || matched?.city || "",
-      isVerified: matched?.isVerified ?? false,
-      isSuspended: matched?.isSuspended ?? false,
-      isFeatured: matched?.isFeatured ?? false,
-      isProfileComplete: true,
-      createdAt: matched?.createdAt || new Date().toISOString(),
-      slug: uniqueSlug,
-      ...updatedOrg,
-    };
+  id: orgId,
+  email:
+    authUser.email ||
+    matched?.email ||
+    "",
+
+  organizationName: orgName,
+
+  contactPerson:
+    updatedOrg.contactPerson ||
+    matched?.contactPerson ||
+    authUser.name ||
+    "",
+
+  organizationWebsite:
+    updatedOrg.organizationWebsite ||
+    matched?.organizationWebsite ||
+    "",
+
+  aboutOrganization:
+    updatedOrg.aboutOrganization ||
+    matched?.aboutOrganization ||
+    "",
+
+  country:
+    updatedOrg.country ||
+    matched?.country ||
+    "",
+
+  city:
+    updatedOrg.city ||
+    matched?.city ||
+    "",
+
+  isVerified:
+    matched?.isVerified ?? false,
+
+  isSuspended:
+    matched?.isSuspended ?? false,
+
+  isFeatured:
+    matched?.isFeatured ?? false,
+
+  isProfileComplete: true,
+
+  createdAt:
+    matched?.createdAt ||
+    new Date().toISOString(),
+
+  slug: uniqueSlug,
+
+  ...updatedOrg,
+
+  // IMPORTANT:
+  // Keep Storage URLs after ...updatedOrg so base64
+  // values cannot overwrite them.
+  logo: uploadedLogo,
+  coverImage: uploadedCoverImage
+};
 
     // Save record to Supabase
-    try {
-      const saveRes = await saveRecordToSupabase("organizers", finalOrg);
-      if (!saveRes.success) {
-        console.warn("Notice saving organizer profile to Supabase:", saveRes.error);
-      }
-    } catch (saveErr) {
-      console.warn("Exception saving organizer profile to Supabase:", saveErr);
+    // Save record to Supabase
+try {
+  const saveRes = await saveRecordToSupabase(
+    "organizers",
+    finalOrg
+  );
+
+  if (!saveRes.success) {
+    console.warn(
+      "Notice saving organizer profile to Supabase:",
+      saveRes.error
+    );
+
+    // Database save failed:
+    // remove newly uploaded images so Storage does not keep orphan files.
+    if (nextLogo.startsWith("data:")) {
+      await deleteOrganizerStorageImage(
+        uploadedLogo,
+        "profile"
+      );
     }
+
+    if (nextCoverImage.startsWith("data:")) {
+      await deleteOrganizerStorageImage(
+        uploadedCoverImage,
+        "cover"
+      );
+    }
+
+    return;
+  }
+
+  // Database save succeeded:
+  // now it is safe to remove the previous Storage images.
+  if (
+    nextLogo.startsWith("data:") &&
+    matched?.logo &&
+    matched.logo !== uploadedLogo
+  ) {
+    await deleteOrganizerStorageImage(
+      matched.logo,
+      "profile"
+    );
+  }
+
+  if (
+    nextCoverImage.startsWith("data:") &&
+    matched?.coverImage &&
+    matched.coverImage !== uploadedCoverImage
+  ) {
+    await deleteOrganizerStorageImage(
+      matched.coverImage,
+      "cover"
+    );
+  }
+} catch (saveErr) {
+  console.warn(
+    "Exception saving organizer profile to Supabase:",
+    saveErr
+  );
+
+  // Also clean up newly uploaded files when an exception occurs.
+  if (nextLogo.startsWith("data:")) {
+    await deleteOrganizerStorageImage(
+      uploadedLogo,
+      "profile"
+    );
+  }
+
+  if (nextCoverImage.startsWith("data:")) {
+    await deleteOrganizerStorageImage(
+      uploadedCoverImage,
+      "cover"
+    );
+  }
+
+  return;
+}
 
     if (!authUser.organizerId || authUser.organizerId !== finalOrg.id) {
       setAuthUser({ ...authUser, organizerId: finalOrg.id });

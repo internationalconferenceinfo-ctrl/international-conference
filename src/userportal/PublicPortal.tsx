@@ -582,7 +582,7 @@ useEffect(() => {
     if (file) {
       try {
         setIsFeedbackImageCompressing(true);
-        const dataUrl = await compressImageToTargetSize(file, 20);
+        const dataUrl = await compressImageToTargetSize(file, 50);
         setUserFeedbackImage(dataUrl);
       } catch (err: any) {
         console.error("Failed to process photo:", err);
@@ -682,20 +682,32 @@ useEffect(() => {
   const [dynamicAssociates, setDynamicAssociates] = useState<any[]>([]);
 
   // Handle Logo Upload with Auto Compression
-  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      try {
-        setIsLogoCompressing(true);
-        const dataUrl = await compressImageToTargetSize(file, 20);
-        setCollabLogo(dataUrl);
-      } catch (err: any) {
-        console.error("Failed to process logo:", err);
-      } finally {
-        setIsLogoCompressing(false);
-      }
+  const handleLogoUpload = async (
+  e: React.ChangeEvent<HTMLInputElement>
+) => {
+  const file = e.target.files?.[0];
+
+  if (file) {
+    try {
+      setIsLogoCompressing(true);
+
+      const dataUrl =
+        await compressImageToTargetSize(
+          file,
+          50
+        );
+
+      setCollabLogo(dataUrl);
+    } catch (err: any) {
+      console.error(
+        "Failed to process logo:",
+        err
+      );
+    } finally {
+      setIsLogoCompressing(false);
     }
-  };
+  }
+};
 
   // Handle Collaboration Submission (saves to Supabase and awaits Admin verification)
  const handleCollabSubmit = async (e: React.FormEvent) => {
@@ -3528,13 +3540,14 @@ const handleNewsletterSubmit = async (e: React.FormEvent) => {
                   <div className="space-y-3">
                     {/* Upload Logo or URL - Full Width Compact */}
                     <ImageUploaderField
-                      label="Organization Logo"
-                      value={collabLogo}
-                      onChange={setCollabLogo}
-                      placeholder="Paste logo URL (https://...)"
-                      aspectHint="PNG, JPG, SVG, WEBP"
-                      isLogo={true}
-                    />
+                              label="Organization Logo"
+                              value={collabLogo}
+                              onChange={setCollabLogo}
+                              placeholder="Paste logo URL (https://...)"
+                              aspectHint="PNG, JPG, SVG, WEBP — Max 50 KB"
+                              isLogo={true}
+                              maxFileSizeKB={50}
+                            />
 
                     {/* Company Name - Full Width */}
                     <div className="space-y-1">

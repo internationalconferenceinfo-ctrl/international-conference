@@ -3969,9 +3969,15 @@ const [isSavingCredentials, setIsSavingCredentials] =
                       <ImageUploaderField
                         label="Admin Profile Avatar / Photo"
                         value={adminProfile.avatar}
-                        onChange={(val) => setAdminProfile({ ...adminProfile, avatar: val })}
-                        placeholder="Paste image URL or upload image (Max 20 KB)"
-                        aspectHint="Square avatar, max 20 KB"
+                        onChange={(val) =>
+                          setAdminProfile({
+                            ...adminProfile,
+                            avatar: val
+                          })
+                        }
+                        placeholder="Paste image URL or upload image (Max 50 KB)"
+                        aspectHint="Square avatar, max 50 KB"
+                        maxFileSizeKB={50}
                       />
                     </div>
                   </div>
@@ -5626,14 +5632,37 @@ const [isSavingCredentials, setIsSavingCredentials] =
                             if (confirm(`Are you sure you want to permanently delete media partner "${mp.name}"?`)) {
                               const targetId = mp.id;
                               if (mp.logo) {
-                                const info = extractStoragePathFromUrl(mp.logo);
-                                if (info) {
-                                  try {
-                                    const client = getSupabaseClient();
-                                    if (client) await client.storage.from(info.bucket).remove([info.path]);
-                                  } catch (e) {}
-                                }
-                              }
+  const info = extractStoragePathFromUrl(mp.logo);
+
+  if (info) {
+    try {
+      const response = await adminFetch(
+        "/api/admin/uploads/image",
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            bucket: info.bucket,
+            path: info.path
+          })
+        }
+      );
+
+      if (!response.ok) {
+        console.warn(
+          "Media Partner deleted from database, but Storage logo cleanup failed."
+        );
+      }
+    } catch (error) {
+      console.warn(
+        "Media Partner Storage logo cleanup failed:",
+        error
+      );
+    }
+  }
+}
                               const updated = mediaPartners.filter((m) => {
                                 if (targetId && m.id) {
                                   return m.id !== targetId;
@@ -5806,14 +5835,37 @@ const [isSavingCredentials, setIsSavingCredentials] =
                             if (confirm(`Are you sure you want to permanently delete associate "${assoc.name}"?`)) {
                               const targetId = assoc.id;
                               if (assoc.logo) {
-                                const info = extractStoragePathFromUrl(assoc.logo);
-                                if (info) {
-                                  try {
-                                    const client = getSupabaseClient();
-                                    if (client) await client.storage.from(info.bucket).remove([info.path]);
-                                  } catch (e) {}
-                                }
-                              }
+  const info = extractStoragePathFromUrl(assoc.logo);
+
+  if (info) {
+    try {
+      const response = await adminFetch(
+        "/api/admin/uploads/image",
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            bucket: info.bucket,
+            path: info.path
+          })
+        }
+      );
+
+      if (!response.ok) {
+        console.warn(
+          "Associate deleted from database, but Storage logo cleanup failed."
+        );
+      }
+    } catch (error) {
+      console.warn(
+        "Associate Storage logo cleanup failed:",
+        error
+      );
+    }
+  }
+}
                               const updated = associates.filter((a) => {
                                 if (targetId && a.id) {
                                   return a.id !== targetId;
@@ -6110,6 +6162,7 @@ const [isSavingCredentials, setIsSavingCredentials] =
                       maxWidth={1000}
                       maxHeight={500}
                       quality={0.75}
+                      maxFileSizeKB={5120}
                       className="md:col-span-2"
                     />
 
@@ -6599,25 +6652,17 @@ const [isSavingCredentials, setIsSavingCredentials] =
                                   const bannerImg = b.image || (b as any).image_url;
 
                                   if (bannerImg) {
-                                    const info = extractStoragePathFromUrl(bannerImg);
+                                const storageDeleted =
+                                  await deleteBannerImageFromSupabase(
+                                    bannerImg
+                                  );
 
-                                    if (info) {
-                                      try {
-                                        const client = getSupabaseClient();
-
-                                        if (client) {
-                                          await client.storage
-                                            .from(info.bucket)
-                                            .remove([info.path]);
-                                        }
-                                      } catch (error) {
-                                        console.warn(
-                                          "Banner image storage deletion failed:",
-                                          error
-                                        );
-                                      }
-                                    }
-                                  }
+                                if (!storageDeleted) {
+                                  console.warn(
+                                    "Banner deleted from database, but Storage image cleanup failed."
+                                  );
+                                }
+                              }
 
                                   const remaining = banners
                                     .filter(
@@ -7913,12 +7958,41 @@ try {
                             .map((fb) => fb.id)
                             .filter(Boolean) as string[];
 
-                          for (const id of feedbackIds) {
+                          for (const fb of userFeedbacks) {
+                          if (fb.image) {
+                            const info = extractStoragePathFromUrl(fb.image);
+
+                            if (info) {
+                              try {
+                                await adminFetch(
+                                  "/api/admin/uploads/image",
+                                  {
+                                    method: "DELETE",
+                                    headers: {
+                                      "Content-Type": "application/json"
+                                    },
+                                    body: JSON.stringify({
+                                      bucket: info.bucket,
+                                      path: info.path
+                                    })
+                                  }
+                                );
+                              } catch (error) {
+                                console.warn(
+                                  "Feedback Storage cleanup failed:",
+                                  error
+                                );
+                              }
+                            }
+                          }
+
+                          if (fb.id) {
                             await deleteFromSupabase(
                               "user_feedbacks",
-                              id
+                              fb.id
                             );
                           }
+                        }
 
                           // Update Admin + App state after database deletion
                           setUserFeedbacks([]);
@@ -8109,14 +8183,37 @@ try {
                                     return;
                                   }
                                   if (fb.image) {
-                                    const info = extractStoragePathFromUrl(fb.image);
-                                    if (info) {
-                                      try {
-                                        const client = getSupabaseClient();
-                                        if (client) await client.storage.from(info.bucket).remove([info.path]);
-                                      } catch (e) {}
-                                    }
-                                  }
+  const info = extractStoragePathFromUrl(fb.image);
+
+  if (info) {
+    try {
+      const response = await adminFetch(
+        "/api/admin/uploads/image",
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            bucket: info.bucket,
+            path: info.path
+          })
+        }
+      );
+
+      if (!response.ok) {
+        console.warn(
+          "Feedback deleted from database, but Storage image cleanup failed."
+        );
+      }
+    } catch (error) {
+      console.warn(
+        "Feedback Storage image cleanup failed:",
+        error
+      );
+    }
+  }
+}
                                   
 
                                   if (fb.id) {
