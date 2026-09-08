@@ -4366,25 +4366,45 @@ const [isSavingCredentials, setIsSavingCredentials] =
                   >
                     <option value="All">All Statuses</option>
                     <option value="Verified">Verified Only</option>
+                    <option value="Unverified">Unverified Only</option>
                   </select>
                 </div>
               </div>
 
               {/* Organizers Cards Grid */}
               {(() => {
-                const filteredOrgs = organizers.filter((o) => {
-                  const q = searchTerm.toLowerCase();
+                const filteredOrgs = organizers
+                .filter((o) => {
+                  const q = searchTerm.trim().toLowerCase();
+
                   const matchesSearch =
-                    o.organizationName.toLowerCase().includes(q) ||
-                    o.contactPerson.toLowerCase().includes(q) ||
-                    o.email.toLowerCase().includes(q) ||
-                    o.country.toLowerCase().includes(q);
+                    String(o.organizationName || "").toLowerCase().includes(q) ||
+                    String(o.contactPerson || "").toLowerCase().includes(q) ||
+                    String(o.email || "").toLowerCase().includes(q) ||
+                    String(o.country || "").toLowerCase().includes(q) ||
+                    String(o.city || "").toLowerCase().includes(q);
 
                   const matchesStatus =
                     statusFilter === "All" ||
-                    (statusFilter === "Verified" && o.isVerified);
+                    (statusFilter === "Verified" && Boolean(o.isVerified)) ||
+                    (statusFilter === "Unverified" && !Boolean(o.isVerified));
 
                   return matchesSearch && matchesStatus;
+                })
+                .sort((a, b) => {
+                  const timeA = a.createdAt
+                    ? new Date(a.createdAt).getTime()
+                    : 0;
+
+                  const timeB = b.createdAt
+                    ? new Date(b.createdAt).getTime()
+                    : 0;
+
+                  if (timeA !== timeB) {
+                    return timeB - timeA;
+                  }
+
+                  return String(b.id || "").localeCompare(String(a.id || ""));
                 });
 
                 if (filteredOrgs.length === 0) {

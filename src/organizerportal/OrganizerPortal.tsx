@@ -799,8 +799,8 @@ const todayStr =
             onRegisterOrganizer({
               organizationName: profileOrgName.trim(),
               contactPerson: profileContact.trim() || authUser?.name || "",
-              logo: profileLogo || "https://images.unsplash.com/photo-1599305445671-ac291c95aba9?auto=format&fit=crop&w=120&h=120&q=80",
-              coverImage: profileCover || "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=1000&q=80",
+              logo: profileLogo || "",
+              coverImage: profileCover || "",
               galleryImages: profileGallery,
               organizationWebsite: formattedWebsite,
               aboutOrganization: profileAbout.trim(),
@@ -998,14 +998,17 @@ const todayStr =
         <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
           {/* User profile preview badge */}
           <div className="flex items-center gap-2 sm:pl-2 sm:border-l sm:border-white/10">
-            <img
-              src={getCleanImageSrc(activeProfile?.logo, "https://images.unsplash.com/photo-1560179707-f14e90ef3623?auto=format&fit=crop&w=300&q=80")}
-              alt={activeProfile?.organizationName || "Profile"}
-              className="h-7 w-7 sm:h-8 sm:w-8 rounded-full border border-white/30 object-contain bg-white shrink-0"
-              onError={(e) => {
-                (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1560179707-f14e90ef3623?auto=format&fit=crop&w=300&q=80";
-              }}
-            />
+            {activeProfile?.logo ? (
+          <img
+            src={getCleanImageSrc(activeProfile.logo)}
+            alt={activeProfile?.organizationName || "Profile"}
+            className="h-7 w-7 sm:h-8 sm:w-8 rounded-full border border-white/30 object-contain bg-white shrink-0"
+          />
+        ) : (
+          <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-full border border-white/30 bg-white/10 flex items-center justify-center shrink-0">
+            <User className="h-4 w-4 text-white" />
+          </div>
+        )}
             <div className="hidden md:block text-left">
               <div className="text-xs font-bold leading-tight text-white">{activeProfile?.organizationName || authUser?.name || "Organizer"}</div>
               <div className="text-[10px] text-blue-200 font-medium uppercase tracking-wider">Organizer</div>
@@ -2554,7 +2557,23 @@ const todayStr =
                     <div className="absolute top-3 sm:top-4 right-3 sm:right-4 flex items-center gap-2 max-w-[calc(100%-1.5rem)]">
                       {!isEditingProfile ? (
                         <button
-                          onClick={() => setIsEditingProfile(true)}
+                          onClick={() => {
+                          const defaultLogo =
+                            "https://images.unsplash.com/photo-1599305445671-ac291c95aba9?auto=format&fit=crop&w=120&h=120&q=80";
+
+                          const defaultCover =
+                            "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=1000&q=80";
+
+                          if (profileLogo === defaultLogo) {
+                            setProfileLogo("");
+                          }
+
+                          if (profileCover === defaultCover) {
+                            setProfileCover("");
+                          }
+
+                          setIsEditingProfile(true);
+                        }}
                           className="px-4 py-2 bg-white/20 hover:bg-white/30 backdrop-blur-md text-white border border-white/30 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
                         >
                           <Edit2 className="h-3.5 w-3.5" /> Edit Profile Details
@@ -2569,19 +2588,13 @@ const todayStr =
                       )}
                     </div>
                     <div className="absolute bottom-3 sm:bottom-4 left-3 sm:left-6 right-3 sm:right-auto flex items-center gap-3 sm:gap-4 min-w-0">
-                      {(() => {
-                        const logoUrl = getCleanImageSrc(activeProfile?.logo, "https://images.unsplash.com/photo-1560179707-f14e90ef3623?auto=format&fit=crop&w=300&q=80");
-                        return (
-                          <img
-                            src={logoUrl}
-                            alt={activeProfile?.organizationName || "Logo"}
-                            className="h-12 w-12 sm:h-16 sm:w-16 rounded-xl sm:rounded-2xl border-2 border-white object-contain bg-white shadow-md shrink-0"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1560179707-f14e90ef3623?auto=format&fit=crop&w=300&q=80";
-                            }}
-                          />
-                        );
-                      })()}
+                      {activeProfile?.logo ? (
+                      <img
+                        src={getCleanImageSrc(activeProfile.logo)}
+                        alt={activeProfile?.organizationName || "Logo"}
+                        className="h-12 w-12 sm:h-16 sm:w-16 rounded-xl sm:rounded-2xl border-2 border-white object-contain bg-white shadow-md shrink-0"
+                      />
+                    ) : null}
                       <div className="min-w-0 flex-1">
                         <h3 className="text-base sm:text-xl font-bold text-white font-display leading-tight break-words">
                           {activeProfile?.organizationName || "Organizer Profile"}

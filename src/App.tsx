@@ -23,7 +23,8 @@ import {
   LayoutDashboard, User, Mail, Lock, Key, Building, Menu, Home,
   Sparkles, Search, ArrowRight, ChevronRight, ChevronLeft, Star, TrendingUp,
   Clock as ClockIcon, MapPin as MapPinIcon, Calendar as CalendarIcon, ArrowLeft,
-  Share2, Twitter, Linkedin, Facebook, Instagram, Youtube
+  Share2, Twitter, Linkedin, Facebook, Instagram, Youtube,
+  Eye, EyeOff
 } from "lucide-react";
 import {
   Conference,
@@ -747,6 +748,10 @@ const loadCitiesForCountry = useCallback(
   const [forgotStep, setForgotStep] = useState<1 | 2>(1);
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const [showAuthPassword, setShowAuthPassword] = useState(false);
+  const [showResetPin, setShowResetPin] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false);
   const [verifiedResetOrganizerId, setVerifiedResetOrganizerId] = useState<string | null>(null);
   const [forgotSuccess, setForgotSuccess] = useState("");
   const [authError, setAuthError] = useState("");
@@ -827,6 +832,7 @@ const loadCitiesForCountry = useCallback(
     };
   }, []);
   const [publicTab, setPublicTab] = useState<string>("HOME");
+  const [notFoundPath, setNotFoundPath] = useState<string>("");
   const [copied, setCopied] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [selectedCountry, setSelectedCountry] = useState<string>("All");
@@ -1185,6 +1191,21 @@ useEffect(() => {
       nextPortal = "VISITOR";
     }
 
+    if (nextTab === "NOT_FOUND") {
+  const invalidPath =
+    pathname && pathname !== "/"
+      ? pathname
+      : fullPath.split("?")[0] || "/";
+
+  const invalidUrl = searchStr
+    ? `${invalidPath}?${searchStr}`
+    : invalidPath;
+
+  setNotFoundPath(invalidUrl);
+} else {
+  setNotFoundPath("");
+}
+
     setPublicTab(nextTab);
     setAuthMode(nextAuth);
     setSelectedCategory(nextCategory);
@@ -1221,7 +1242,9 @@ useEffect(() => {
 
     let newPath = "/";
 
-    if (activePortal === "ORGANIZER") {
+    if (publicTab === "NOT_FOUND" && notFoundPath) {
+      newPath = notFoundPath;
+    } else if (activePortal === "ORGANIZER") {
       newPath = "/organizer-portal";
     } else if (activePortal === "ADMIN") {
       newPath = "/admin-portal";
@@ -1296,7 +1319,7 @@ useEffect(() => {
         newPath
       );
     }
-  }, [publicTab, authMode, selectedCategory, selectedCountry, selectedCity, selectedConference, selectedOrganizerId, activePortal, organizers]);
+  }, [publicTab, authMode, selectedCategory, selectedCountry, selectedCity, selectedConference, selectedOrganizerId, activePortal, organizers, notFoundPath]);
 
   // Dynamically update document title, meta description, and meta keywords for SEO
   useEffect(() => {
@@ -1482,6 +1505,7 @@ useEffect(() => {
     activePortal,
     authMode,
     organizers,
+    notFoundPath
   ]);
 
   const handleShareClick = () => {
