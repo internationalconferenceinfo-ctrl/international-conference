@@ -2076,14 +2076,14 @@ const deleteOrganizerStorageImage = async (
     const orgName = updatedOrg.organizationName || matched?.organizationName || authUser.name || "Organizer";
     const uniqueSlug = generateUniqueOrganizerSlug(orgName, currentOrgs, orgId);
 const nextLogo =
-  updatedOrg.logo ||
-  matched?.logo ||
-  "https://images.unsplash.com/photo-1599305445671-ac291c95aba9?auto=format&fit=crop&w=120&h=120&q=80";
+  updatedOrg.logo ??
+  matched?.logo ??
+  "";
 
 const nextCoverImage =
-  updatedOrg.coverImage ||
-  matched?.coverImage ||
-  "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=1000&q=80";
+  updatedOrg.coverImage ??
+  matched?.coverImage ??
+  "";
 
 const uploadedLogo =
   await uploadOrganizerImage(
@@ -5053,7 +5053,7 @@ const handleEditCategory = async (
                   )}
                   {org.whatsapp && (
                     <a
-                      href={org.whatsapp}
+                      href={`https://wa.me/${org.whatsapp.replace(/[^0-9]/g, "")}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="p-3 bg-white hover:bg-emerald-50 text-emerald-600 border border-slate-200 hover:border-emerald-300 rounded-xl transition-all shadow-2xs hover:shadow-xs hover:scale-105"
