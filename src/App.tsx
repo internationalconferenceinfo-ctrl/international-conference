@@ -3982,14 +3982,29 @@ const handleEditCategory = async (
                     </button>
                   )}
                 </div>
-                <input
-                  type="password"
-                  required
-                  placeholder="••••••••"
-                  value={authPassword}
-                  onChange={(e) => setAuthPassword(e.target.value)}
-                  className="w-full text-sm bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
-                />
+                <div className="relative">
+              <input
+                type={showAuthPassword ? "text" : "password"}
+                required
+                placeholder="••••••••"
+                value={authPassword}
+                onChange={(e) => setAuthPassword(e.target.value)}
+                className="w-full text-sm bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 pr-12 text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
+              />
+
+              <button
+                type="button"
+                onClick={() => setShowAuthPassword((prev) => !prev)}
+                className="absolute inset-y-0 right-0 w-12 flex items-center justify-center text-gray-400 hover:text-gray-700 transition-colors cursor-pointer"
+                aria-label={showAuthPassword ? "Hide password" : "Show password"}
+              >
+                {showAuthPassword ? (
+                  <EyeOff className="h-5 w-5" />
+                ) : (
+                  <Eye className="h-5 w-5" />
+                )}
+              </button>
+            </div>
               </div>
             )}
 
@@ -3998,18 +4013,35 @@ const handleEditCategory = async (
                 <label className="text-xs font-bold uppercase tracking-wider text-gray-500 flex items-center gap-1">
                   <Key className="h-3.5 w-3.5" /> Reset PIN (Security Recovery Code)
                 </label>
-                <input
-                  type="password"
-                  inputMode="numeric"
-                  pattern="[0-9]{6}"
-                  minLength={6}
-                  maxLength={6}
-                  required
-                  placeholder="Create a 6-digit PIN"
-                  value={authResetPin}
-                  onChange={(e) => setAuthResetPin(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                  className="w-full text-sm bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
-                />
+                <div className="relative">
+              <input
+                type={showResetPin ? "text" : "password"}
+                inputMode="numeric"
+                pattern="[0-9]{6}"
+                minLength={6}
+                maxLength={6}
+                required
+                placeholder="Create a 6-digit PIN"
+                value={authResetPin}
+                onChange={(e) =>
+                  setAuthResetPin(e.target.value.replace(/\D/g, "").slice(0, 6))
+                }
+                className="w-full text-sm bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 pr-12 text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
+              />
+
+              <button
+                type="button"
+                onClick={() => setShowResetPin((prev) => !prev)}
+                className="absolute inset-y-0 right-0 w-12 flex items-center justify-center text-gray-400 hover:text-gray-700 transition-colors cursor-pointer"
+                aria-label={showResetPin ? "Hide Reset PIN" : "Show Reset PIN"}
+              >
+                {showResetPin ? (
+                  <EyeOff className="h-5 w-5" />
+                ) : (
+                  <Eye className="h-5 w-5" />
+                )}
+              </button>
+            </div>
                 <p className="text-[11px] text-gray-400">
                   🔒 Save these six digits safely. They are required to recover a forgotten password, and the PIN itself is never stored.
                 </p>
@@ -4021,18 +4053,35 @@ const handleEditCategory = async (
                 <label className="text-xs font-bold uppercase tracking-wider text-gray-500 flex items-center gap-1">
                   <Key className="h-3.5 w-3.5" /> Reset PIN
                 </label>
-                <input
-                  type="password"
-                  inputMode="numeric"
-                  pattern="[0-9]{6}"
-                  minLength={6}
-                  maxLength={6}
-                  required
-                  placeholder="Enter your 6-digit Recovery PIN"
-                  value={authResetPin}
-                  onChange={(e) => setAuthResetPin(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                  className="w-full text-sm bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
-                />
+                <div className="relative">
+              <input
+                type={showResetPin ? "text" : "password"}
+                inputMode="numeric"
+                pattern="[0-9]{6}"
+                minLength={6}
+                maxLength={6}
+                required
+                placeholder="Enter your 6-digit Recovery PIN"
+                value={authResetPin}
+                onChange={(e) =>
+                  setAuthResetPin(e.target.value.replace(/\D/g, "").slice(0, 6))
+                }
+                className="w-full text-sm bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 pr-12 text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
+              />
+
+              <button
+                type="button"
+                onClick={() => setShowResetPin((prev) => !prev)}
+                className="absolute inset-y-0 right-0 w-12 flex items-center justify-center text-gray-400 hover:text-gray-700 transition-colors cursor-pointer"
+                aria-label={showResetPin ? "Hide Reset PIN" : "Show Reset PIN"}
+              >
+                {showResetPin ? (
+                  <EyeOff className="h-5 w-5" />
+                ) : (
+                  <Eye className="h-5 w-5" />
+                )}
+              </button>
+            </div>
               </div>
             )}
 
@@ -4042,27 +4091,61 @@ const handleEditCategory = async (
                   <label className="text-xs font-bold uppercase tracking-wider text-gray-500 flex items-center gap-1">
                     <Lock className="h-3.5 w-3.5" /> Create New Password
                   </label>
+                  <div className="relative">
                   <input
-                    type="password"
+                    type={showNewPassword ? "text" : "password"}
                     required
                     placeholder="Min 6 characters"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    className="w-full text-sm bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
+                    className="w-full text-sm bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 pr-12 text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
                   />
+
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword((prev) => !prev)}
+                    className="absolute inset-y-0 right-0 w-12 flex items-center justify-center text-gray-400 hover:text-gray-700 transition-colors cursor-pointer"
+                    aria-label={showNewPassword ? "Hide new password" : "Show new password"}
+                  >
+                    {showNewPassword ? (
+                      <EyeOff className="h-5 w-5" />
+                    ) : (
+                      <Eye className="h-5 w-5" />
+                    )}
+                  </button>
+                </div>
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs font-bold uppercase tracking-wider text-gray-500 flex items-center gap-1">
                     <Lock className="h-3.5 w-3.5" /> Confirm New Password
                   </label>
+                  <div className="relative">
                   <input
-                    type="password"
+                    type={showConfirmNewPassword ? "text" : "password"}
                     required
                     placeholder="Re-enter new password"
                     value={confirmNewPassword}
                     onChange={(e) => setConfirmNewPassword(e.target.value)}
-                    className="w-full text-sm bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
+                    className="w-full text-sm bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 pr-12 text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
                   />
+
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmNewPassword((prev) => !prev)}
+                    className="absolute inset-y-0 right-0 w-12 flex items-center justify-center text-gray-400 hover:text-gray-700 transition-colors cursor-pointer"
+                    aria-label={
+                      showConfirmNewPassword
+                        ? "Hide confirm password"
+                        : "Show confirm password"
+                    }
+                  >
+                    {showConfirmNewPassword ? (
+                      <EyeOff className="h-5 w-5" />
+                    ) : (
+                      <Eye className="h-5 w-5" />
+                    )}
+                  </button>
+                </div>
                 </div>
               </>
             )}
