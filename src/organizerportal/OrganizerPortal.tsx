@@ -15,6 +15,7 @@ import { isConferenceCompleted } from "../shared/utils/expirationUtils";
 import { resolveConferenceTimeZone } from "../shared/utils/timezoneUtils";
 import { slugify, getConferenceSlug } from "../shared/utils/slugUtils";
 import { fetchCitiesByCountryFromSupabase } from "../database/supabase";
+import { buildConferenceDuplicateKey } from "../shared/utils/conferenceDuplicateUtils";
 
 const getTodayInTimeZone = (timeZone: string): string => {
   const parts = new Intl.DateTimeFormat("en-US", {
@@ -115,9 +116,32 @@ interface OrganizerPortalProps {
   inactiveTopics?: string[];
 }
 
+type BulkConferenceImportRow = {
+  rowNumber: number;
+  conferenceTitle: string;
+  topic: string;
+  bannerImageUrl: string;
+  startDate: string;
+  endDate: string;
+  country: string;
+  city: string;
+  venue: string;
+  attendanceType: string;
+  officialWebsite: string;
+  contactEmail: string;
+  overview: string;
+
+  // Bulk validation state
+  errors: string[];
+  isValid: boolean;
+  isDuplicate: boolean;
+};
+
+
 type OrganizerMenu =
   | "DASHBOARD_OVERVIEW"
   | "ADD_CONFERENCE"
+  | "BULK_ADD_CONFERENCES"
   | "PENDING_CONFERENCES"
   | "APPROVED_CONFERENCES"
   | "REJECTED_CONFERENCES"
@@ -161,6 +185,131 @@ export default function OrganizerPortal({
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
   return typeof window !== "undefined" ? window.innerWidth >= 1024 : false;
   });
+
+  const [bulkImportedRows, setBulkImportedRows] = useState<BulkConferenceImportRow[]>([]);
+  const [bulkUploadedFileName, setBulkUploadedFileName] = useState("");
+  const [bulkImportError, setBulkImportError] = useState("");
+  const [isBulkReadingFile, setIsBulkReadingFile] = useState(false);
+
+  const [bulkSearchQuery, setBulkSearchQuery] = useState("");
+  const [bulkStatusFilter, setBulkStatusFilter] = useState<
+    "ALL" | "COMPLETE" | "NEED_FIX" | "DUPLICATES"
+  >("ALL");
+
+  const [bulkSelectedRows, setBulkSelectedRows] = useState<number[]>([]);
+
+  const [bulkCountryCities, setBulkCountryCities] = useState<
+  Record<
+    string,
+    Array<{
+      name: string;
+      country: string;
+      timeZone: string;
+    }>
+  >
+>({});
+
+  const [bulkFixField, setBulkFixField] = useState<
+    "topic" | "country" | "city"
+  >("topic");
+
+  const [bulkFixValue, setBulkFixValue] = useState("");
+
+  const [isBulkSubmitting, setIsBulkSubmitting] = useState(false);
+
+const [bulkSubmitProgress, setBulkSubmitProgress] = useState({
+  processed: 0,
+  total: 0,
+  success: 0,
+  failed: 0,
+});
+
+const [bulkSubmitFailures, setBulkSubmitFailures] = useState<
+  Array<{
+    rowNumber: number;
+    title: string;
+    error: string;
+  }>
+>([]);
+
+  const bulkFileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const bulkValidationSummary = useMemo(() => {
+  const total = bulkImportedRows.length;
+
+  const complete = bulkImportedRows.filter(
+    (row) => row.isValid
+  ).length;
+
+  const duplicates = bulkImportedRows.filter(
+    (row) => row.isDuplicate
+  ).length;
+
+  const needFix = bulkImportedRows.filter(
+    (row) => !row.isValid && !row.isDuplicate
+  ).length;
+
+  const completionPercentage =
+    total === 0
+      ? 0
+      : Math.round((complete / total) * 100);
+
+  return {
+    total,
+    complete,
+    needFix,
+    duplicates,
+    completionPercentage,
+  };
+}, [bulkImportedRows]);
+
+const isBulkReadyToSubmit =
+  bulkImportedRows.length > 0 &&
+  bulkValidationSummary.complete === bulkImportedRows.length &&
+  bulkValidationSummary.needFix === 0 &&
+  bulkValidationSummary.duplicates === 0;
+
+const filteredBulkRows = useMemo(() => {
+  const normalizedSearch = bulkSearchQuery
+    .trim()
+    .toLowerCase();
+
+  return bulkImportedRows.filter((row) => {
+    const matchesStatus =
+      bulkStatusFilter === "ALL" ||
+      (bulkStatusFilter === "COMPLETE" && row.isValid) ||
+      (bulkStatusFilter === "NEED_FIX" &&
+        !row.isValid &&
+        !row.isDuplicate) ||
+      (bulkStatusFilter === "DUPLICATES" &&
+        row.isDuplicate);
+
+    const matchesSearch =
+      !normalizedSearch ||
+      row.conferenceTitle
+        .toLowerCase()
+        .includes(normalizedSearch) ||
+      row.topic
+        .toLowerCase()
+        .includes(normalizedSearch) ||
+      row.country
+        .toLowerCase()
+        .includes(normalizedSearch) ||
+      row.city
+        .toLowerCase()
+        .includes(normalizedSearch) ||
+      row.contactEmail
+        .toLowerCase()
+        .includes(normalizedSearch);
+
+    return matchesStatus && matchesSearch;
+  });
+}, [
+  bulkImportedRows,
+  bulkSearchQuery,
+  bulkStatusFilter,
+]);
+
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
     conference: false,
     profile: false,
@@ -486,6 +635,1184 @@ useEffect(() => {
       toastTimerRef.current = null;
     }, 3500);
   };
+
+  const handleDownloadBulkConferenceTemplate = async () => {
+  try {
+    const XLSX = await import("xlsx");
+
+    const headers = [
+      "Conference Title",
+      "Topic",
+      "Banner Image URL",
+      "Start Date",
+      "End Date",
+      "Country",
+      "City",
+      "Venue Name / Address",
+      "Attendance Type",
+      "Official Conference Website",
+      "Contact Email",
+      "Conference Overview & Call for Papers",
+    ];
+
+    const worksheet = XLSX.utils.aoa_to_sheet([headers]);
+
+    // Make the columns easier to read when Organizer opens the template.
+    worksheet["!cols"] = [
+      { wch: 45 }, // Conference Title
+      { wch: 28 }, // Topic
+      { wch: 45 }, // Banner Image URL
+      { wch: 15 }, // Start Date
+      { wch: 15 }, // End Date
+      { wch: 22 }, // Country
+      { wch: 22 }, // City
+      { wch: 40 }, // Venue
+      { wch: 22 }, // Attendance Type
+      { wch: 45 }, // Website
+      { wch: 32 }, // Contact Email
+      { wch: 70 }, // Overview
+    ];
+
+    const workbook = XLSX.utils.book_new();
+
+    XLSX.utils.book_append_sheet(
+      workbook,
+      worksheet,
+      "Conferences"
+    );
+
+    XLSX.writeFile(
+      workbook,
+      "InternationalConference_Bulk_Upload_Template.xlsx"
+    );
+  } catch (error) {
+    console.error(
+      "Failed to create Bulk Conference Excel template:",
+      error
+    );
+
+    showToast(
+      "Unable to download the Excel template. Please try again."
+    );
+  }
+};
+
+const handleBulkConferenceFileUpload = async (
+  event: React.ChangeEvent<HTMLInputElement>
+) => {
+  const file = event.target.files?.[0];
+
+  if (!file) {
+    return;
+  }
+
+  setBulkImportError("");
+
+  // Do not allow another upload until the current one is deleted.
+  if (bulkImportedRows.length > 0 || bulkUploadedFileName) {
+    setBulkImportError(
+      "A bulk Excel file is already loaded. Delete the current upload before uploading another file."
+    );
+
+    event.target.value = "";
+    return;
+  }
+
+  const fileName = file.name.toLowerCase();
+
+  if (!fileName.endsWith(".xlsx")) {
+    setBulkImportError("Only .xlsx Excel files are allowed.");
+
+    event.target.value = "";
+    return;
+  }
+
+  try {
+    setIsBulkReadingFile(true);
+
+    const XLSX = await import("xlsx");
+
+    const arrayBuffer = await file.arrayBuffer();
+
+    const workbook = XLSX.read(arrayBuffer, {
+  type: "array",
+  cellDates: true,
+});
+
+    const firstSheetName = workbook.SheetNames[0];
+
+    if (!firstSheetName) {
+      throw new Error("The Excel file does not contain a worksheet.");
+    }
+
+    const worksheet = workbook.Sheets[firstSheetName];
+
+    const rawRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(
+  worksheet,
+  {
+    defval: "",
+    raw: true,
+  }
+);
+
+    // Ignore completely blank rows.
+    const nonEmptyRows = rawRows.filter((row) =>
+      Object.values(row).some(
+        (value) => String(value ?? "").trim() !== ""
+      )
+    );
+
+    if (nonEmptyRows.length === 0) {
+      setBulkImportError(
+        "The Excel file does not contain any conference rows."
+      );
+
+      event.target.value = "";
+      return;
+    }
+
+    if (nonEmptyRows.length > 1000) {
+      setBulkImportError(
+        `This Excel file contains ${nonEmptyRows.length} conferences. The maximum allowed is 1,000.`
+      );
+
+      event.target.value = "";
+      return;
+    }
+
+    const formatBulkExcelDate = (value: unknown): string => {
+      if (value instanceof Date && !Number.isNaN(value.getTime())) {
+        const year = value.getFullYear();
+        const month = String(value.getMonth() + 1).padStart(2, "0");
+        const day = String(value.getDate()).padStart(2, "0");
+
+        return `${year}-${month}-${day}`;
+      }
+
+      return String(value ?? "").trim();
+    };
+
+    const importedRows: BulkConferenceImportRow[] =
+      nonEmptyRows.map((row, index) => ({
+        rowNumber: index + 2,
+
+        conferenceTitle: String(
+          row["Conference Title"] ?? ""
+        ).trim(),
+
+        topic: String(row["Topic"] ?? "").trim(),
+
+        bannerImageUrl: String(
+          row["Banner Image URL"] ?? ""
+        ).trim(),
+
+        startDate: formatBulkExcelDate(row["Start Date"]),
+
+        endDate: formatBulkExcelDate(row["End Date"]),
+
+        country: String(row["Country"] ?? "").trim(),
+
+        city: String(row["City"] ?? "").trim(),
+
+        venue: String(
+          row["Venue Name / Address"] ?? ""
+        ).trim(),
+
+        attendanceType: String(
+          row["Attendance Type"] ?? ""
+        ).trim(),
+
+        officialWebsite: String(
+          row["Official Conference Website"] ?? ""
+        ).trim(),
+
+        contactEmail: String(
+          row["Contact Email"] ?? ""
+        ).trim(),
+
+        overview: String(
+        row["Conference Overview & Call for Papers"] ?? ""
+      ).trim(),
+
+      errors: [],
+      isValid: false,
+      isDuplicate: false,
+      }));
+
+    const validatedRows =
+  validateBulkConferenceRows(importedRows);
+
+  setBulkImportedRows(validatedRows);
+  const uniqueCountries = Array.from(
+  new Set(
+    validatedRows
+      .map((row) =>
+        row.country.trim().toUpperCase()
+      )
+      .filter(Boolean)
+  )
+);
+
+for (const country of uniqueCountries) {
+  void loadBulkCitiesForCountry(country);
+}
+  setBulkUploadedFileName(file.name);
+  } catch (error) {
+    console.error("Bulk Excel import failed:", error);
+
+    setBulkImportError(
+      error instanceof Error
+        ? error.message
+        : "Unable to read this Excel file."
+    );
+
+    event.target.value = "";
+  } finally {
+    setIsBulkReadingFile(false);
+  }
+};
+
+const handleDeleteBulkUpload = () => {
+  setBulkImportedRows([]);
+  setBulkUploadedFileName("");
+  setBulkImportError("");
+  setBulkCountryCities({});
+
+  if (bulkFileInputRef.current) {
+    bulkFileInputRef.current.value = "";
+  }
+};
+
+const clearBulkConferenceWorkspace = () => {
+  setBulkImportedRows([]);
+  setBulkUploadedFileName("");
+  setBulkImportError("");
+  setBulkCountryCities({});
+  setBulkSearchQuery("");
+  setBulkStatusFilter("ALL");
+  setBulkSelectedRows([]);
+  setBulkFixField("topic");
+  setBulkFixValue("");
+
+  if (bulkFileInputRef.current) {
+    bulkFileInputRef.current.value = "";
+  }
+};
+
+const requestOrganizerMenuChange = (
+  nextMenu: OrganizerMenu
+) => {
+  if (
+    activeMenu === "BULK_ADD_CONFERENCES" &&
+    hasUnsubmittedBulkWork &&
+    nextMenu !== "BULK_ADD_CONFERENCES"
+  ) {
+    const shouldLeave = window.confirm(
+      "Your bulk conference upload has not been submitted. If you leave this page, all imported and edited bulk conference data will be deleted. Do you want to leave?"
+    );
+
+    if (!shouldLeave) {
+      return;
+    }
+
+    clearBulkConferenceWorkspace();
+  }
+
+  setActiveMenu(nextMenu);
+};
+
+const buildBulkConferencePayload = (
+  row: BulkConferenceImportRow
+): Partial<Conference> => {
+  const selectedCityTimeZone =
+  (
+    bulkCountryCities[
+      row.country.trim().toUpperCase()
+    ] || []
+  ).find(
+    (city) =>
+      String(city.name || "")
+        .trim()
+        .toUpperCase() ===
+      String(row.city || "")
+        .trim()
+        .toUpperCase()
+  )?.timeZone?.trim() || "";
+
+  const conferenceTimeZone =
+    resolveConferenceTimeZone(
+      selectedCityTimeZone,
+      row.country,
+      row.city
+    );
+
+  return {
+    title: row.conferenceTitle.trim(),
+    shortTitle: row.conferenceTitle.trim().substring(0, 20),
+    category: row.topic.trim(),
+
+    bannerImage: row.bannerImageUrl.trim()
+      ? row.bannerImageUrl.trim()
+      : DEFAULT_CONFERENCE_IMAGE,
+
+    description: row.overview.trim(),
+    startDate: row.startDate.trim(),
+    endDate: row.endDate.trim(),
+    time: "09:00 AM",
+    timeZone: conferenceTimeZone,
+    country: row.country.trim(),
+    state: "",
+    city: row.city.trim(),
+    venue: row.venue.trim(),
+
+    attendanceType:
+      row.attendanceType.trim() as
+        | "Online"
+        | "Offline"
+        | "Hybrid",
+
+    organizerWebsite:
+      activeProfile?.organizationWebsite || "",
+
+    conferenceWebsite:
+      row.officialWebsite.trim(),
+
+    registrationLink:
+      row.officialWebsite.trim(),
+
+    contactEmail:
+      row.contactEmail.trim(),
+  };
+};
+
+const submitBulkConferencesInBatches = async () => {
+  if (!isBulkReadyToSubmit) {
+    showToast(
+      "All remaining conferences must be 100% valid before submission."
+    );
+    return;
+  }
+
+  if (bulkImportedRows.length === 0) {
+    showToast("There are no conferences to submit.");
+    return;
+  }
+
+  setIsBulkSubmitting(true);
+  setBulkSubmitFailures([]);
+
+  setBulkSubmitProgress({
+    processed: 0,
+    total: bulkImportedRows.length,
+    success: 0,
+    failed: 0,
+  });
+
+  const failures: Array<{
+    rowNumber: number;
+    title: string;
+    error: string;
+  }> = [];
+
+  let processed = 0;
+  let success = 0;
+  let failed = 0;
+
+  const BATCH_SIZE = 10;
+
+  try {
+    for (
+      let startIndex = 0;
+      startIndex < bulkImportedRows.length;
+      startIndex += BATCH_SIZE
+    ) {
+      const batch = bulkImportedRows.slice(
+        startIndex,
+        startIndex + BATCH_SIZE
+      );
+
+      const batchResults = await Promise.all(
+        batch.map(async (row) => {
+          try {
+            const payload =
+              buildBulkConferencePayload(row);
+
+            const result =
+              await onSubmitConference(
+                payload,
+                false
+              );
+
+            if (result?.error) {
+              return {
+                success: false,
+                row,
+                error: result.error,
+              };
+            }
+
+            return {
+              success: true,
+              row,
+              error: "",
+            };
+          } catch (error) {
+            return {
+              success: false,
+              row,
+              error:
+                error instanceof Error
+                  ? error.message
+                  : "Unknown submission error.",
+            };
+          }
+        })
+      );
+
+      for (const result of batchResults) {
+        processed += 1;
+
+        if (result.success) {
+          success += 1;
+        } else {
+          failed += 1;
+
+          failures.push({
+            rowNumber: result.row.rowNumber,
+            title: result.row.conferenceTitle,
+            error:
+              result.error ||
+              "Conference submission failed.",
+          });
+        }
+      }
+
+      setBulkSubmitProgress({
+        processed,
+        total: bulkImportedRows.length,
+        success,
+        failed,
+      });
+
+      setBulkSubmitFailures([...failures]);
+    }
+
+    if (
+      failed === 0 &&
+      success === bulkImportedRows.length
+    ) {
+      showToast(
+        `${success} conferences submitted successfully for Admin review.`
+      );
+
+      clearBulkConferenceWorkspace();
+
+      setBulkSubmitProgress({
+        processed: 0,
+        total: 0,
+        success: 0,
+        failed: 0,
+      });
+
+      setBulkSubmitFailures([]);
+
+      setActiveMenu("PENDING_CONFERENCES");
+    } else {
+  const failedRowNumbers = new Set(
+    failures.map(
+      (failure) => failure.rowNumber
+    )
+  );
+
+  const remainingFailedRows =
+    bulkImportedRows.filter((row) =>
+      failedRowNumbers.has(row.rowNumber)
+    );
+
+  setBulkImportedRows(
+    validateBulkConferenceRows(
+      remainingFailedRows
+    )
+  );
+
+  setBulkSelectedRows([]);
+  setBulkSearchQuery("");
+  setBulkStatusFilter("ALL");
+  setBulkFixValue("");
+
+  showToast(
+    `${success} conferences submitted successfully. ${failed} failed. Only the failed conferences remain here for review and retry.`
+  );
+}
+  } finally {
+    setIsBulkSubmitting(false);
+  }
+};
+
+const handleBulkSubmitClick = async () => {
+  if (!isBulkReadyToSubmit) {
+    showToast(
+      "All remaining conferences must be 100% valid before submission."
+    );
+    return;
+  }
+
+  if (bulkImportedRows.length === 0) {
+    showToast("There are no conferences to submit.");
+    return;
+  }
+
+  const confirmed = window.confirm(
+    `You are about to submit ${bulkImportedRows.length} conferences for Admin review. Do you want to continue?`
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  await submitBulkConferencesInBatches();
+};
+
+const loadBulkCitiesForCountry = async (
+  country: string
+) => {
+  const normalizedCountry = country
+    .trim()
+    .toUpperCase();
+
+  if (!normalizedCountry) {
+    return;
+  }
+
+  if (bulkCountryCities[normalizedCountry]) {
+    return;
+  }
+
+  try {
+    const rows =
+      await fetchCitiesByCountryFromSupabase(
+        normalizedCountry
+      );
+
+    setBulkCountryCities((current) => ({
+      ...current,
+      [normalizedCountry]: Array.isArray(rows)
+        ? rows.map((city) => ({
+            name: String(city.name || "")
+              .trim()
+              .toUpperCase(),
+
+            country: String(
+              city.country || normalizedCountry
+            )
+              .trim()
+              .toUpperCase(),
+
+            timeZone: String(
+              city.timeZone || ""
+            ).trim(),
+          }))
+        : [],
+    }));
+  } catch (error) {
+    console.error(
+      `Failed to load bulk cities for ${normalizedCountry}:`,
+      error
+    );
+
+    setBulkCountryCities((current) => ({
+      ...current,
+      [normalizedCountry]: [],
+    }));
+  }
+};
+
+const updateBulkConferenceRow = (
+  rowNumber: number,
+  field: keyof BulkConferenceImportRow,
+  value: string
+) => {
+  setBulkImportedRows((currentRows) => {
+    const updatedRows = currentRows.map((row) => {
+      if (row.rowNumber !== rowNumber) {
+        return row;
+      }
+
+      return {
+        ...row,
+        [field]: value,
+      };
+    });
+
+    // Re-run all validation after every edit,
+    // including duplicate checks inside the Excel
+    // and against this Organizer's Pending/Approved conferences.
+    return validateBulkConferenceRows(updatedRows);
+  });
+};
+
+const hasUnsubmittedBulkWork =
+  bulkImportedRows.length > 0;
+
+  useEffect(() => {
+  if (!hasUnsubmittedBulkWork) {
+    return;
+  }
+
+  const handleBeforeUnload = (
+    event: BeforeUnloadEvent
+  ) => {
+    event.preventDefault();
+    event.returnValue = "";
+  };
+
+  window.addEventListener(
+    "beforeunload",
+    handleBeforeUnload
+  );
+
+  return () => {
+    window.removeEventListener(
+      "beforeunload",
+      handleBeforeUnload
+    );
+  };
+}, [hasUnsubmittedBulkWork]);
+
+
+
+const deleteBulkConferenceRow = (
+  rowNumber: number
+) => {
+  setBulkImportedRows((currentRows) => {
+    const remainingRows = currentRows.filter(
+      (row) => row.rowNumber !== rowNumber
+    );
+
+    return validateBulkConferenceRows(remainingRows);
+  });
+};
+
+const applyBulkFix = (
+  mode: "SELECTED" | "MATCHING"
+) => {
+  const newValue = bulkFixValue.trim();
+
+  if (!newValue) {
+    return;
+  }
+
+  if (bulkSelectedRows.length === 0) {
+    return;
+  }
+
+  setBulkImportedRows((currentRows) => {
+    const sourceRow = currentRows.find(
+      (row) =>
+        row.rowNumber === bulkSelectedRows[0]
+    );
+
+    if (!sourceRow) {
+      return currentRows;
+    }
+
+    const normalizeBulkFixValue = (
+      value: unknown
+    ) =>
+      String(value ?? "")
+        .normalize("NFKC")
+        .trim()
+        .replace(/\s+/g, " ")
+        .toLowerCase();
+
+    const sourceFieldValue =
+      normalizeBulkFixValue(
+        sourceRow[bulkFixField]
+      );
+
+    const sourceCountry =
+      normalizeBulkFixValue(
+        sourceRow.country
+      );
+
+    const updatedRows = currentRows.map(
+      (row) => {
+        let shouldUpdate = false;
+
+        if (mode === "SELECTED") {
+          shouldUpdate =
+            bulkSelectedRows.includes(
+              row.rowNumber
+            );
+        } else {
+          const rowFieldValue =
+            normalizeBulkFixValue(
+              row[bulkFixField]
+            );
+
+          shouldUpdate =
+            rowFieldValue === sourceFieldValue;
+
+          // For City, only change matching Cities
+          // inside the same Country.
+          if (
+            bulkFixField === "city" &&
+            shouldUpdate
+          ) {
+            shouldUpdate =
+              normalizeBulkFixValue(
+                row.country
+              ) === sourceCountry;
+          }
+        }
+
+        if (!shouldUpdate) {
+          return row;
+        }
+
+        // When Country changes, clear City because
+        // the old City may not belong to new Country.
+        if (bulkFixField === "country") {
+          return {
+            ...row,
+            country: newValue,
+            city: "",
+          };
+        }
+
+        if (bulkFixField === "topic") {
+          return {
+            ...row,
+            topic: newValue,
+          };
+        }
+
+        return {
+          ...row,
+          city: newValue,
+        };
+      }
+    );
+
+    return validateBulkConferenceRows(
+      updatedRows
+    );
+  });
+
+  setBulkSelectedRows([]);
+  setBulkFixValue("");
+};
+
+const validateBulkConferenceRow = (
+  row: BulkConferenceImportRow
+): BulkConferenceImportRow => {
+  const errors: string[] = [];
+
+  const normalize = (value: unknown) =>
+    String(value ?? "")
+      .normalize("NFKC")
+      .trim()
+      .replace(/\s+/g, " ")
+      .toLowerCase();
+
+  const normalizeUpper = (value: unknown) =>
+    String(value ?? "")
+      .normalize("NFKC")
+      .trim()
+      .replace(/\s+/g, " ")
+      .toUpperCase();
+
+  const isValidEmail = (value: string) =>
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+
+const isValidWebsite = (value: string) => {
+  try {
+    const url = new URL(value.trim());
+
+    return (
+      url.protocol === "http:" ||
+      url.protocol === "https:"
+    );
+  } catch {
+    return false;
+  }
+};
+
+
+  const parseDateOnly = (value: string) => {
+    const trimmed = value.trim();
+
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+      return null;
+    }
+
+    const [year, month, day] = trimmed
+      .split("-")
+      .map(Number);
+
+    const date = new Date(
+      Date.UTC(year, month - 1, day)
+    );
+
+    if (
+      date.getUTCFullYear() !== year ||
+      date.getUTCMonth() !== month - 1 ||
+      date.getUTCDate() !== day
+    ) {
+      return null;
+    }
+
+    return date;
+  };
+
+  // Required fields
+  if (!row.conferenceTitle.trim()) {
+    errors.push("Conference Title is required.");
+  }
+
+  if (!row.topic.trim()) {
+    errors.push("Topic is required.");
+  }
+
+  if (!row.startDate.trim()) {
+    errors.push("Start Date is required.");
+  }
+
+  if (!row.endDate.trim()) {
+    errors.push("End Date is required.");
+  }
+
+  if (!row.country.trim()) {
+    errors.push("Country is required.");
+  }
+
+  if (!row.city.trim()) {
+    errors.push("City is required.");
+  }
+
+  if (!row.attendanceType.trim()) {
+    errors.push("Attendance Type is required.");
+  }
+
+  if (!row.officialWebsite.trim()) {
+    errors.push(
+      "Official Conference Website is required."
+    );
+  }
+
+  if (!row.contactEmail.trim()) {
+    errors.push("Contact Email is required.");
+  }
+
+  if (!row.overview.trim()) {
+    errors.push(
+      "Conference Overview & Call for Papers is required."
+    );
+  }
+
+  // Topic must exist in the CURRENT Admin Topic list.
+  if (row.topic.trim()) {
+    const validTopic = activeCategories.some(
+      (category) =>
+        normalize(category.name) ===
+        normalize(row.topic)
+    );
+
+    if (!validTopic) {
+      errors.push(
+        `Topic "${row.topic}" is not available in the current Topic list.`
+      );
+    }
+  }
+
+  // Country must exist in the CURRENT Admin Country list.
+  if (row.country.trim()) {
+    const normalizedCountry =
+      normalizeUpper(row.country);
+
+    const validCountry =
+      adminCountryOptions.some(
+        (country) =>
+          normalizeUpper(country) ===
+          normalizedCountry
+      );
+
+    if (!validCountry) {
+      errors.push(
+        `Country "${row.country}" is not available in the current Country list.`
+      );
+    }
+  }
+
+  // City must belong to the selected Country.
+  if (row.country.trim() && row.city.trim()) {
+    const normalizedCountry =
+      normalizeUpper(row.country);
+
+    const normalizedCity =
+      normalizeUpper(row.city);
+
+    const cityExistsForCountry =
+  (
+    bulkCountryCities[
+      normalizedCountry
+    ] || []
+  ).some((city) => {
+    const cityCountry =
+      normalizeUpper(city.country);
+
+    const cityName =
+      normalizeUpper(city.name);
+
+    if (
+      cityCountry !== normalizedCountry ||
+      cityName !== normalizedCity
+    ) {
+      return false;
+    }
+
+    const inactiveKey =
+      `${normalizedCountry}:::${normalizedCity}`;
+
+    const isInactive =
+      (inactiveCities || []).some(
+        (inactiveCity) =>
+          normalizeUpper(inactiveCity) ===
+          inactiveKey
+      );
+
+    return !isInactive;
+  });
+
+    if (!cityExistsForCountry) {
+      errors.push(
+        `City "${row.city}" is not available for Country "${row.country}".`
+      );
+    }
+  }
+
+  // Attendance type
+  if (row.attendanceType.trim()) {
+    const attendance =
+      normalize(row.attendanceType);
+
+    const validAttendance =
+      attendance === "offline" ||
+      attendance === "online" ||
+      attendance === "hybrid";
+
+    if (!validAttendance) {
+      errors.push(
+        'Attendance Type must be "Offline", "Online", or "Hybrid".'
+      );
+    }
+  }
+
+  // Email
+  if (
+    row.contactEmail.trim() &&
+    !isValidEmail(row.contactEmail)
+  ) {
+    errors.push("Contact Email is invalid.");
+  }
+
+  // Website
+  if (
+    row.officialWebsite.trim() &&
+    !isValidWebsite(row.officialWebsite)
+  ) {
+    errors.push(
+      "Official Conference Website must be a valid http:// or https:// URL."
+    );
+  }
+
+  // Dates
+  const startDate = row.startDate.trim()
+    ? parseDateOnly(row.startDate)
+    : null;
+
+  const endDate = row.endDate.trim()
+    ? parseDateOnly(row.endDate)
+    : null;
+
+  if (
+    row.startDate.trim() &&
+    !startDate
+  ) {
+    errors.push(
+      "Start Date must use YYYY-MM-DD format."
+    );
+  }
+
+  if (
+    row.endDate.trim() &&
+    !endDate
+  ) {
+    errors.push(
+      "End Date must use YYYY-MM-DD format."
+    );
+  }
+  if (startDate) {
+  const now = new Date();
+
+  const today = new Date(
+    Date.UTC(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate()
+    )
+  );
+
+  if (startDate.getTime() < today.getTime()) {
+    errors.push(
+      "Start Date cannot be before today."
+    );
+  }
+}
+
+  if (
+    startDate &&
+    endDate &&
+    endDate.getTime() < startDate.getTime()
+  ) {
+    errors.push(
+      "End Date cannot be before Start Date."
+    );
+  }
+
+  return {
+    ...row,
+    errors,
+    isValid: errors.length === 0,
+    isDuplicate: false,
+  };
+};
+
+const validateBulkConferenceRows = (
+  rows: BulkConferenceImportRow[]
+): BulkConferenceImportRow[] => {
+  const organizerId = String(
+    activeProfile?.id ||
+    activeOrgId ||
+    authUser?.organizerId ||
+    ""
+  ).trim();
+
+  const existingDuplicateKeys = new Set(
+    orgConferences
+      .filter((conference) => {
+        const status = String(conference.status || "")
+          .trim()
+          .toLowerCase();
+
+        const isPending =
+          conference.status === ConferenceStatus.PendingReview ||
+          status === "pending review" ||
+          status === "pending";
+
+        const isApproved =
+          conference.status === ConferenceStatus.Approved ||
+          status === "approved";
+
+        return (
+          (isPending || isApproved) &&
+          !isConferenceCompleted(conference)
+        );
+      })
+      .map((conference) =>
+        buildConferenceDuplicateKey(
+          {
+            title: conference.title,
+            category: conference.category,
+            country: conference.country,
+            city: conference.city,
+            startDate: conference.startDate,
+            endDate: conference.endDate,
+          },
+          organizerId
+        )
+      )
+  );
+
+  const firstExcelRowByKey = new Map<string, number>();
+
+  return rows.map((originalRow) => {
+    const row = validateBulkConferenceRow(originalRow);
+
+    const hasDuplicateIdentityFields =
+      Boolean(row.conferenceTitle.trim()) &&
+      Boolean(row.topic.trim()) &&
+      Boolean(row.country.trim()) &&
+      Boolean(row.city.trim()) &&
+      Boolean(row.startDate.trim()) &&
+      Boolean(row.endDate.trim());
+
+    if (!hasDuplicateIdentityFields) {
+      return {
+        ...row,
+        isDuplicate: false,
+        isValid: row.errors.length === 0,
+      };
+    }
+
+    const duplicateKey = buildConferenceDuplicateKey(
+      {
+        title: row.conferenceTitle,
+        category: row.topic,
+        country: row.country,
+        city: row.city,
+        startDate: row.startDate,
+        endDate: row.endDate,
+      },
+      organizerId
+    );
+
+    const duplicateExisting =
+      existingDuplicateKeys.has(duplicateKey);
+
+    const firstExcelRow =
+      firstExcelRowByKey.get(duplicateKey);
+
+    const duplicateInsideExcel =
+      firstExcelRow !== undefined;
+
+    if (!duplicateInsideExcel) {
+      firstExcelRowByKey.set(
+        duplicateKey,
+        row.rowNumber
+      );
+    }
+
+    const duplicateErrors: string[] = [];
+
+    if (duplicateExisting) {
+      duplicateErrors.push(
+        "This exact conference already exists in your Pending or Approved conferences."
+      );
+    }
+
+    if (duplicateInsideExcel) {
+      duplicateErrors.push(
+        `This conference is an exact duplicate of Excel row ${firstExcelRow}.`
+      );
+    }
+
+    const allErrors = [
+      ...row.errors,
+      ...duplicateErrors,
+    ];
+
+    return {
+      ...row,
+      errors: allErrors,
+      isDuplicate:
+        duplicateExisting ||
+        duplicateInsideExcel,
+      isValid: allErrors.length === 0,
+    };
+  });
+};
+
 
   useEffect(() => () => {
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
@@ -1053,7 +2380,7 @@ const todayStr =
               <div className="pt-1">
                 <button
                   onClick={() => {
-                    setActiveMenu("DASHBOARD_OVERVIEW");
+                    requestOrganizerMenuChange("DASHBOARD_OVERVIEW");
                     setOpenGroups({ conference: false, profile: false });
                     if (window.innerWidth < 1024) setIsSidebarOpen(false);
                   }}
@@ -1088,7 +2415,7 @@ const todayStr =
                     <button
                       onClick={() => {
                         resetConferenceForm();
-                        setActiveMenu("ADD_CONFERENCE");
+                        requestOrganizerMenuChange("ADD_CONFERENCE");
                         if (window.innerWidth < 1024) setIsSidebarOpen(false);
                       }}
                       className={`w-full flex items-center gap-2 text-left py-1.5 px-2.5 rounded-lg transition-colors cursor-pointer ${
@@ -1101,7 +2428,22 @@ const todayStr =
 
                     <button
                       onClick={() => {
-                        setActiveMenu("PENDING_CONFERENCES");
+                        requestOrganizerMenuChange("BULK_ADD_CONFERENCES");
+                        if (window.innerWidth < 1024) setIsSidebarOpen(false);
+                      }}
+                      className={`w-full flex items-center gap-2 text-left py-1.5 px-2.5 rounded-lg transition-colors cursor-pointer ${
+                        activeMenu === "BULK_ADD_CONFERENCES"
+                          ? "text-white font-bold bg-white/20 border-l-2 border-cyan-400 pl-2"
+                          : "text-slate-300 hover:text-white"
+                      }`}
+                    >
+                      <Upload className="h-3.5 w-3.5 text-cyan-300" />
+                      <span>Bulk Add Conferences</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        requestOrganizerMenuChange("PENDING_CONFERENCES");
                         if (window.innerWidth < 1024) setIsSidebarOpen(false);
                       }}
                       className={`w-full flex items-center justify-between text-left py-1.5 px-2.5 rounded-lg transition-colors cursor-pointer ${
@@ -1121,7 +2463,7 @@ const todayStr =
 
                     <button
                       onClick={() => {
-                        setActiveMenu("APPROVED_CONFERENCES");
+                        requestOrganizerMenuChange("APPROVED_CONFERENCES");
                         if (window.innerWidth < 1024) setIsSidebarOpen(false);
                       }}
                       className={`w-full flex items-center justify-between text-left py-1.5 px-2.5 rounded-lg transition-colors cursor-pointer ${
@@ -1141,7 +2483,7 @@ const todayStr =
 
                     <button
                       onClick={() => {
-                        setActiveMenu("REJECTED_CONFERENCES");
+                        requestOrganizerMenuChange("REJECTED_CONFERENCES");
                         if (window.innerWidth < 1024) setIsSidebarOpen(false);
                       }}
                       className={`w-full flex items-center justify-between text-left py-1.5 px-2.5 rounded-lg transition-colors cursor-pointer ${
@@ -1161,7 +2503,7 @@ const todayStr =
 
                     <button
                       onClick={() => {
-                        setActiveMenu("COMPLETED_CONFERENCES");
+                        requestOrganizerMenuChange("COMPLETED_CONFERENCES");
                         if (window.innerWidth < 1024) setIsSidebarOpen(false);
                       }}
                       className={`w-full flex items-center justify-between text-left py-1.5 px-2.5 rounded-lg transition-colors cursor-pointer ${
@@ -1180,7 +2522,7 @@ const todayStr =
                     </button>
                     <button
                         onClick={() => {
-                          setActiveMenu("MANAGE_CONFERENCES");
+                          requestOrganizerMenuChange("MANAGE_CONFERENCES");
                           if (window.innerWidth < 1024) {
                             setIsSidebarOpen(false);
                           }
@@ -1249,6 +2591,7 @@ const todayStr =
               <h2 className="text-xs sm:text-sm md:text-base font-bold font-display text-[#37494E] leading-tight break-words">
                 {activeMenu === "DASHBOARD_OVERVIEW" && "Dashboard"}
                 {activeMenu === "ADD_CONFERENCE" && (editingConfId ? "Edit Conference Details" : "Add New Conference")}
+                {activeMenu === "BULK_ADD_CONFERENCES" && "Bulk Add Conferences"}
                 {activeMenu === "APPROVED_CONFERENCES" && "Approved Conferences"}
                 {activeMenu === "REJECTED_CONFERENCES" && "Rejected Conferences"}
                 {activeMenu === "COMPLETED_CONFERENCES" && "Completed Conferences"}
@@ -1678,6 +3021,1056 @@ const todayStr =
                 </form>
               </div>
             )}
+
+            {activeMenu === "BULK_ADD_CONFERENCES" && (
+            <div className="space-y-6">
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-6">
+                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                <div>
+                  <h2 className="text-lg sm:text-xl font-bold text-slate-900">
+                    Bulk Add Conferences
+                  </h2>
+
+                  <p className="text-sm text-slate-500 mt-1">
+                    Upload up to 1,000 conferences using one Excel (.xlsx) file.
+                  </p>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <button
+                    type="button"
+                    onClick={handleDownloadBulkConferenceTemplate}
+                    className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#37494E] hover:bg-[#2b3a3e] text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-sm"
+                  >
+                    <FileText className="h-4 w-4" />
+                    Download Excel Template
+                  </button>
+
+                  <div className="flex items-center justify-center gap-2 text-xs font-bold text-blue-700 bg-blue-50 border border-blue-100 rounded-xl px-3 py-2">
+                    <Upload className="h-4 w-4" />
+                    Maximum 1,000 Conferences
+                  </div>
+                </div>
+              </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className="bg-white border border-slate-200 rounded-xl p-4">
+                  <div className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                    Step 1
+                  </div>
+                  <div className="mt-1 font-bold text-slate-800">
+                    Upload Excel
+                  </div>
+                </div>
+
+                <div className="bg-white border border-slate-200 rounded-xl p-4">
+                  <div className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                    Step 2
+                  </div>
+                  <div className="mt-1 font-bold text-slate-800">
+                    Validate & Review
+                  </div>
+                </div>
+
+                <div className="bg-white border border-slate-200 rounded-xl p-4">
+                  <div className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                    Step 3
+                  </div>
+                  <div className="mt-1 font-bold text-slate-800">
+                    Reach 100%
+                  </div>
+                </div>
+
+                <div className="bg-white border border-slate-200 rounded-xl p-4">
+                  <div className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                    Step 4
+                  </div>
+                  <div className="mt-1 font-bold text-slate-800">
+                    Submit All
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-2xl border border-dashed border-slate-300 p-6 sm:p-8">
+  {bulkImportedRows.length === 0 ? (
+    <div className="text-center">
+      <div className="w-14 h-14 mx-auto rounded-2xl bg-slate-100 flex items-center justify-center">
+        <Upload className="h-7 w-7 text-slate-500" />
+      </div>
+
+      <h3 className="mt-4 text-base font-bold text-slate-800">
+        Upload Excel File
+      </h3>
+
+      <p className="mt-2 text-sm text-slate-500 max-w-xl mx-auto">
+        Upload the completed InternationalConference bulk template.
+        Only .xlsx files are accepted, with a maximum of 1,000 conference rows.
+      </p>
+
+      <input
+        ref={bulkFileInputRef}
+        type="file"
+        accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        onChange={handleBulkConferenceFileUpload}
+        className="hidden"
+      />
+
+      <button
+        type="button"
+        onClick={() => bulkFileInputRef.current?.click()}
+        disabled={isBulkReadingFile}
+        className="mt-5 inline-flex items-center justify-center gap-2 px-5 py-3 bg-[#37494E] hover:bg-[#2b3a3e] disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm font-bold rounded-xl transition-all cursor-pointer"
+      >
+        {isBulkReadingFile ? (
+          <>
+            <RefreshCw className="h-4 w-4 animate-spin" />
+            Reading Excel...
+          </>
+        ) : (
+          <>
+            <Upload className="h-4 w-4" />
+            Upload .xlsx File
+          </>
+        )}
+      </button>
+
+      {bulkImportError && (
+        <div className="mt-4 max-w-xl mx-auto bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm font-medium flex items-start gap-2 text-left">
+          <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+          <span>{bulkImportError}</span>
+        </div>
+      )}
+    </div>
+  ) : (
+    <div className="space-y-5">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <div className="text-xs uppercase tracking-wider font-bold text-slate-400">
+            Uploaded File
+          </div>
+
+          <div className="mt-1 flex items-center gap-2">
+            <FileText className="h-5 w-5 text-emerald-600" />
+
+            <span className="font-bold text-slate-800 break-all">
+              {bulkUploadedFileName}
+            </span>
+          </div>
+
+          <p className="text-sm text-slate-500 mt-1">
+            {bulkImportedRows.length} conference
+            {bulkImportedRows.length === 1 ? "" : "s"} imported temporarily.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={handleDeleteBulkUpload}
+          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-xl text-xs font-bold transition-all cursor-pointer"
+        >
+          <Trash2 className="h-4 w-4" />
+          Delete Upload
+        </button>
+      </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+  <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+    <div className="text-xs font-bold uppercase tracking-wider text-slate-400">
+      Total
+    </div>
+    <div className="mt-1 text-2xl font-bold text-slate-900">
+      {bulkValidationSummary.total}
+    </div>
+  </div>
+
+  <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
+    <div className="text-xs font-bold uppercase tracking-wider text-emerald-600">
+      Complete
+    </div>
+    <div className="mt-1 text-2xl font-bold text-emerald-700">
+      {bulkValidationSummary.complete}
+    </div>
+  </div>
+
+  <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+    <div className="text-xs font-bold uppercase tracking-wider text-amber-600">
+      Need Fix
+    </div>
+    <div className="mt-1 text-2xl font-bold text-amber-700">
+      {bulkValidationSummary.needFix}
+    </div>
+  </div>
+
+  <div className="bg-rose-50 border border-rose-200 rounded-xl p-4">
+  <div className="text-xs font-bold uppercase tracking-wider text-rose-600">
+    Duplicates
+  </div>
+
+  <div className="mt-1 text-2xl font-bold text-rose-700">
+    {bulkValidationSummary.duplicates}
+  </div>
+</div>
+
+  <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+    <div className="text-xs font-bold uppercase tracking-wider text-blue-600">
+      Completion
+    </div>
+    <div className="mt-1 text-2xl font-bold text-blue-700">
+      {bulkValidationSummary.completionPercentage}%
+    </div>
+  </div>
+</div>
+
+<div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+  <div className="relative w-full lg:max-w-md">
+    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+
+    <input
+      type="text"
+      value={bulkSearchQuery}
+      onChange={(e) =>
+        setBulkSearchQuery(e.target.value)
+      }
+      placeholder="Search title, topic, country, city or email..."
+      className="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+    />
+  </div>
+
+  <div className="flex flex-wrap gap-2">
+    {[
+      ["ALL", "All"],
+      ["COMPLETE", "Complete"],
+      ["NEED_FIX", "Need Fix"],
+      ["DUPLICATES", "Duplicates"],
+    ].map(([value, label]) => (
+      <button
+        key={value}
+        type="button"
+        onClick={() =>
+          setBulkStatusFilter(
+            value as
+              | "ALL"
+              | "COMPLETE"
+              | "NEED_FIX"
+              | "DUPLICATES"
+          )
+        }
+        className={`px-3 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+          bulkStatusFilter === value
+            ? "bg-slate-800 text-white"
+            : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
+        }`}
+      >
+        {label}
+      </button>
+    ))}
+  </div>
+</div>
+
+<div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+  <div className="flex flex-col xl:flex-row xl:items-end gap-3">
+    <div className="flex-1">
+      <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+        Bulk Fix Field
+      </label>
+
+      <select
+        value={bulkFixField}
+        onChange={(e) => {
+          setBulkFixField(
+            e.target.value as
+              | "topic"
+              | "country"
+              | "city"
+          );
+          setBulkFixValue("");
+        }}
+        className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+      >
+        <option value="topic">Topic</option>
+        <option value="country">Country</option>
+        <option value="city">City</option>
+      </select>
+    </div>
+
+    <div className="flex-[2]">
+      <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+        New Value
+      </label>
+
+      {bulkFixField === "topic" && (
+        <select
+          value={bulkFixValue}
+          onChange={(e) =>
+            setBulkFixValue(e.target.value)
+          }
+          className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+        >
+          <option value="">Select Topic</option>
+          {activeCategories.map((category) => (
+            <option
+              key={category.id}
+              value={category.name}
+            >
+              {category.name}
+            </option>
+          ))}
+        </select>
+      )}
+
+      {bulkFixField === "country" && (
+        <select
+          value={bulkFixValue}
+          onChange={(e) =>
+            setBulkFixValue(e.target.value)
+          }
+          className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+        >
+          <option value="">Select Country</option>
+          {adminCountryOptions.map((country) => (
+            <option
+              key={country}
+              value={country}
+            >
+              {country}
+            </option>
+          ))}
+        </select>
+      )}
+
+      {bulkFixField === "city" && (
+      <select
+        value={bulkFixValue}
+        onChange={(e) =>
+          setBulkFixValue(e.target.value)
+        }
+        disabled={bulkSelectedRows.length === 0}
+        className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
+      >
+        <option value="">
+          {bulkSelectedRows.length === 0
+            ? "Select a row first"
+            : "Select City"}
+        </option>
+
+        {(() => {
+          const selectedRow = bulkImportedRows.find(
+            (row) =>
+              row.rowNumber === bulkSelectedRows[0]
+          );
+
+          if (!selectedRow?.country) {
+            return null;
+          }
+
+          const selectedCountry =
+            selectedRow.country
+              .trim()
+              .toUpperCase();
+
+          return (citiesList || [])
+            .filter((city) => {
+              const cityCountry =
+                city.country
+                  .trim()
+                  .toUpperCase();
+
+              const cityName =
+                city.name
+                  .trim()
+                  .toUpperCase();
+
+              const inactiveKey =
+                `${selectedCountry}:::${cityName}`;
+
+              const isInactive =
+                (inactiveCities || []).some(
+                  (inactiveCity) =>
+                    inactiveCity
+                      .trim()
+                      .toUpperCase() === inactiveKey
+                );
+
+              return (
+                cityCountry === selectedCountry &&
+                !isInactive
+              );
+            })
+            .map((city) => (
+              <option
+                key={`${city.country}-${city.name}`}
+                value={city.name}
+              >
+                {city.name}
+              </option>
+            ));
+        })()}
+      </select>
+    )}
+    </div>
+
+    <div className="flex flex-col sm:flex-row gap-2">
+      <button
+        type="button"
+        disabled={
+          bulkSelectedRows.length === 0 ||
+          !bulkFixValue
+        }
+        className="px-4 py-2.5 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-all"
+      >
+        Apply to Selected ({bulkSelectedRows.length})
+      </button>
+
+      <button
+        type="button"
+        onClick={() =>
+          applyBulkFix("MATCHING")
+        }
+        disabled={
+          bulkSelectedRows.length === 0 ||
+          !bulkFixValue
+        }
+        className="px-4 py-2.5 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-900 text-white disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-all"
+      >
+        Apply to All Matching Rows
+      </button>
+    </div>
+  </div>
+</div>
+<div className="bg-white border border-slate-200 rounded-xl p-4">
+  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+    <div>
+      <div className="text-sm font-bold text-slate-800">
+        Bulk Submission
+      </div>
+
+      <div className="mt-1 text-xs text-slate-500">
+        {isBulkReadyToSubmit
+          ? "All remaining conferences are 100% valid and ready for submission."
+          : `Complete ${bulkValidationSummary.complete} of ${bulkValidationSummary.total} conferences before submission.`}
+      </div>
+    </div>
+
+    <button
+      type="button"
+      onClick={handleBulkSubmitClick}
+      disabled={
+        !isBulkReadyToSubmit ||
+        isBulkSubmitting
+      }
+      className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-all"
+    >
+      {isBulkSubmitting ? (
+  <>
+    <RefreshCw className="h-4 w-4 animate-spin" />
+    Submitting...
+      </>
+    ) : (
+      <>
+        <CheckCircle2 className="h-4 w-4" />
+        Submit All Conferences
+      </>
+    )}
+    </button>
+  </div>
+  {bulkSubmitProgress.total > 0 && (
+  <div className="mt-4 pt-4 border-t border-slate-200 space-y-3">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="bg-slate-50 border border-slate-200 rounded-xl p-3">
+        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+          Processed
+        </div>
+        <div className="mt-1 text-lg font-bold text-slate-800">
+          {bulkSubmitProgress.processed} / {bulkSubmitProgress.total}
+        </div>
+      </div>
+
+      <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3">
+        <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-600">
+          Successful
+        </div>
+        <div className="mt-1 text-lg font-bold text-emerald-700">
+          {bulkSubmitProgress.success}
+        </div>
+      </div>
+
+      <div className="bg-rose-50 border border-rose-200 rounded-xl p-3">
+        <div className="text-[10px] font-bold uppercase tracking-wider text-rose-600">
+          Failed
+        </div>
+        <div className="mt-1 text-lg font-bold text-rose-700">
+          {bulkSubmitProgress.failed}
+        </div>
+      </div>
+
+      <div className="bg-blue-50 border border-blue-200 rounded-xl p-3">
+        <div className="text-[10px] font-bold uppercase tracking-wider text-blue-600">
+          Progress
+        </div>
+
+        <div className="mt-1 text-lg font-bold text-blue-700">
+          {bulkSubmitProgress.total === 0
+            ? 0
+            : Math.round(
+                (bulkSubmitProgress.processed /
+                  bulkSubmitProgress.total) *
+                  100
+              )}
+          %
+        </div>
+      </div>
+    </div>
+
+    <div className="w-full h-2.5 bg-slate-200 rounded-full overflow-hidden">
+      <div
+        className="h-full bg-emerald-500 transition-all duration-300"
+        style={{
+          width: `${
+            bulkSubmitProgress.total === 0
+              ? 0
+              : Math.round(
+                  (bulkSubmitProgress.processed /
+                    bulkSubmitProgress.total) *
+                    100
+                )
+          }%`,
+        }}
+      />
+    </div>
+  </div>
+)}
+{bulkSubmitFailures.length > 0 && (
+  <div className="mt-4 bg-rose-50 border border-rose-200 rounded-xl p-4">
+    <div className="flex items-center gap-2">
+      <AlertCircle className="h-4 w-4 text-rose-600" />
+
+      <div className="text-sm font-bold text-rose-700">
+        Failed Conference Rows
+      </div>
+    </div>
+
+    <div className="mt-3 space-y-2 max-h-[240px] overflow-y-auto">
+      {bulkSubmitFailures.map((failure) => (
+        <div
+          key={`${failure.rowNumber}-${failure.title}`}
+          className="bg-white border border-rose-200 rounded-lg px-3 py-2 text-xs"
+        >
+          <div className="font-bold text-slate-800">
+            Excel Row {failure.rowNumber}:{" "}
+            {failure.title || "Untitled Conference"}
+          </div>
+
+          <div className="mt-1 text-rose-600">
+            {failure.error}
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+)}
+</div>
+
+      <div className="border border-slate-200 rounded-xl overflow-hidden">
+        <div className="overflow-x-auto max-h-[520px] overflow-y-auto">
+          <table className="min-w-[2800px] w-full text-sm table-auto">
+            <thead className="bg-slate-50 sticky top-0 z-10">
+              <tr className="border-b border-slate-200">
+              <th className="px-3 py-3 text-left text-xs font-bold text-slate-500">
+              <input
+                type="checkbox"
+                checked={
+                  filteredBulkRows.length > 0 &&
+                  filteredBulkRows.every((row) =>
+                    bulkSelectedRows.includes(row.rowNumber)
+                  )
+                }
+                onChange={(e) => {
+                  if (e.target.checked) {
+                    const visibleRowNumbers = filteredBulkRows.map(
+                      (row) => row.rowNumber
+                    );
+
+                    setBulkSelectedRows((current) =>
+                      Array.from(
+                        new Set([
+                          ...current,
+                          ...visibleRowNumbers,
+                        ])
+                      )
+                    );
+                  } else {
+                    const visibleSet = new Set(
+                      filteredBulkRows.map(
+                        (row) => row.rowNumber
+                      )
+                    );
+
+                    setBulkSelectedRows((current) =>
+                      current.filter(
+                        (rowNumber) =>
+                          !visibleSet.has(rowNumber)
+                      )
+                    );
+                  }
+                }}
+                className="h-4 w-4 cursor-pointer"
+              />
+            </th>
+                <th className="px-3 py-3 text-left text-xs font-bold text-slate-500 min-w-[90px] whitespace-nowrap">
+                  Excel Row
+                </th>
+                <th className="px-3 py-3 text-left text-xs font-bold text-slate-500 min-w-[260px]">
+                  Status
+                </th>
+                <th className="px-3 py-3 text-left text-xs font-bold text-slate-500">
+                  Conference Title
+                </th>
+                <th className="px-3 py-3 text-left text-xs font-bold text-slate-500">
+                  Banner Image URL
+                </th>
+                <th className="px-3 py-3 text-left text-xs font-bold text-slate-500">
+                  Topic
+                </th>
+                <th className="px-3 py-3 text-left text-xs font-bold text-slate-500">
+                  Start Date
+                </th>
+                <th className="px-3 py-3 text-left text-xs font-bold text-slate-500">
+                  End Date
+                </th>
+                <th className="px-3 py-3 text-left text-xs font-bold text-slate-500">
+                  Country
+                </th>
+                <th className="px-3 py-3 text-left text-xs font-bold text-slate-500">
+                  City
+                </th>
+                <th className="px-3 py-3 text-left text-xs font-bold text-slate-500">
+                  Venue
+                </th>
+                <th className="px-3 py-3 text-left text-xs font-bold text-slate-500">
+                  Attendance
+                </th>
+                <th className="px-3 py-3 text-left text-xs font-bold text-slate-500">
+                  Website
+                </th>
+                <th className="px-3 py-3 text-left text-xs font-bold text-slate-500">
+                  Contact Email
+                </th>
+                <th className="px-3 py-3 text-left text-xs font-bold text-slate-500">
+                  Overview / Call for Papers
+                </th>
+
+                <th className="px-3 py-3 text-center text-xs font-bold text-slate-500 min-w-[100px] whitespace-nowrap">
+                  Actions
+                </th>
+
+              </tr>
+            </thead>
+
+            <tbody className="divide-y divide-slate-100">
+              {filteredBulkRows.map((row) => (
+                <tr
+                  key={row.rowNumber}
+                  className="hover:bg-slate-50"
+                >
+                <td className="px-3 py-3">
+  <input
+    type="checkbox"
+    checked={bulkSelectedRows.includes(
+      row.rowNumber
+    )}
+    onChange={(e) => {
+      if (e.target.checked) {
+        setBulkSelectedRows((current) =>
+          Array.from(
+            new Set([
+              ...current,
+              row.rowNumber,
+            ])
+          )
+        );
+      } else {
+        setBulkSelectedRows((current) =>
+          current.filter(
+            (rowNumber) =>
+              rowNumber !== row.rowNumber
+          )
+        );
+      }
+    }}
+    className="h-4 w-4 cursor-pointer"
+  />
+</td>
+                  <td className="px-3 py-3 text-slate-500 font-semibold">
+                    {row.rowNumber}
+                  </td>
+                  <td className="px-3 py-3">
+                    {row.isDuplicate ? (
+                      <div className="space-y-1">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700">
+                          <XCircle className="h-3.5 w-3.5" />
+                          Duplicate
+                        </span>
+
+                        {row.errors.length > 0 && (
+                          <div className="mt-2 min-w-[240px] max-w-[320px] rounded-lg border border-red-200 bg-red-50 px-2.5 py-2 text-[11px] leading-4 text-red-700 whitespace-normal break-words">
+                            {row.errors.join(" • ")}
+                          </div>
+                        )}
+                      </div>
+                    ) : row.isValid ? (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700">
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        Complete
+                      </span>
+                    ) : (
+                      <div className="space-y-1">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700">
+                          <AlertCircle className="h-3.5 w-3.5" />
+                          Need Fix
+                        </span>
+
+                        {row.errors.length > 0 && (
+                          <div className="mt-2 min-w-[240px] max-w-[320px] rounded-lg border border-red-200 bg-red-50 px-2.5 py-2 text-[11px] leading-4 text-red-700 whitespace-normal break-words">
+                            {row.errors.join(" • ")}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </td>
+                  <td className="px-3 py-3">
+                  <input
+                    type="text"
+                    value={row.conferenceTitle}
+                    onChange={(e) =>
+                      updateBulkConferenceRow(
+                        row.rowNumber,
+                        "conferenceTitle",
+                        e.target.value
+                      )
+                    }
+                    className="w-full min-w-[260px] text-sm bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  />
+                </td>
+                <td className="px-3 py-3">
+                <input
+                  type="url"
+                  value={row.bannerImageUrl}
+                  onChange={(e) =>
+                    updateBulkConferenceRow(
+                      row.rowNumber,
+                      "bannerImageUrl",
+                      e.target.value
+                    )
+                  }
+                  placeholder="https://example.com/banner.jpg"
+                  className="w-full min-w-[300px] text-sm bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                />
+              </td>
+                  <td className="px-3 py-3">
+                    <select
+                      value={row.topic}
+                      onChange={(e) =>
+                        updateBulkConferenceRow(
+                          row.rowNumber,
+                          "topic",
+                          e.target.value
+                        )
+                      }
+                      className="w-full min-w-[220px] text-sm bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    >
+                      <option value="">Select Topic</option>
+
+                      {activeCategories.map((category) => (
+                        <option
+                          key={category.id}
+                          value={category.name}
+                        >
+                          {category.name}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+                  <td className="px-3 py-3">
+                    <input
+                      type="date"
+                      min={new Date().toLocaleDateString("en-CA")}
+                      value={row.startDate}
+                      onChange={(e) => {
+                        const today =
+                          new Date().toLocaleDateString("en-CA");
+
+                        const newStartDate = e.target.value;
+
+                        if (
+                          newStartDate &&
+                          newStartDate < today
+                        ) {
+                          showToast(
+                            "Start Date cannot be before today."
+                          );
+                          return;
+                        }
+
+                        setBulkImportedRows((currentRows) => {
+                          const updatedRows = currentRows.map(
+                            (currentRow) => {
+                              if (
+                                currentRow.rowNumber !==
+                                row.rowNumber
+                              ) {
+                                return currentRow;
+                              }
+
+                              return {
+                                ...currentRow,
+                                startDate: newStartDate,
+
+                                endDate:
+                                  currentRow.endDate &&
+                                  currentRow.endDate < newStartDate
+                                    ? newStartDate
+                                    : currentRow.endDate,
+                              };
+                            }
+                          );
+
+                          return validateBulkConferenceRows(
+                            updatedRows
+                          );
+                        });
+                      }}
+                      className="w-full min-w-[150px] text-sm bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    />
+                  </td>
+                  <td className="px-3 py-3">
+                    <input
+                      type="date"
+                      min={
+                        row.startDate ||
+                        new Date().toLocaleDateString("en-CA")
+                      }
+                      value={row.endDate}
+                      onChange={(e) => {
+                        const today =
+                          new Date().toLocaleDateString("en-CA");
+
+                        const minimumDate =
+                          row.startDate || today;
+
+                        if (
+                          e.target.value &&
+                          e.target.value < minimumDate
+                        ) {
+                          showToast(
+                            "End Date cannot be before Start Date."
+                          );
+                          return;
+                        }
+
+                        updateBulkConferenceRow(
+                          row.rowNumber,
+                          "endDate",
+                          e.target.value
+                        );
+                      }}
+                      className="w-full min-w-[150px] text-sm bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    />
+                  </td>
+                  <td className="px-3 py-3">
+                  <select
+                    value={row.country}
+                    onChange={(e) => {
+                      const newCountry = e.target.value;
+                      void loadBulkCitiesForCountry(
+                        newCountry
+                      );
+
+                      setBulkImportedRows((currentRows) => {
+                        const updatedRows = currentRows.map((currentRow) => {
+                          if (currentRow.rowNumber !== row.rowNumber) {
+                            return currentRow;
+                          }
+
+                          return {
+                            ...currentRow,
+                            country: newCountry,
+                            city: "",
+                          };
+                        });
+
+                        return validateBulkConferenceRows(updatedRows);
+                      });
+                    }}
+                    className="w-full min-w-[180px] text-sm bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  >
+                    <option value="">Select Country</option>
+
+                    {adminCountryOptions.map((country) => (
+                      <option
+                        key={country}
+                        value={country}
+                      >
+                        {country}
+                      </option>
+                    ))}
+                  </select>
+                </td>
+                  <td className="px-3 py-3">
+                    <select
+                      value={row.city}
+                      onChange={(e) =>
+                        updateBulkConferenceRow(
+                          row.rowNumber,
+                          "city",
+                          e.target.value
+                        )
+                      }
+                      disabled={!row.country}
+                      className="w-full min-w-[180px] text-sm bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
+                    >
+                      <option value="">
+                        {row.country
+                          ? "Select City"
+                          : "Select Country First"}
+                      </option>
+
+                      {(
+                        bulkCountryCities[
+                          row.country.trim().toUpperCase()
+                        ] || []
+                      )
+                        .filter((city) => {
+                          const normalizedCountry =
+                            row.country.trim().toUpperCase();
+
+                          const cityName =
+                            city.name.trim().toUpperCase();
+
+                          const inactiveKey =
+                            `${normalizedCountry}:::${cityName}`;
+
+                          const isInactive =
+                            (inactiveCities || []).some(
+                              (inactiveCity) =>
+                                inactiveCity
+                                  .trim()
+                                  .toUpperCase() === inactiveKey
+                            );
+
+                          return !isInactive;
+                        })
+                        .map((city) => (
+                          <option
+                            key={`${city.country}-${city.name}`}
+                            value={city.name}
+                          >
+                            {city.name}
+                          </option>
+                        ))}
+                    </select>
+                  </td>
+                  <td className="px-3 py-3">
+                    <input
+                      type="text"
+                      value={row.venue}
+                      onChange={(e) =>
+                        updateBulkConferenceRow(
+                          row.rowNumber,
+                          "venue",
+                          e.target.value
+                        )
+                      }
+                      placeholder="Venue / Address"
+                      className="w-full min-w-[260px] text-sm bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    />
+                  </td>
+                  <td className="px-3 py-3">
+                  <select
+                    value={row.attendanceType}
+                    onChange={(e) =>
+                      updateBulkConferenceRow(
+                        row.rowNumber,
+                        "attendanceType",
+                        e.target.value
+                      )
+                    }
+                    className="w-full min-w-[180px] text-sm bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  >
+                    <option value="">Select Attendance</option>
+                    <option value="Offline">Offline</option>
+                    <option value="Online">Online</option>
+                    <option value="Hybrid">Hybrid</option>
+                  </select>
+                </td>
+                  <td className="px-3 py-3">
+                    <input
+                      type="url"
+                      value={row.officialWebsite}
+                      onChange={(e) =>
+                        updateBulkConferenceRow(
+                          row.rowNumber,
+                          "officialWebsite",
+                          e.target.value
+                        )
+                      }
+                      placeholder="https://example.com"
+                      className="w-full min-w-[280px] text-sm bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    />
+                  </td>
+                  <td className="px-3 py-3">
+                  <input
+                    type="email"
+                    value={row.contactEmail}
+                    onChange={(e) =>
+                      updateBulkConferenceRow(
+                        row.rowNumber,
+                        "contactEmail",
+                        e.target.value
+                      )
+                    }
+                    placeholder="contact@example.com"
+                    className="w-full min-w-[240px] text-sm bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  />
+                </td>
+                <td className="px-3 py-3">
+                      <textarea
+                        value={row.overview}
+                        onChange={(e) =>
+                          updateBulkConferenceRow(
+                            row.rowNumber,
+                            "overview",
+                            e.target.value
+                          )
+                        }
+                        rows={3}
+                        placeholder="Conference overview and call for papers"
+                        className="w-full min-w-[360px] text-sm bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none resize-y"
+                      />
+                    </td>
+                    <td className="px-3 py-3 text-right">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          deleteBulkConferenceRow(row.rowNumber)
+                        }
+                        className="inline-flex items-center justify-center p-2 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 transition-all cursor-pointer"
+                        title="Delete this imported row"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  )}
+</div>
+            </div>
+          )}
 
             {/* SECTION 2.5: PENDING CONFERENCES */}
             {activeMenu === "PENDING_CONFERENCES" && (() => {

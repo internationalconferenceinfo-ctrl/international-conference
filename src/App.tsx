@@ -2,6 +2,9 @@ import React, { lazy, Suspense, useState, useEffect, useMemo, useRef, useCallbac
 import { motion, AnimatePresence } from "motion/react";
 import { adminFetch, setAdminTabToken, clearAdminTabToken, getAdminTabToken } from "./shared/utils/adminSession";
 import { toUpperCaseName } from "./shared/utils/textUtils";
+import {
+  findExactConferenceDuplicate,
+} from "./shared/utils/conferenceDuplicateUtils";
 import { 
   saveToSupabase, 
   fetchFromSupabase,
@@ -2345,32 +2348,26 @@ try {
       if (Array.isArray(latestConferences)) duplicateSource = latestConferences;
     } catch {}
 
-    const normalizeDuplicateField = (value: unknown) => String(value || "")
-      .normalize("NFKC")
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, " ")
-      .trim();
-    const normalizedNewTitle = (newConf.title || "")
-      .normalize("NFKC")
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, " ")
-      .trim();
-    if (normalizedNewTitle) {
-      const titleOwnedByAnotherOrganizer = duplicateSource.find((conference) => {
-        if (conference.id === confId) return false;
-        if (normalizeDuplicateField(conference.title) !== normalizedNewTitle) return false;
+    const exactDuplicate = findExactConferenceDuplicate(
+  duplicateSource,
+  {
+    title: newConf.title,
+    category: newConf.category,
+    country: newConf.country,
+    city: newConf.city,
+    startDate: newConf.startDate,
+    endDate: newConf.endDate,
+  },
+  orgId,
+  isEdit ? confId : undefined
+);
 
-        const existingOwner = normalizeDuplicateField(conference.organizerId || conference.organizerName);
-        const submittingOwner = normalizeDuplicateField(orgId || orgName);
-        return existingOwner !== submittingOwner;
-      });
-
-      if (titleOwnedByAnotherOrganizer) {
-        return {
-          error: `The conference title "${titleOwnedByAnotherOrganizer.title}" is already used by another organizer. Please change the title and submit again.`,
-        };
-      }
-    }
+if (exactDuplicate) {
+  return {
+    error:
+      "This exact conference already exists in your Pending or Approved conferences. Change the Topic, Country, City, Start Date, or End Date before submitting.",
+  };
+}
 
     const existingConf = conferences.find((c) => c.id === confId);
     const titleForSlug = newConf.title || newConf.shortTitle || existingConf?.title || "conference";
