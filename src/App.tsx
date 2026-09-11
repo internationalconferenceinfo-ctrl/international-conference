@@ -5291,7 +5291,7 @@ if (selectedConference && (activePortal === "VISITOR" || !authUser)) {
     <>
       {renderConferenceDetailPage()}
 
-      <div className="mt-10 sm:mt-12 md:mt-16">
+      <div className="mt-10 sm:mt-12 md:mt-16 -mb-6 sm:-mb-8 lg:-mb-10">
         <PublicPortal
           footerOnly
           conferences={processedConferences}
