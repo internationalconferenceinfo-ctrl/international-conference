@@ -5,4 +5,4 @@ Disallow: /admin-portal
 Disallow: /organizer-portal
 Disallow: /api/
 
-Sitemap: https://www.internationalconference.info/sitemap.xml
+Sitemap: https://www.internationalconference.info/sitemaps.xml
