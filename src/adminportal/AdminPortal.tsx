@@ -2030,8 +2030,25 @@ setLocationUploadProgress(97);
       setCurrentPage(1);
     }
   }, [activeMenu]);
-  const [statusFilter, setStatusFilter] = useState("All");
-  const [categoryFilter, setCategoryFilter] = useState("All");
+const [statusFilter, setStatusFilter] = useState("All");
+
+const [
+  mediaPartnerStatusFilter,
+  setMediaPartnerStatusFilter,
+] = useState<"All" | "Verified" | "Unverified">("All");
+
+const [
+  associateStatusFilter,
+  setAssociateStatusFilter,
+] = useState<"All" | "Verified" | "Unverified">("All");
+
+const [categoryFilter, setCategoryFilter] = useState("All");
+const [
+  conferenceStatusFilter,
+  setConferenceStatusFilter,
+] = useState<
+  "All" | "Approved" | "Deactive" | "Featured"
+>("All");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 48;
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -4574,14 +4591,56 @@ const [isSavingCredentials, setIsSavingCredentials] =
                 if (activeMenu === "APPROVED_CONFERENCES") {
                   return isPendingStatus(c.status) && !isConferenceCompleted(c);
                 }
-                if (activeMenu === "MANAGE_CONFERENCES") {
-                  const matchesStatus = String(c.status || "").trim().toLowerCase() === "approved" && !isConferenceCompleted(c);
-                  const query = searchTerm.trim().toLowerCase();
-                  const matchesSearch = !query || [c.title, c.shortTitle, c.city, c.country, c.venue, c.category]
-                    .some((value) => String(value || "").toLowerCase().includes(query));
-                  const matchesTopic = categoryFilter === "All" || c.category === categoryFilter;
-                  return matchesStatus && matchesSearch && matchesTopic;
-                }
+if (activeMenu === "MANAGE_CONFERENCES") {
+  const isApproved =
+    String(c.status || "")
+      .trim()
+      .toLowerCase() === "approved" &&
+    !isConferenceCompleted(c);
+
+  const isDeactivated =
+    Boolean(c.isDeactivated) ||
+    inactiveConferences.includes(c.id);
+
+  const matchesConferenceStatus =
+    conferenceStatusFilter === "All"
+      ? true
+      : conferenceStatusFilter === "Approved"
+      ? !isDeactivated
+      : conferenceStatusFilter === "Deactive"
+      ? isDeactivated
+      : conferenceStatusFilter === "Featured"
+      ? Boolean(c.isFeatured)
+      : true;
+
+  const query = searchTerm.trim().toLowerCase();
+
+  const matchesSearch =
+    !query ||
+    [
+      c.title,
+      c.shortTitle,
+      c.city,
+      c.country,
+      c.venue,
+      c.category,
+    ].some((value) =>
+      String(value || "")
+        .toLowerCase()
+        .includes(query)
+    );
+
+  const matchesTopic =
+    categoryFilter === "All" ||
+    c.category === categoryFilter;
+
+  return (
+    isApproved &&
+    matchesConferenceStatus &&
+    matchesSearch &&
+    matchesTopic
+  );
+}
                 if (activeMenu === "COMPLETED_CONFERENCES") {
                   const matchesStatus = isConferenceCompleted(c);
                   const query = searchTerm.trim().toLowerCase();
@@ -4650,6 +4709,26 @@ const [isSavingCredentials, setIsSavingCredentials] =
                           <option key={`${cat.id}-${idx}`} value={cat.name}>{cat.name}</option>
                         ))}
                       </select>
+                      {activeMenu === "MANAGE_CONFERENCES" && (
+  <select
+    value={conferenceStatusFilter}
+    onChange={(e) =>
+      setConferenceStatusFilter(
+        e.target.value as
+          | "All"
+          | "Approved"
+          | "Deactive"
+          | "Featured"
+      )
+    }
+    className="w-full min-[480px]:w-auto min-w-0 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-700 cursor-pointer"
+  >
+    <option value="All">All Statuses</option>
+    <option value="Approved">Approved</option>
+    <option value="Deactive">Deactive</option>
+    <option value="Featured">Featured</option>
+  </select>
+)}
                     </div>
 
                     {activeMenu === "MANAGE_CONFERENCES" && selectedIds.length > 0 && (
@@ -5529,14 +5608,44 @@ const [isSavingCredentials, setIsSavingCredentials] =
                     Review submitted media partners, approve pending requests, or deactivate/delete existing listings.
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold px-3 py-1 bg-slate-100 text-slate-700 rounded-full border border-slate-200">
-                    Total: {mediaPartners.length} Partners
-                  </span>
-                </div>
-              </div>
+<div className="flex items-center gap-2">
+  <span className="text-xs font-semibold px-3 py-1 bg-slate-100 text-slate-700 rounded-full border border-slate-200">
+    Total: {mediaPartners.length} Partners
+  </span>
+</div>
+</div>
 
-              {mediaPartners.length === 0 ? (
+{/* Media Partner Status Filter */}
+<div className="flex items-center justify-end bg-slate-50 p-3 rounded-xl border border-slate-200">
+  <select
+    value={mediaPartnerStatusFilter}
+    onChange={(e) =>
+      setMediaPartnerStatusFilter(
+        e.target.value as
+          | "All"
+          | "Verified"
+          | "Unverified"
+      )
+    }
+    className="w-full sm:w-auto bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-700 cursor-pointer"
+  >
+    <option value="All">All Statuses</option>
+    <option value="Verified">Verified Only</option>
+    <option value="Unverified">Unverified Only</option>
+  </select>
+</div>
+
+{mediaPartners.filter((mp) => {
+  if (mediaPartnerStatusFilter === "Verified") {
+    return Boolean(mp.isVerified);
+  }
+
+  if (mediaPartnerStatusFilter === "Unverified") {
+    return !Boolean(mp.isVerified);
+  }
+
+  return true;
+}).length === 0 ? (
                 <div className="text-center px-4 py-10 sm:py-12 bg-slate-50 rounded-xl sm:rounded-2xl border border-dashed border-slate-200 min-w-0">
                   <Globe className="h-10 w-10 text-slate-300 mx-auto mb-2" />
                   <p className="text-sm font-bold text-slate-600">No Media Partners Submitted</p>
@@ -5544,7 +5653,19 @@ const [isSavingCredentials, setIsSavingCredentials] =
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                  {mediaPartners.map((mp, mpIdx) => (
+                  {mediaPartners
+  .filter((mp) => {
+    if (mediaPartnerStatusFilter === "Verified") {
+      return Boolean(mp.isVerified);
+    }
+
+    if (mediaPartnerStatusFilter === "Unverified") {
+      return !Boolean(mp.isVerified);
+    }
+
+    return true;
+  })
+  .map((mp, mpIdx) => (
                     <div
                       key={mp.id || `mp-${mpIdx}`}
                       className="bg-white rounded-xl sm:rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-xs hover:shadow-md transition-shadow flex flex-col justify-between space-y-4 min-w-0"
@@ -5732,14 +5853,43 @@ const [isSavingCredentials, setIsSavingCredentials] =
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold px-3 py-1 bg-slate-100 text-slate-700 rounded-full border border-slate-200">
-                    Total: {associates.length} Associates
-                  </span>
-                  
-                </div>
-              </div>
+  <span className="text-xs font-semibold px-3 py-1 bg-slate-100 text-slate-700 rounded-full border border-slate-200">
+    Total: {associates.length} Associates
+  </span>
+</div>
+</div>
 
-              {associates.length === 0 ? (
+{/* Associate Status Filter */}
+<div className="flex items-center justify-end bg-slate-50 p-3 rounded-xl border border-slate-200">
+  <select
+    value={associateStatusFilter}
+    onChange={(e) =>
+      setAssociateStatusFilter(
+        e.target.value as
+          | "All"
+          | "Verified"
+          | "Unverified"
+      )
+    }
+    className="w-full sm:w-auto bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-700 cursor-pointer"
+  >
+    <option value="All">All Statuses</option>
+    <option value="Verified">Verified Only</option>
+    <option value="Unverified">Unverified Only</option>
+  </select>
+</div>
+
+{associates.filter((associate) => {
+  if (associateStatusFilter === "Verified") {
+    return Boolean(associate.isVerified);
+  }
+
+  if (associateStatusFilter === "Unverified") {
+    return !Boolean(associate.isVerified);
+  }
+
+  return true;
+}).length === 0 ? (
                 <div className="text-center px-4 py-10 sm:py-12 bg-slate-50 rounded-xl sm:rounded-2xl border border-dashed border-slate-200 min-w-0">
                   <Building className="h-10 w-10 text-slate-300 mx-auto mb-2" />
                   <p className="text-sm font-bold text-slate-600">No Associates Submitted</p>
@@ -5747,7 +5897,19 @@ const [isSavingCredentials, setIsSavingCredentials] =
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                  {associates.map((assoc, assocIdx) => (
+                  {associates
+  .filter((assoc) => {
+    if (associateStatusFilter === "Verified") {
+      return Boolean(assoc.isVerified);
+    }
+
+    if (associateStatusFilter === "Unverified") {
+      return !Boolean(assoc.isVerified);
+    }
+
+    return true;
+  })
+  .map((assoc, assocIdx) => (
                     <div
                       key={assoc.id || `assoc-${assocIdx}`}
                       className="bg-white rounded-xl sm:rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-xs hover:shadow-md transition-shadow flex flex-col justify-between space-y-4 min-w-0"

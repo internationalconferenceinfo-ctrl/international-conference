@@ -14,7 +14,11 @@ import { ImageUploaderField } from "../shared/components/ImageUploaderField";
 import { isConferenceCompleted } from "../shared/utils/expirationUtils";
 import { resolveConferenceTimeZone } from "../shared/utils/timezoneUtils";
 import { slugify, getConferenceSlug } from "../shared/utils/slugUtils";
-import { fetchCitiesByCountryFromSupabase } from "../database/supabase";
+import {
+  fetchAllCountriesFromSupabase,
+  fetchCitiesByCountryFromSupabase,
+  fetchFromSupabase,
+} from "../database/supabase";
 import { buildConferenceDuplicateKey } from "../shared/utils/conferenceDuplicateUtils";
 
 const getTodayInTimeZone = (timeZone: string): string => {
@@ -117,7 +121,16 @@ interface OrganizerPortalProps {
 }
 
 type BulkConferenceImportRow = {
+  // Exact physical Excel row number, including header/blank rows.
   rowNumber: number;
+
+    // Sequential number shown in the Bulk Upload dashboard.
+  dashboardSlNo: number;
+
+  // If this row duplicates another row in the same Excel upload,
+  // keep both references for the duplicate message and jump button.
+  duplicateExcelRow?: number;
+  duplicateDashboardSlNo?: number;
   conferenceTitle: string;
   topic: string;
   bannerImageUrl: string;
@@ -130,6 +143,11 @@ type BulkConferenceImportRow = {
   officialWebsite: string;
   contactEmail: string;
   overview: string;
+
+// Remember invalid dates imported from Excel.
+startDateWasBeforeToday?: boolean;
+endDateWasBeforeToday?: boolean;
+endDateWasBeforeStart?: boolean;
 
   // Bulk validation state
   errors: string[];
@@ -186,7 +204,58 @@ export default function OrganizerPortal({
   return typeof window !== "undefined" ? window.innerWidth >= 1024 : false;
   });
 
+  const formatBulkDateForDisplay = (
+  value: string
+): string => {
+  const match = value
+    .trim()
+    .match(/^(\d{4})-(\d{2})-(\d{2})$/);
+
+  if (!match) {
+    return value;
+  }
+
+  return `${match[3]}-${match[2]}-${match[1]}`;
+};
+
+const parseBulkDisplayDate = (
+  value: string
+): string => {
+  const match = value
+    .trim()
+    .match(/^(\d{2})-(\d{2})-(\d{4})$/);
+
+  if (!match) {
+    return "";
+  }
+
+  const day = Number(match[1]);
+  const month = Number(match[2]);
+  const year = Number(match[3]);
+
+  const date = new Date(
+    Date.UTC(year, month - 1, day)
+  );
+
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  ) {
+    return "";
+  }
+
+  return `${year}-${String(month).padStart(
+    2,
+    "0"
+  )}-${String(day).padStart(2, "0")}`;
+};
+
   const [bulkImportedRows, setBulkImportedRows] = useState<BulkConferenceImportRow[]>([]);
+  const [latestAdminTopics, setLatestAdminTopics] =
+  useState<Array<{ id?: string; name?: string }>>(
+    activeCategories
+  );
   const [bulkUploadedFileName, setBulkUploadedFileName] = useState("");
   const [bulkImportError, setBulkImportError] = useState("");
   const [isBulkReadingFile, setIsBulkReadingFile] = useState(false);
@@ -195,6 +264,25 @@ export default function OrganizerPortal({
   const [bulkStatusFilter, setBulkStatusFilter] = useState<
     "ALL" | "COMPLETE" | "NEED_FIX" | "DUPLICATES"
   >("ALL");
+
+  const goToBulkDashboardRow = (
+  dashboardSlNo: number
+) => {
+  // Make sure the target row is visible even if a filter/search is active.
+  setBulkSearchQuery("");
+  setBulkStatusFilter("ALL");
+
+  window.setTimeout(() => {
+    const target = document.getElementById(
+      `bulk-row-${dashboardSlNo}`
+    );
+
+    target?.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+    });
+  }, 0);
+};
 
   const [bulkSelectedRows, setBulkSelectedRows] = useState<number[]>([]);
 
@@ -545,13 +633,61 @@ useEffect(() => {
   void loadProfileCities();
 }, [profileCountry]);
 
-  // Dynamic available countries added by Admin for Profile and Conference
-  const adminCountryOptions = useMemo(() => {
-    const list = (countriesList || [])
-      .map((c) => (typeof c === "string" ? c : String((c as any)?.name || "")).trim().toUpperCase())
-      .filter((c) => Boolean(c) && !inactiveCountries?.some((ic) => ic.toUpperCase() === c));
-    return Array.from(new Set(list)).sort((a, b) => a.localeCompare(b));
-  }, [countriesList, inactiveCountries]);
+  // Latest countries loaded directly from Supabase
+const [latestAdminCountries, setLatestAdminCountries] =
+  useState<string[]>(countriesList || []);
+
+useEffect(() => {
+  let cancelled = false;
+
+  const loadLatestAdminCountries = async () => {
+    try {
+      const rows =
+        await fetchAllCountriesFromSupabase();
+
+      if (cancelled) return;
+
+      setLatestAdminCountries(
+        Array.isArray(rows) ? rows : []
+      );
+    } catch (error) {
+      console.error(
+        "Failed to load latest Admin countries:",
+        error
+      );
+    }
+  };
+
+  void loadLatestAdminCountries();
+
+  return () => {
+    cancelled = true;
+  };
+}, []);
+
+// Dynamic available countries from latest Admin/Supabase data
+const adminCountryOptions = useMemo(() => {
+  const list = latestAdminCountries
+    .map((country) =>
+      String(country || "")
+        .trim()
+        .toUpperCase()
+    )
+    .filter(
+      (country) =>
+        Boolean(country) &&
+        !inactiveCountries?.some(
+          (inactiveCountry) =>
+            inactiveCountry
+              .trim()
+              .toUpperCase() === country
+        )
+    );
+
+ return Array.from(
+  new Set<string>(list as string[])
+).sort((a, b) => a.localeCompare(b));
+}, [latestAdminCountries, inactiveCountries]);
 
   // Profile cities options based on selected profileCountry from Admin-added cities
   const profileCityOptions = useMemo(() => {
@@ -728,15 +864,39 @@ const handleBulkConferenceFileUpload = async (
   }
 
   try {
-    setIsBulkReadingFile(true);
+  setIsBulkReadingFile(true);
 
-    const XLSX = await import("xlsx");
+  // Always get the latest Admin Country list
+  // immediately before validating this Excel upload.
+const latestCountries =
+  await fetchAllCountriesFromSupabase();
+
+setLatestAdminCountries(
+  Array.isArray(latestCountries)
+    ? latestCountries
+    : []
+);
+
+// Always fetch the latest Admin Topic list
+// directly from Supabase before validation.
+const latestTopics =
+  await fetchFromSupabase<any[]>(
+    "categories",
+    true
+  );
+
+setLatestAdminTopics(
+  Array.isArray(latestTopics)
+    ? latestTopics
+    : []
+);
+
+const XLSX = await import("xlsx");
 
     const arrayBuffer = await file.arrayBuffer();
 
-    const workbook = XLSX.read(arrayBuffer, {
+const workbook = XLSX.read(arrayBuffer, {
   type: "array",
-  cellDates: true,
 });
 
     const firstSheetName = workbook.SheetNames[0];
@@ -747,7 +907,7 @@ const handleBulkConferenceFileUpload = async (
 
     const worksheet = workbook.Sheets[firstSheetName];
 
-    const rawRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(
+const rawRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(
   worksheet,
   {
     defval: "",
@@ -780,72 +940,251 @@ const handleBulkConferenceFileUpload = async (
       return;
     }
 
-    const formatBulkExcelDate = (value: unknown): string => {
-      if (value instanceof Date && !Number.isNaN(value.getTime())) {
-        const year = value.getFullYear();
-        const month = String(value.getMonth() + 1).padStart(2, "0");
-        const day = String(value.getDate()).padStart(2, "0");
+   const formatBulkExcelDate = (value: unknown): string => {
+  const toIsoDate = (
+    year: number,
+    month: number,
+    day: number
+  ): string => {
+    const date = new Date(
+      Date.UTC(year, month - 1, day)
+    );
 
-        return `${year}-${month}-${day}`;
-      }
+    if (
+      date.getUTCFullYear() !== year ||
+      date.getUTCMonth() !== month - 1 ||
+      date.getUTCDate() !== day
+    ) {
+      return "";
+    }
 
-      return String(value ?? "").trim();
-    };
+    return `${year}-${String(month).padStart(
+      2,
+      "0"
+    )}-${String(day).padStart(2, "0")}`;
+  };
 
-    const importedRows: BulkConferenceImportRow[] =
-      nonEmptyRows.map((row, index) => ({
-        rowNumber: index + 2,
+  // Real Excel date cell
+if (
+  value instanceof Date &&
+  !Number.isNaN(value.getTime())
+) {
+  return toIsoDate(
+    value.getUTCFullYear(),
+    value.getUTCMonth() + 1,
+    value.getUTCDate()
+  );
+}
 
-        conferenceTitle: String(
-          row["Conference Title"] ?? ""
-        ).trim(),
+// Excel stores real dates as serial numbers.
+// Parse them directly so timezone conversion cannot
+// move the date backward or forward by one day.
+if (
+  typeof value === "number" &&
+  Number.isFinite(value)
+) {
+  const parsed =
+    XLSX.SSF.parse_date_code(value);
 
-        topic: String(row["Topic"] ?? "").trim(),
+  if (parsed) {
+    return toIsoDate(
+      parsed.y,
+      parsed.m,
+      parsed.d
+    );
+  }
 
-        bannerImageUrl: String(
-          row["Banner Image URL"] ?? ""
-        ).trim(),
+  return "";
+}
 
-        startDate: formatBulkExcelDate(row["Start Date"]),
+  const raw = String(value ?? "").trim();
 
-        endDate: formatBulkExcelDate(row["End Date"]),
+  if (!raw) {
+    return "";
+  }
 
-        country: String(row["Country"] ?? "").trim(),
+  // YYYY-MM-DD or YYYY/MM/DD
+  let match = raw.match(
+    /^(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})$/
+  );
 
-        city: String(row["City"] ?? "").trim(),
+  if (match) {
+    return toIsoDate(
+      Number(match[1]),
+      Number(match[2]),
+      Number(match[3])
+    );
+  }
 
-        venue: String(
-          row["Venue Name / Address"] ?? ""
-        ).trim(),
+  // DD-MM-YYYY or DD/MM/YYYY
+  match = raw.match(
+    /^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})$/
+  );
 
-        attendanceType: String(
-          row["Attendance Type"] ?? ""
-        ).trim(),
+  if (match) {
+    return toIsoDate(
+      Number(match[3]),
+      Number(match[2]),
+      Number(match[1])
+    );
+  }
 
-        officialWebsite: String(
-          row["Official Conference Website"] ?? ""
-        ).trim(),
+  return "";
+};
 
-        contactEmail: String(
-          row["Contact Email"] ?? ""
-        ).trim(),
+const normalizeBulkAttendanceType = (
+  value: string
+): string => {
+  const normalized = value
+    .trim()
+    .toLowerCase();
 
-        overview: String(
-        row["Conference Overview & Call for Papers"] ?? ""
+  if (
+    normalized === "online" ||
+    normalized === "on"
+  ) {
+    return "Online";
+  }
+
+  if (
+    normalized === "offline" ||
+    normalized === "off"
+  ) {
+    return "Offline";
+  }
+  if (
+    normalized === "offline" ||
+    normalized === "of"
+  ) {
+    return "Offline";
+  }
+
+  if (
+    normalized === "hybrid" ||
+    normalized === "hy"
+  ) {
+    return "Hybrid";
+  }
+
+  return "";
+};
+
+  const importedRows: BulkConferenceImportRow[] =
+  nonEmptyRows.map((row, index) => {
+    // SheetJS __rowNum__ is the original worksheet row,
+    // zero-based. Add 1 to get the real Excel row number.
+    // This preserves blank rows in the Excel numbering.
+    const excelRowNumber =
+      typeof row.__rowNum__ === "number"
+        ? row.__rowNum__ + 1
+        : index + 2;
+
+    const parsedStartDate =
+      formatBulkExcelDate(row["Start Date"]);
+
+    const parsedEndDate =
+      formatBulkExcelDate(row["End Date"]);
+
+    const now = new Date();
+
+    const todayIso = `${now.getFullYear()}-${String(
+      now.getMonth() + 1
+    ).padStart(2, "0")}-${String(
+      now.getDate()
+    ).padStart(2, "0")}`;
+
+    const startDateWasBeforeToday =
+      Boolean(parsedStartDate) &&
+      parsedStartDate < todayIso;
+
+    const endDateWasBeforeToday =
+      Boolean(parsedEndDate) &&
+      parsedEndDate < todayIso;
+
+  const endDateWasBeforeStart =
+  Boolean(parsedStartDate) &&
+  Boolean(parsedEndDate) &&
+  !startDateWasBeforeToday &&
+  !endDateWasBeforeToday &&
+  parsedEndDate < parsedStartDate;
+
+    return {
+  // Exact physical Excel row number.
+  rowNumber: excelRowNumber,
+
+  // Dashboard sequence ignores completely blank Excel rows.
+  dashboardSlNo: index + 1,
+
+  conferenceTitle: String(
+        row["Conference Title"] ?? ""
+      ).trim(),
+
+      topic: String(
+        row["Topic"] ?? ""
+      ).trim(),
+
+      bannerImageUrl: String(
+        row["Banner Image URL"] ?? ""
+      ).trim(),
+
+      // Past Excel dates must not appear in the picker.
+      startDate: startDateWasBeforeToday
+        ? ""
+        : parsedStartDate,
+
+      endDate:
+      endDateWasBeforeToday ||
+      endDateWasBeforeStart
+        ? ""
+        : parsedEndDate,
+
+      // Keep the reason so validation can show
+      // the correct Need Fix message.
+      startDateWasBeforeToday,
+      endDateWasBeforeToday,
+      endDateWasBeforeStart,
+
+      country: String(
+        row["Country"] ?? ""
+      ).trim(),
+
+      city: String(
+        row["City"] ?? ""
+      ).trim(),
+
+      venue: String(
+        row["Venue Name / Address"] ?? ""
+      ).trim(),
+
+      attendanceType:
+        normalizeBulkAttendanceType(
+          String(
+            row["Attendance Type"] ?? ""
+          )
+        ),
+
+      officialWebsite: String(
+        row["Official Conference Website"] ?? ""
+      ).trim(),
+
+      contactEmail: String(
+        row["Contact Email"] ?? ""
+      ).trim(),
+
+      overview: String(
+        row[
+          "Conference Overview & Call for Papers"
+        ] ?? ""
       ).trim(),
 
       errors: [],
       isValid: false,
       isDuplicate: false,
-      }));
-
-    const validatedRows =
-  validateBulkConferenceRows(importedRows);
-
-  setBulkImportedRows(validatedRows);
-  const uniqueCountries = Array.from(
+    };
+  });
+    const uniqueCountries = Array.from(
   new Set(
-    validatedRows
+    importedRows
       .map((row) =>
         row.country.trim().toUpperCase()
       )
@@ -853,10 +1192,70 @@ const handleBulkConferenceFileUpload = async (
   )
 );
 
+const loadedCitiesByCountry: Record<
+  string,
+  Array<{
+    name: string;
+    country: string;
+    timeZone: string;
+  }>
+> = {};
+
 for (const country of uniqueCountries) {
-  void loadBulkCitiesForCountry(country);
+  try {
+    const rows =
+      await fetchCitiesByCountryFromSupabase(country);
+
+    loadedCitiesByCountry[country] =
+      Array.isArray(rows)
+        ? rows.map((city) => ({
+            name: String(city.name || "")
+              .trim()
+              .toUpperCase(),
+
+            country: String(
+              city.country || country
+            )
+              .trim()
+              .toUpperCase(),
+
+            timeZone: String(
+              city.timeZone || ""
+            ).trim(),
+          }))
+        : [];
+  } catch (error) {
+    console.error(
+      `Failed to load cities for ${country}:`,
+      error
+    );
+
+    loadedCitiesByCountry[country] = [];
+  }
 }
-  setBulkUploadedFileName(file.name);
+
+setBulkCountryCities((current) => ({
+  ...current,
+  ...loadedCitiesByCountry,
+}));
+
+const mergedBulkCityMap = {
+  ...bulkCountryCities,
+  ...loadedCitiesByCountry,
+};
+
+const validatedRows =
+  validateBulkConferenceRows(
+    importedRows,
+    mergedBulkCityMap,
+    Array.isArray(latestTopics)
+      ? latestTopics
+      : []
+  );
+
+setBulkImportedRows(validatedRows);
+
+setBulkUploadedFileName(file.name);
   } catch (error) {
     console.error("Bulk Excel import failed:", error);
 
@@ -1175,17 +1574,19 @@ const handleBulkSubmitClick = async () => {
 
 const loadBulkCitiesForCountry = async (
   country: string
-) => {
+): Promise<
+  Array<{
+    name: string;
+    country: string;
+    timeZone: string;
+  }>
+> => {
   const normalizedCountry = country
     .trim()
     .toUpperCase();
 
   if (!normalizedCountry) {
-    return;
-  }
-
-  if (bulkCountryCities[normalizedCountry]) {
-    return;
+    return [];
   }
 
   try {
@@ -1194,26 +1595,30 @@ const loadBulkCitiesForCountry = async (
         normalizedCountry
       );
 
+    const latestCities = Array.isArray(rows)
+      ? rows.map((city) => ({
+          name: String(city.name || "")
+            .trim()
+            .toUpperCase(),
+
+          country: String(
+            city.country || normalizedCountry
+          )
+            .trim()
+            .toUpperCase(),
+
+          timeZone: String(
+            city.timeZone || ""
+          ).trim(),
+        }))
+      : [];
+
     setBulkCountryCities((current) => ({
       ...current,
-      [normalizedCountry]: Array.isArray(rows)
-        ? rows.map((city) => ({
-            name: String(city.name || "")
-              .trim()
-              .toUpperCase(),
-
-            country: String(
-              city.country || normalizedCountry
-            )
-              .trim()
-              .toUpperCase(),
-
-            timeZone: String(
-              city.timeZone || ""
-            ).trim(),
-          }))
-        : [],
+      [normalizedCountry]: latestCities,
     }));
+
+    return latestCities;
   } catch (error) {
     console.error(
       `Failed to load bulk cities for ${normalizedCountry}:`,
@@ -1224,6 +1629,8 @@ const loadBulkCitiesForCountry = async (
       ...current,
       [normalizedCountry]: [],
     }));
+
+    return [];
   }
 };
 
@@ -1293,7 +1700,7 @@ const deleteBulkConferenceRow = (
   });
 };
 
-const applyBulkFix = (
+const applyBulkFix = async (
   mode: "SELECTED" | "MATCHING"
 ) => {
   const newValue = bulkFixValue.trim();
@@ -1305,6 +1712,23 @@ const applyBulkFix = (
   if (bulkSelectedRows.length === 0) {
     return;
   }
+
+  let freshCityMap = bulkCountryCities;
+
+if (bulkFixField === "country") {
+  const latestCities =
+    await loadBulkCitiesForCountry(
+      newValue
+    );
+
+  const normalizedCountry =
+    newValue.trim().toUpperCase();
+
+  freshCityMap = {
+    ...bulkCountryCities,
+    [normalizedCountry]: latestCities,
+  };
+}
 
   setBulkImportedRows((currentRows) => {
     const sourceRow = currentRows.find(
@@ -1395,8 +1819,9 @@ const applyBulkFix = (
     );
 
     return validateBulkConferenceRows(
-      updatedRows
-    );
+    updatedRows,
+    freshCityMap
+  );
   });
 
   setBulkSelectedRows([]);
@@ -1404,8 +1829,12 @@ const applyBulkFix = (
 };
 
 const validateBulkConferenceRow = (
-  row: BulkConferenceImportRow
+  row: BulkConferenceImportRow,
+  cityMap: typeof bulkCountryCities = bulkCountryCities,
+  topicList: Array<{ id?: string; name?: string }> = latestAdminTopics,
+  countryList: string[] = adminCountryOptions
 ): BulkConferenceImportRow => {
+
   const errors: string[] = [];
 
   const normalize = (value: unknown) =>
@@ -1474,13 +1903,29 @@ const isValidWebsite = (value: string) => {
     errors.push("Topic is required.");
   }
 
-  if (!row.startDate.trim()) {
+if (!row.startDate.trim()) {
+  if (row.startDateWasBeforeToday) {
+    errors.push(
+      "Start Date cannot be before today."
+    );
+  } else {
     errors.push("Start Date is required.");
   }
+}
 
-  if (!row.endDate.trim()) {
+if (!row.endDate.trim()) {
+  if (row.endDateWasBeforeToday) {
+    errors.push(
+      "End Date cannot be before today."
+    );
+  } else if (row.endDateWasBeforeStart) {
+    errors.push(
+      "End Date cannot be before Start Date."
+    );
+  } else {
     errors.push("End Date is required.");
   }
+}
 
   if (!row.country.trim()) {
     errors.push("Country is required.");
@@ -1510,86 +1955,110 @@ const isValidWebsite = (value: string) => {
     );
   }
 
-  // Topic must exist in the CURRENT Admin Topic list.
-  if (row.topic.trim()) {
-    const validTopic = activeCategories.some(
-      (category) =>
-        normalize(category.name) ===
-        normalize(row.topic)
-    );
-
-    if (!validTopic) {
-      errors.push(
-        `Topic "${row.topic}" is not available in the current Topic list.`
-      );
-    }
-  }
-
-  // Country must exist in the CURRENT Admin Country list.
-  if (row.country.trim()) {
-    const normalizedCountry =
-      normalizeUpper(row.country);
-
-    const validCountry =
-      adminCountryOptions.some(
-        (country) =>
-          normalizeUpper(country) ===
-          normalizedCountry
-      );
-
-    if (!validCountry) {
-      errors.push(
-        `Country "${row.country}" is not available in the current Country list.`
-      );
-    }
-  }
-
-  // City must belong to the selected Country.
-  if (row.country.trim() && row.city.trim()) {
-    const normalizedCountry =
-      normalizeUpper(row.country);
-
-    const normalizedCity =
-      normalizeUpper(row.city);
-
-    const cityExistsForCountry =
-  (
-    bulkCountryCities[
-      normalizedCountry
-    ] || []
-  ).some((city) => {
-    const cityCountry =
-      normalizeUpper(city.country);
-
-    const cityName =
-      normalizeUpper(city.name);
-
-    if (
-      cityCountry !== normalizedCountry ||
-      cityName !== normalizedCity
-    ) {
-      return false;
-    }
-
-    const inactiveKey =
-      `${normalizedCountry}:::${normalizedCity}`;
+// Topic must exist in the latest Admin Topic list.
+if (row.topic.trim()) {
+const matchedTopic = topicList.find(
+  (category) => {
+    const topicMatches =
+      normalize(category.name) ===
+      normalize(row.topic);
 
     const isInactive =
-      (inactiveCities || []).some(
-        (inactiveCity) =>
-          normalizeUpper(inactiveCity) ===
-          inactiveKey
+      inactiveTopics.includes(
+        String(category.id || "")
+      ) ||
+      inactiveTopics.some(
+        (inactiveTopic) =>
+          normalize(inactiveTopic) ===
+          normalize(category.name)
       );
 
-    return !isInactive;
-  });
-
-    if (!cityExistsForCountry) {
-      errors.push(
-        `City "${row.city}" is not available for Country "${row.country}".`
-      );
-    }
+    return topicMatches && !isInactive;
   }
+);
+
+  if (!matchedTopic) {
+    errors.push(
+      `Topic "${row.topic}" is not available in the current Topic list.`
+    );
+  } else {
+    row.topic = String(
+      matchedTopic.name || row.topic
+    ).trim();
+  }
+}
+
+// Country must exist in the CURRENT Admin Country list.
+if (row.country.trim()) {
+  const normalizedCountry =
+    normalizeUpper(row.country);
+
+  const matchedCountry =
+    countryList.find(
+      (country) =>
+        normalizeUpper(country) ===
+        normalizedCountry
+    );
+
+  if (!matchedCountry) {
+    errors.push(
+      `Country "${row.country}" is not available in the current Country list.`
+    );
+  } else {
+    row.country = String(
+      matchedCountry
+    ).trim();
+  }
+}
+
+// City must belong to the selected Country.
+if (row.country.trim() && row.city.trim()) {
+  const normalizedCountry =
+    normalizeUpper(row.country);
+
+  const normalizedCity =
+    normalizeUpper(row.city);
+
+  const matchedCity =
+    (
+      cityMap[normalizedCountry] || []
+    ).find((city) => {
+      const cityCountry =
+        normalizeUpper(city.country);
+
+      const cityName =
+        normalizeUpper(city.name);
+
+      if (
+        cityCountry !== normalizedCountry ||
+        cityName !== normalizedCity
+      ) {
+        return false;
+      }
+
+      const inactiveKey =
+        `${normalizedCountry}:::${normalizedCity}`;
+
+      const isInactive =
+        (inactiveCities || []).some(
+          (inactiveCity) =>
+            normalizeUpper(inactiveCity) ===
+            inactiveKey
+        );
+
+      return !isInactive;
+    });
+
+  if (!matchedCity) {
+    errors.push(
+      `City "${row.city}" is not available for Country "${row.country}".`
+    );
+  } else {
+    row.city = String(
+      matchedCity.name || row.city
+    ).trim();
+  }
+}
 
   // Attendance type
   if (row.attendanceType.trim()) {
@@ -1689,8 +2158,12 @@ const isValidWebsite = (value: string) => {
 };
 
 const validateBulkConferenceRows = (
-  rows: BulkConferenceImportRow[]
+  rows: BulkConferenceImportRow[],
+  cityMap: typeof bulkCountryCities = bulkCountryCities,
+  topicList: Array<{ id?: string; name?: string }> = latestAdminTopics,
+  countryList: string[] = adminCountryOptions
 ): BulkConferenceImportRow[] => {
+
   const organizerId = String(
     activeProfile?.id ||
     activeOrgId ||
@@ -1734,10 +2207,22 @@ const validateBulkConferenceRows = (
       )
   );
 
-  const firstExcelRowByKey = new Map<string, number>();
+const firstExcelRowByKey = new Map<
+  string,
+  {
+    excelRow: number;
+    dashboardSlNo: number;
+  }
+>();
 
-  return rows.map((originalRow) => {
-    const row = validateBulkConferenceRow(originalRow);
+return rows.map((originalRow, rowIndex) => {
+
+const row = validateBulkConferenceRow(
+  originalRow,
+  cityMap,
+  topicList,
+  countryList
+);
 
     const hasDuplicateIdentityFields =
       Boolean(row.conferenceTitle.trim()) &&
@@ -1771,17 +2256,17 @@ const validateBulkConferenceRows = (
       existingDuplicateKeys.has(duplicateKey);
 
     const firstExcelRow =
-      firstExcelRowByKey.get(duplicateKey);
+  firstExcelRowByKey.get(duplicateKey);
 
-    const duplicateInsideExcel =
-      firstExcelRow !== undefined;
+const duplicateInsideExcel =
+  firstExcelRow !== undefined;
 
     if (!duplicateInsideExcel) {
-      firstExcelRowByKey.set(
-        duplicateKey,
-        row.rowNumber
-      );
-    }
+  firstExcelRowByKey.set(duplicateKey, {
+    excelRow: row.rowNumber,
+    dashboardSlNo: row.dashboardSlNo,
+  });
+}
 
     const duplicateErrors: string[] = [];
 
@@ -1791,25 +2276,37 @@ const validateBulkConferenceRows = (
       );
     }
 
-    if (duplicateInsideExcel) {
-      duplicateErrors.push(
-        `This conference is an exact duplicate of Excel row ${firstExcelRow}.`
-      );
-    }
+if (duplicateInsideExcel && firstExcelRow) {
+  duplicateErrors.push(
+    `This conference is an exact duplicate of Excel Row ${firstExcelRow.excelRow} / Dashboard Sl No ${firstExcelRow.dashboardSlNo}.`
+  );
+}
 
     const allErrors = [
       ...row.errors,
       ...duplicateErrors,
     ];
 
-    return {
-      ...row,
-      errors: allErrors,
-      isDuplicate:
-        duplicateExisting ||
-        duplicateInsideExcel,
-      isValid: allErrors.length === 0,
-    };
+return {
+  ...row,
+  errors: allErrors,
+
+  duplicateExcelRow:
+    duplicateInsideExcel && firstExcelRow
+      ? firstExcelRow.excelRow
+      : undefined,
+
+  duplicateDashboardSlNo:
+    duplicateInsideExcel && firstExcelRow
+      ? firstExcelRow.dashboardSlNo
+      : undefined,
+
+  isDuplicate:
+    duplicateExisting ||
+    duplicateInsideExcel,
+
+  isValid: allErrors.length === 0,
+};
   });
 };
 
@@ -3308,7 +3805,7 @@ const todayStr =
           className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
         >
           <option value="">Select Topic</option>
-          {activeCategories.map((category) => (
+          {latestAdminTopics.map((category) => (
             <option
               key={category.id}
               value={category.name}
@@ -3369,43 +3866,37 @@ const todayStr =
               .trim()
               .toUpperCase();
 
-          return (citiesList || [])
-            .filter((city) => {
-              const cityCountry =
-                city.country
-                  .trim()
-                  .toUpperCase();
+  return (
+  bulkCountryCities[selectedCountry] || []
+)
+  .filter((city) => {
+    const cityName =
+      city.name
+        .trim()
+        .toUpperCase();
 
-              const cityName =
-                city.name
-                  .trim()
-                  .toUpperCase();
+    const inactiveKey =
+      `${selectedCountry}:::${cityName}`;
 
-              const inactiveKey =
-                `${selectedCountry}:::${cityName}`;
+    const isInactive =
+      (inactiveCities || []).some(
+        (inactiveCity) =>
+          inactiveCity
+            .trim()
+            .toUpperCase() === inactiveKey
+      );
 
-              const isInactive =
-                (inactiveCities || []).some(
-                  (inactiveCity) =>
-                    inactiveCity
-                      .trim()
-                      .toUpperCase() === inactiveKey
-                );
-
-              return (
-                cityCountry === selectedCountry &&
-                !isInactive
-              );
-            })
-            .map((city) => (
-              <option
-                key={`${city.country}-${city.name}`}
-                value={city.name}
-              >
-                {city.name}
-              </option>
-            ));
-        })()}
+    return !isInactive;
+  })
+  .map((city) => (
+    <option
+      key={`${city.country}-${city.name}`}
+      value={city.name}
+    >
+      {city.name}
+    </option>
+  ));
+})()}
       </select>
     )}
     </div>
@@ -3617,12 +4108,10 @@ const todayStr =
                 className="h-4 w-4 cursor-pointer"
               />
             </th>
-                <th className="px-3 py-3 text-left text-xs font-bold text-slate-500 min-w-[90px] whitespace-nowrap">
-                  Excel Row
+                <th className="px-3 py-3 text-left text-xs font-bold text-slate-500 min-w-[70px] whitespace-nowrap">
+                  Sl No
                 </th>
-                <th className="px-3 py-3 text-left text-xs font-bold text-slate-500 min-w-[260px]">
-                  Status
-                </th>
+                
                 <th className="px-3 py-3 text-left text-xs font-bold text-slate-500">
                   Conference Title
                 </th>
@@ -3668,11 +4157,49 @@ const todayStr =
             </thead>
 
             <tbody className="divide-y divide-slate-100">
-              {filteredBulkRows.map((row) => (
-                <tr
-                  key={row.rowNumber}
-                  className="hover:bg-slate-50"
-                >
+              {filteredBulkRows.map((row, index) => (
+  <React.Fragment key={row.rowNumber}>
+    <tr>
+      <td
+        colSpan={15}
+        className="px-3 pt-4 pb-2 whitespace-nowrap"
+      >
+{row.isDuplicate ? (
+  <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-rose-700">
+    <span>
+      ✕ DUPLICATE — {row.errors.join(" • ")}
+    </span>
+
+    {row.duplicateDashboardSlNo ? (
+      <button
+        type="button"
+        onClick={() =>
+          goToBulkDashboardRow(
+            row.duplicateDashboardSlNo!
+          )
+        }
+        className="rounded-md border border-rose-200 bg-white px-2 py-1 text-rose-700 hover:bg-rose-50"
+      >
+        Go to Sl No {row.duplicateDashboardSlNo}
+      </button>
+    ) : null}
+  </div>
+) : row.isValid ? (
+          <div className="text-xs font-semibold text-emerald-700">
+            ✓ COMPLETE — This conference is complete and ready to submit.
+          </div>
+        ) : (
+          <div className="text-xs font-semibold text-amber-700">
+            ⚠ NEED FIX — {row.errors.join(" • ")}
+          </div>
+        )}
+      </td>
+    </tr>
+
+    <tr
+  id={`bulk-row-${row.dashboardSlNo}`}
+  className="hover:bg-slate-50"
+>
                 <td className="px-3 py-3">
   <input
     type="checkbox"
@@ -3701,43 +4228,10 @@ const todayStr =
     className="h-4 w-4 cursor-pointer"
   />
 </td>
-                  <td className="px-3 py-3 text-slate-500 font-semibold">
-                    {row.rowNumber}
-                  </td>
-                  <td className="px-3 py-3">
-                    {row.isDuplicate ? (
-                      <div className="space-y-1">
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700">
-                          <XCircle className="h-3.5 w-3.5" />
-                          Duplicate
-                        </span>
-
-                        {row.errors.length > 0 && (
-                          <div className="mt-2 min-w-[240px] max-w-[320px] rounded-lg border border-red-200 bg-red-50 px-2.5 py-2 text-[11px] leading-4 text-red-700 whitespace-normal break-words">
-                            {row.errors.join(" • ")}
-                          </div>
-                        )}
-                      </div>
-                    ) : row.isValid ? (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700">
-                        <CheckCircle2 className="h-3.5 w-3.5" />
-                        Complete
-                      </span>
-                    ) : (
-                      <div className="space-y-1">
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700">
-                          <AlertCircle className="h-3.5 w-3.5" />
-                          Need Fix
-                        </span>
-
-                        {row.errors.length > 0 && (
-                          <div className="mt-2 min-w-[240px] max-w-[320px] rounded-lg border border-red-200 bg-red-50 px-2.5 py-2 text-[11px] leading-4 text-red-700 whitespace-normal break-words">
-                            {row.errors.join(" • ")}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </td>
+<td className="px-3 py-3 text-slate-500 font-semibold">
+  {row.dashboardSlNo}
+</td>
+                  
                   <td className="px-3 py-3">
                   <input
                     type="text"
@@ -3781,7 +4275,7 @@ const todayStr =
                     >
                       <option value="">Select Topic</option>
 
-                      {activeCategories.map((category) => (
+                      {latestAdminTopics.map((category) => (
                         <option
                           key={category.id}
                           value={category.name}
@@ -3792,116 +4286,125 @@ const todayStr =
                     </select>
                   </td>
                   <td className="px-3 py-3">
-                    <input
-                      type="date"
-                      min={new Date().toLocaleDateString("en-CA")}
-                      value={row.startDate}
-                      onChange={(e) => {
-                        const today =
-                          new Date().toLocaleDateString("en-CA");
+<input
+  type="date"
+  min={new Date().toLocaleDateString("en-CA")}
+  value={row.startDate}
+  onChange={(e) => {
+    const newStartDate = e.target.value;
 
-                        const newStartDate = e.target.value;
+    setBulkImportedRows((currentRows) => {
+      const updatedRows = currentRows.map(
+        (currentRow) => {
+          if (
+            currentRow.rowNumber !==
+            row.rowNumber
+          ) {
+            return currentRow;
+          }
 
-                        if (
-                          newStartDate &&
-                          newStartDate < today
-                        ) {
-                          showToast(
-                            "Start Date cannot be before today."
-                          );
-                          return;
-                        }
+          return {
+            ...currentRow,
+            startDate: newStartDate,
 
-                        setBulkImportedRows((currentRows) => {
-                          const updatedRows = currentRows.map(
-                            (currentRow) => {
-                              if (
-                                currentRow.rowNumber !==
-                                row.rowNumber
-                              ) {
-                                return currentRow;
-                              }
+            // Once organizer selects a valid date,
+            // remove the old Excel past-date error flag.
+            startDateWasBeforeToday: false,
+          };
+        }
+      );
 
-                              return {
-                                ...currentRow,
-                                startDate: newStartDate,
-
-                                endDate:
-                                  currentRow.endDate &&
-                                  currentRow.endDate < newStartDate
-                                    ? newStartDate
-                                    : currentRow.endDate,
-                              };
-                            }
-                          );
-
-                          return validateBulkConferenceRows(
-                            updatedRows
-                          );
-                        });
-                      }}
-                      className="w-full min-w-[150px] text-sm bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                    />
-                  </td>
+      return validateBulkConferenceRows(
+        updatedRows
+      );
+    });
+  }}
+  className="w-full min-w-[150px] text-sm bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+/>                  
+</td>
                   <td className="px-3 py-3">
-                    <input
-                      type="date"
-                      min={
-                        row.startDate ||
-                        new Date().toLocaleDateString("en-CA")
-                      }
-                      value={row.endDate}
-                      onChange={(e) => {
-                        const today =
-                          new Date().toLocaleDateString("en-CA");
+ <input
+  type="date"
+  min={
+    row.startDate ||
+    new Date().toLocaleDateString("en-CA")
+  }
+  value={row.endDate}
+  onChange={(e) => {
+    const newEndDate = e.target.value;
 
-                        const minimumDate =
-                          row.startDate || today;
+    setBulkImportedRows((currentRows) => {
+      const updatedRows = currentRows.map(
+        (currentRow) => {
+          if (
+            currentRow.rowNumber !==
+            row.rowNumber
+          ) {
+            return currentRow;
+          }
 
-                        if (
-                          e.target.value &&
-                          e.target.value < minimumDate
-                        ) {
-                          showToast(
-                            "End Date cannot be before Start Date."
-                          );
-                          return;
-                        }
+          return {
+            ...currentRow,
+            endDate: newEndDate,
 
-                        updateBulkConferenceRow(
-                          row.rowNumber,
-                          "endDate",
-                          e.target.value
-                        );
-                      }}
-                      className="w-full min-w-[150px] text-sm bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                    />
+            // Clear old Excel date-error flags after organizer edits the date.
+            endDateWasBeforeToday: false,
+            endDateWasBeforeStart: false,
+          };
+        }
+      );
+
+      return validateBulkConferenceRows(
+        updatedRows
+      );
+    });
+  }}
+  className="w-full min-w-[150px] text-sm bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+/>
                   </td>
                   <td className="px-3 py-3">
                   <select
                     value={row.country}
-                    onChange={(e) => {
-                      const newCountry = e.target.value;
-                      void loadBulkCitiesForCountry(
-                        newCountry
-                      );
+                    onChange={async (e) => {
+  const newCountry = e.target.value;
 
-                      setBulkImportedRows((currentRows) => {
-                        const updatedRows = currentRows.map((currentRow) => {
-                          if (currentRow.rowNumber !== row.rowNumber) {
-                            return currentRow;
-                          }
+  const latestCities =
+    await loadBulkCitiesForCountry(
+      newCountry
+    );
 
-                          return {
-                            ...currentRow,
-                            country: newCountry,
-                            city: "",
-                          };
-                        });
+  const normalizedCountry =
+    newCountry.trim().toUpperCase();
 
-                        return validateBulkConferenceRows(updatedRows);
-                      });
-                    }}
+  const freshCityMap = {
+    ...bulkCountryCities,
+    [normalizedCountry]: latestCities,
+  };
+
+  setBulkImportedRows((currentRows) => {
+    const updatedRows = currentRows.map(
+      (currentRow) => {
+        if (
+          currentRow.rowNumber !==
+          row.rowNumber
+        ) {
+          return currentRow;
+        }
+
+        return {
+          ...currentRow,
+          country: newCountry,
+          city: "",
+        };
+      }
+    );
+
+    return validateBulkConferenceRows(
+      updatedRows,
+      freshCityMap
+    );
+  });
+}}
                     className="w-full min-w-[180px] text-sm bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                   >
                     <option value="">Select Country</option>
@@ -4061,7 +4564,12 @@ const todayStr =
                       </button>
                     </td>
                 </tr>
-              ))}
+
+<tr aria-hidden="true">
+  <td colSpan={15} className="h-3 p-0" />
+</tr>
+</React.Fragment>
+))}
             </tbody>
           </table>
         </div>
@@ -4142,10 +4650,10 @@ const todayStr =
                                   <td className="p-4 pr-6 text-right">
                                     <button
                                       onClick={() => startEditConference(conf)}
-                                      className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer flex items-center gap-1 ml-auto text-xs font-semibold"
-                                      title="Edit Conference"
+                                      className="w-full sm:w-auto px-3.5 py-2 sm:py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-1.5 shrink-0"
                                     >
-                                      <Edit2 className="h-4 w-4" /> Edit Details
+                                      <Edit2 className="h-3.5 w-3.5" />
+                                      Edit & Resubmit
                                     </button>
                                   </td>
                                 </tr>
@@ -4395,11 +4903,46 @@ const todayStr =
                                   <p className="text-xs text-slate-500">{conf.category} • {conf.city}, {conf.country}</p>
                                 </div>
                               </div>
-                              <button
-                                onClick={() => startEditConference(conf)}
-                                className="w-full sm:w-auto px-3.5 py-2 sm:py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-1.5 shrink-0">
-                                <Edit2 className="h-3.5 w-3.5" /> Edit & Resubmit
-                              </button>
+                              <div className="w-full sm:w-auto flex flex-col sm:flex-row gap-2 shrink-0">
+                                <button
+                                  onClick={() => startEditConference(conf)}
+                                  className="w-full sm:w-auto px-3.5 py-2 sm:py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                                >
+                                  <Edit2 className="h-3.5 w-3.5" />
+                                  Edit & Resubmit
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    const confirmed = window.confirm(
+                                      `Are you sure you want to permanently delete "${conf.title}"?\n\nThis action cannot be undone.`
+                                    );
+
+                                    if (!confirmed) {
+                                      return;
+                                    }
+
+                                    const result =
+                                      await onDeleteConference?.(conf.id);
+
+                                    if (result?.success) {
+                                      showToast(
+                                        "Rejected conference deleted permanently."
+                                      );
+                                    } else {
+                                      showToast(
+                                        result?.error ||
+                                          "Failed to delete conference."
+                                      );
+                                    }
+                                  }}
+                                  className="w-full sm:w-auto px-3.5 py-2 sm:py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                  Delete
+                                </button>
+                              </div>
                             </div>
 
                             <div className="bg-rose-50/70 border border-rose-100 rounded-xl p-3 sm:p-3.5 text-xs text-rose-900 space-y-1.5 min-w-0">

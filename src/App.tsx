@@ -4300,22 +4300,44 @@ const handleEditCategory = async (
           <div className="hidden md:flex items-center gap-2">
             {authUser ? (
               <>
-                <div className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-full border border-gray-100">
-                  <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center text-xs font-bold">
-                    {authUser.name?.charAt(0) || "U"}
-                  </div>
-                  <span className="text-xs font-medium text-gray-700 max-w-[100px] truncate">
-                    {authUser.name || authUser.email}
-                  </span>
-                  <span className={`text-[8px] font-bold uppercase px-1.5 py-0.5 rounded ${
-                    authUser.role === "ADMIN" 
-                      ? "bg-purple-100 text-purple-700" 
-                      : "bg-blue-100 text-blue-700"
-                  }`}>
-                    {authUser.role}
-                  </span>
-                </div>
+                <button
+              type="button"
+              onClick={() => {
+                if (authUser.role === "ORGANIZER") {
+                  window.history.pushState({}, "", "/organizer-portal");
+                  setActivePortal("ORGANIZER");
+                  setAuthMode("NONE");
+                } else if (authUser.role === "ADMIN") {
+                  window.history.pushState({}, "", "/admin-portal");
+                  setActivePortal("ADMIN");
+                  setAuthMode("NONE");
+                }
+              }}
+              className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-full border border-gray-100 hover:bg-gray-100 transition-colors cursor-pointer"
+              title={
+                authUser.role === "ORGANIZER"
+                  ? "Go to Organizer Dashboard"
+                  : "Go to Admin Dashboard"
+              }
+            >
+              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center text-xs font-bold">
+                {authUser.name?.charAt(0) || "U"}
+              </div>
 
+              <span className="text-xs font-medium text-gray-700 max-w-[100px] truncate">
+                {authUser.name || authUser.email}
+              </span>
+
+              <span
+                className={`text-[8px] font-bold uppercase px-1.5 py-0.5 rounded ${
+                  authUser.role === "ADMIN"
+                    ? "bg-purple-100 text-purple-700"
+                    : "bg-blue-100 text-blue-700"
+                }`}
+              >
+                {authUser.role}
+              </span>
+            </button>
                 {authUser.role === "ADMIN" && (
                   <button
                     onClick={() => setActivePortal("ADMIN")}
@@ -5264,9 +5286,52 @@ const handleEditCategory = async (
       return renderOrganizerDetailPage();
     }
 
-    if (selectedConference && (activePortal === "VISITOR" || !authUser)) {
-      return renderConferenceDetailPage();
-    }
+if (selectedConference && (activePortal === "VISITOR" || !authUser)) {
+  return (
+    <>
+      {renderConferenceDetailPage()}
+
+      <div className="mt-10 sm:mt-12 md:mt-16">
+        <PublicPortal
+          footerOnly
+          conferences={processedConferences}
+          categories={categories}
+          organizers={organizers}
+          banners={banners}
+          bannerContents={bannerContents}
+          userFeedbacks={userFeedbacks}
+          subscriberEmails={subscriberEmails}
+          onUpdateUserFeedbacks={setUserFeedbacks}
+          onUpdateSubscriberEmails={setSubscriberEmails}
+          onAddNotification={addNotification}
+          onRegisterClick={handleRegisterClick}
+          onSelectOrganizer={setSelectedOrganizerId}
+          onSelectConference={handleSelectConference}
+          onLoginClick={() => {
+            setAuthError("");
+            setAuthMode("LOGIN");
+          }}
+          onSignUpClick={() => {
+            setAuthError("");
+            setAuthMode("SIGNUP");
+          }}
+          currentTab={publicTab}
+          onTabChange={handleNavClick}
+          selectedCategory={selectedCategory}
+          onCategoryChange={setSelectedCategory}
+          selectedCountry={selectedCountry}
+          onCountryChange={setSelectedCountry}
+          selectedCity={selectedCity}
+          onCityChange={setSelectedCity}
+          countriesList={countriesList}
+          citiesList={citiesList}
+          inactiveCountries={inactiveCountries}
+          inactiveCities={inactiveCities}
+        />
+      </div>
+    </>
+  );
+}
 
     if (activePortal === "VISITOR" || !authUser) {
       return (

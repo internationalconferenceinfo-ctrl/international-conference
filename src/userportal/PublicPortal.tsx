@@ -72,6 +72,7 @@ interface PublicPortalProps {
   inactiveCities?: string[];
   inactiveTopics?: string[];
   onAddNotification?: (title: string, message: string, type: "success" | "warning" | "info" | "error", orgId: string, relatedConferenceId?: string, notificationType?: string) => void;
+  footerOnly?: boolean;
 }
 
 const TESTIMONIALS: any[] = [];
@@ -141,7 +142,8 @@ export default function PublicPortal({
   inactiveCountries = [],
   inactiveCities = [],
   inactiveTopics = [],
-  onAddNotification,
+onAddNotification,
+footerOnly = false,
 }: PublicPortalProps) {
   const tab = currentTab || "HOME";
   const [searchTerm, setSearchTerm] = useState("");
@@ -1961,7 +1963,11 @@ const handleNewsletterSubmit = async (e: React.FormEvent) => {
 }; 
 
   return (
-    <div className="space-y-10 sm:space-y-12 md:space-y-16 lg:space-y-20 w-full min-w-0">
+    <div
+  className={`space-y-10 sm:space-y-12 md:space-y-16 lg:space-y-20 w-full min-w-0 ${
+    footerOnly ? "[&>*:not(footer)]:hidden" : ""
+  }`}
+>
       
       {tab === "HOME" && (
         <>
