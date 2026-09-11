@@ -4431,7 +4431,7 @@ const handleNewsletterSubmit = async (e: React.FormEvent) => {
 
       {/* Footer Section */}
         {tab !== "NOT_FOUND" && (
-        <footer className="bg-[#37494E] text-slate-300 border-t border-[#2b3a3e] p-4 sm:p-6 md:p-8 lg:p-12 space-y-8 sm:space-y-10 relative z-10 overflow-hidden min-w-0 w-screen ml-[calc(50%-50vw)]">
+<footer className="bg-[#37494E] text-slate-300 border-t border-[#2b3a3e] p-4 sm:p-6 md:p-8 lg:p-12 space-y-8 sm:space-y-10 relative z-10 overflow-hidden min-w-0 w-screen ml-[calc(50%-50vw)] -mb-10 sm:-mb-12 md:-mb-16 lg:-mb-20">
         {/* 5-Column Grid Layout: Logo, Quick Links, Contact Info, Follow Us, Newsletter */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 sm:gap-8">
           
