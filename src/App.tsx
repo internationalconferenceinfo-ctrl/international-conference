@@ -142,6 +142,72 @@ export const PinterestIcon = ({ className = "h-4 w-4" }: { className?: string })
 );
 
 export default function App() {
+
+  // Keep canonical URL synchronized with every SPA navigation
+useEffect(() => {
+  const canonicalOrigin = "https://www.internationalconference.info";
+
+  const updateCanonicalUrl = () => {
+    const pathname =
+      window.location.pathname === "/"
+        ? "/"
+        : window.location.pathname.replace(/\/+$/, "");
+
+    const canonicalUrl =
+      pathname === "/"
+        ? `${canonicalOrigin}/`
+        : `${canonicalOrigin}${pathname}`;
+
+    let canonicalLink = document.querySelector(
+      'link[rel="canonical"]'
+    ) as HTMLLinkElement | null;
+
+    if (!canonicalLink) {
+      canonicalLink = document.createElement("link");
+      canonicalLink.setAttribute("rel", "canonical");
+      document.head.appendChild(canonicalLink);
+    }
+
+    canonicalLink.setAttribute("href", canonicalUrl);
+  };
+
+  const originalPushState = window.history.pushState;
+  const originalReplaceState = window.history.replaceState;
+
+  window.history.pushState = function (
+    data: any,
+    unused: string,
+    url?: string | URL | null
+  ) {
+    originalPushState.call(window.history, data, unused, url);
+    updateCanonicalUrl();
+  };
+
+  window.history.replaceState = function (
+    data: any,
+    unused: string,
+    url?: string | URL | null
+  ) {
+    originalReplaceState.call(window.history, data, unused, url);
+    updateCanonicalUrl();
+  };
+
+  const handlePopState = () => {
+    updateCanonicalUrl();
+  };
+
+  window.addEventListener("popstate", handlePopState);
+
+  // Set correct canonical immediately on first render
+  updateCanonicalUrl();
+
+  return () => {
+    window.history.pushState = originalPushState;
+    window.history.replaceState = originalReplaceState;
+    window.removeEventListener("popstate", handlePopState);
+  };
+}, []);
+
   // App State - Supabase is the sole authoritative source of truth (no localStorage persistence)
   const [conferences, setConferences] = useState<Conference[]>([]);
 
