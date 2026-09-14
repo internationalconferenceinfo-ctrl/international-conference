@@ -1485,6 +1485,29 @@ useEffect(() => {
     if (!metaDesc) {
       metaDesc = document.createElement("meta");
       metaDesc.setAttribute("name", "description");
+
+      // Set canonical URL for the current public route
+const canonicalOrigin = "https://www.internationalconference.info";
+
+const cleanCanonicalPath =
+  window.location.pathname === "/"
+    ? "/"
+    : window.location.pathname.replace(/\/+$/, "");
+
+const canonicalUrl = `${canonicalOrigin}${cleanCanonicalPath}`;
+
+let canonicalLink = document.querySelector(
+  'link[rel="canonical"]'
+) as HTMLLinkElement | null;
+
+if (!canonicalLink) {
+  canonicalLink = document.createElement("link");
+  canonicalLink.setAttribute("rel", "canonical");
+  document.head.appendChild(canonicalLink);
+}
+
+canonicalLink.setAttribute("href", canonicalUrl);
+
       document.head.appendChild(metaDesc);
     }
     metaDesc.setAttribute("content", description);

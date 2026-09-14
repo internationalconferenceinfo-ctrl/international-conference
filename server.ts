@@ -93,6 +93,38 @@ function injectSeoMetadata(
   return output;
 }
 
+function injectCanonicalUrl(
+  html: string,
+  pathname: string
+): string {
+  const canonicalOrigin = "https://www.internationalconference.info";
+
+  const cleanPath =
+    "/" +
+    String(pathname || "/")
+      .split("?")[0]
+      .replace(/^\/+|\/+$/g, "");
+
+  const canonicalUrl =
+    cleanPath === "/"
+      ? `${canonicalOrigin}/`
+      : `${canonicalOrigin}${cleanPath}`;
+
+  const safeCanonicalUrl = escapeHtmlAttribute(canonicalUrl);
+
+  if (/<link\s+[^>]*rel=["']canonical["'][^>]*>/i.test(html)) {
+    return html.replace(
+      /<link\s+[^>]*rel=["']canonical["'][^>]*>/i,
+      `<link rel="canonical" href="${safeCanonicalUrl}" />`
+    );
+  }
+
+  return html.replace(
+    "</head>",
+    `<link rel="canonical" href="${safeCanonicalUrl}" />\n</head>`
+  );
+}
+
 async function getSeoMetadataForPath(
   pathname: string
 ): Promise<SeoMetadata | null> {
@@ -4158,6 +4190,8 @@ const setupProductionFrontend = () => {
           `international conferences worldwide ${currentYear}`
         );
       }
+
+      html = injectCanonicalUrl(html, req.path);
 
       res.setHeader("Content-Type", "text/html");
       res.setHeader("Cache-Control", "no-cache");
