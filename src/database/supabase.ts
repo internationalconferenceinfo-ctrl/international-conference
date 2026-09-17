@@ -428,7 +428,7 @@ const normalizeConferenceStatus = (value: any): string => {
 function normalizeFromTable(table: string, data: any): any {
   if (!Array.isArray(data)) return data;
 
-  if (table === "conferences") {
+  if (table === "conferences" || table === "conferences_public") {
     return data.map((row: any) => ({
       id: row.id,
       title: row.title || "",
@@ -1626,6 +1626,8 @@ export async function fetchCitiesByCountryFromSupabase(
 
   const normalizedCountry =
     country.trim().toUpperCase();
+
+
 
   const PAGE_SIZE = 500;
   const allRows: any[] = [];
