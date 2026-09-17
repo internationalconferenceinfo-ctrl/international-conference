@@ -7,9 +7,11 @@ import {
 } from "./shared/utils/conferenceDuplicateUtils";
 import { 
   saveToSupabase, 
-  fetchFromSupabase,
-  fetchCityBySlugFromSupabase,
-  fetchAllCountriesFromSupabase,
+fetchFromSupabase,
+fetchPaginatedConferencesFromSupabase,
+fetchCityBySlugFromSupabase,
+fetchPublicConferenceBySlugOrIdFromSupabase,
+fetchAllCountriesFromSupabase,
   fetchCitiesByCountryFromSupabase,
   deleteFromSupabase, 
   saveRecordToSupabase, 
@@ -435,11 +437,6 @@ const needsAdminData = sessionRole === "ADMIN";
 const needsPrivateNotifications =
   sessionRole === "ADMIN" || sessionRole === "ORGANIZER";
 
-const conferenceReadSource =
-  sessionRole === "VISITOR"
-    ? "conferences_public"
-    : "conferences";
-
       // Resolve route-critical data first. Conference detail URLs should not
       // wait for banners, feedback, locations, subscribers, or audit tables.
 const [
@@ -448,11 +445,19 @@ const [
   routeCategories,
   routeCountries,
 ] = await Promise.all([
-    fetchFromSupabase<Conference[]>(
-      conferenceReadSource,
+sessionRole === "VISITOR"
+  ? fetchPaginatedConferencesFromSupabase({
+      page: 1,
+      pageSize: 100,
+      onlyApproved: true
+    }).then(
+      (result) =>
+        (result?.data || []) as Conference[]
+    )
+  : fetchFromSupabase<Conference[]>(
+      "conferences",
       needsAdminData
     ),
-
 fetchOrganizersForRole(
   sessionRole,
   needsAdminData
@@ -520,10 +525,12 @@ setInitialDataLoaded(true);
         auditData,
         notifData
 ] = await Promise.all([
-  fetchFromSupabase<Conference[]>(
-    conferenceReadSource,
-    needsAdminData
-  ),
+sessionRole === "VISITOR"
+  ? Promise.resolve(null)
+  : fetchFromSupabase<Conference[]>(
+      "conferences",
+      needsAdminData
+    ),
   fetchFromSupabase<Category[]>(
     "categories",
     needsAdminData
@@ -1492,12 +1499,19 @@ const parseURLAndApplyState = (
   // URL state synchronization effect
   useEffect(() => {
     if (!hasParsedInitialUrl.current && initialDataLoaded) {
-      const initialSegments = decodeURIComponent(initialPathRef.current.split("?")[0])
+const initialSegments = decodeURIComponent(initialPathRef.current.split("?")[0])
   .toLowerCase()
   .trim()
   .replace(/^\/+|\/+$/g, "")
   .split("/")
   .filter(Boolean);
+
+const firstSegment = initialSegments[0] || "";
+
+const directConferenceSlug =
+  ["conference", "conferences", "events"].includes(firstSegment)
+    ? initialSegments[1] || ""
+    : "";
 
 const routeCountry = initialSegments
   .map((segment) => matchCountryOrCity(segment))
@@ -1505,6 +1519,39 @@ const routeCountry = initialSegments
 
 const resolveInitialDirectoryRoute = async () => {
   try {
+    // Direct conference detail route:
+    // /conference/slug
+    // /conferences/slug
+    // /events/slug
+    if (directConferenceSlug) {
+      const directConference =
+        await fetchPublicConferenceBySlugOrIdFromSupabase(
+          directConferenceSlug
+        );
+
+      if (directConference) {
+        const targetedConferences: Conference[] = [
+          directConference as Conference
+        ];
+
+        setConferences((prev) => [
+          directConference as Conference,
+          ...prev.filter(
+            (conference) =>
+              conference.id !== directConference.id
+          )
+        ]);
+
+        parseURLAndApplyState(
+          targetedConferences,
+          organizers,
+          initialPathRef.current
+        );
+
+        return;
+      }
+    }
+
     // COUNTRY / COUNTRY + CITY / COUNTRY + TOPIC
     if (routeCountry?.name) {
       const loadedCities =
@@ -1519,9 +1566,6 @@ const resolveInitialDirectoryRoute = async () => {
 
       return;
     }
-
-    const firstSegment =
-      initialSegments[0] || "";
 
     const reservedRoutes = new Set([
       "home",

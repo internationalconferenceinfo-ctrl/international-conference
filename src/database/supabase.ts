@@ -1794,7 +1794,9 @@ export async function fetchPaginatedConferencesFromSupabase(params: {
     const from = (Math.max(1, page) - 1) * limit;
     const to = from + limit - 1;
 
-    let query = client.from("conferences").select("*", { count: "exact" });
+let query = client
+  .from("conferences_public")
+  .select("*", { count: "exact" });
 
     if (onlyApproved) {
       query = query.or("status.eq.Approved,status.eq.Verified");
@@ -1845,13 +1847,96 @@ export async function fetchPaginatedConferencesFromSupabase(params: {
       return null;
     }
 
-    const normalized = normalizeFromTable("conferences", data || []);
+const normalized = normalizeFromTable(
+  "conferences_public",
+  data || []
+);
     return {
       data: normalized,
       total: count !== null && count !== undefined ? count : (normalized.length || 0)
     };
   } catch (err) {
     console.warn("[Supabase Paginated Query Error]:", err);
+    return null;
+  }
+}
+
+/**
+ * Fetch one approved public conference directly by slug or ID.
+ * This avoids downloading the complete conferences table
+ * when a visitor opens a conference details URL.
+ */
+export async function fetchPublicConferenceBySlugOrIdFromSupabase(
+  slugOrId: string
+): Promise<any | null> {
+  const client = getSupabaseClient();
+
+  const target = String(slugOrId || "").trim();
+
+  if (!client || !target) {
+    return null;
+  }
+
+  try {
+    // First try the public SEO slug.
+    const { data: slugRows, error: slugError } =
+      await client
+        .from("conferences_public")
+        .select("*")
+        .ilike("slug", target)
+        .limit(1);
+
+    if (slugError) {
+      console.error(
+        `[Public Conference Slug Lookup Error] ${target}:`,
+        slugError
+      );
+    }
+
+    if (Array.isArray(slugRows) && slugRows.length > 0) {
+      const normalized = normalizeFromTable(
+        "conferences_public",
+        slugRows
+      );
+
+      return Array.isArray(normalized)
+        ? normalized[0] || null
+        : null;
+    }
+
+    // Legacy/direct ID URL fallback.
+    const { data: idRows, error: idError } =
+      await client
+        .from("conferences_public")
+        .select("*")
+        .eq("id", target)
+        .limit(1);
+
+    if (idError) {
+      console.error(
+        `[Public Conference ID Lookup Error] ${target}:`,
+        idError
+      );
+    }
+
+    if (Array.isArray(idRows) && idRows.length > 0) {
+      const normalized = normalizeFromTable(
+        "conferences_public",
+        idRows
+      );
+
+      return Array.isArray(normalized)
+        ? normalized[0] || null
+        : null;
+    }
+
+    return null;
+  } catch (error) {
+    console.error(
+      `[Public Conference Lookup Error] ${target}:`,
+      error
+    );
+
     return null;
   }
 }
