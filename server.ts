@@ -1184,6 +1184,52 @@ async function serverConferenceExistsBySlugOrId(
   );
 }
 
+async function getServerCanonicalConferenceSlug(
+  value: string
+): Promise<string | null> {
+  const target = String(value || "").trim();
+
+  if (!target) return null;
+
+  const isVisible = (row: any) =>
+    String(row?.status || "").trim().toLowerCase() === "approved" &&
+    row?.is_deactivated !== true;
+
+  const { data: slugRows, error: slugError } =
+    await supabaseServerClient
+      .from("conferences")
+      .select("id,slug,status,is_deactivated")
+      .ilike("slug", target)
+      .limit(1);
+
+  const slugMatch =
+    !slugError && Array.isArray(slugRows)
+      ? slugRows.find(isVisible)
+      : null;
+
+  if (slugMatch?.slug) {
+    return String(slugMatch.slug).trim();
+  }
+
+  const { data: idRows, error: idError } =
+    await supabaseServerClient
+      .from("conferences")
+      .select("id,slug,status,is_deactivated")
+      .eq("id", target)
+      .limit(1);
+
+  const idMatch =
+    !idError && Array.isArray(idRows)
+      ? idRows.find(isVisible)
+      : null;
+
+  if (idMatch?.slug) {
+    return String(idMatch.slug).trim();
+  }
+
+  return null;
+}
+
 async function serverOrganizerExistsBySlugOrId(
   value: string
 ): Promise<boolean> {
@@ -4486,6 +4532,43 @@ const setupProductionFrontend = () => {
 
   app.get("*", async (req, res) => {
     try {
+
+            const routeSegments = String(req.path || "/")
+        .toLowerCase()
+        .replace(/^\/+|\/+$/g, "")
+        .split("/")
+        .filter(Boolean);
+
+      if (
+        routeSegments.length === 2 &&
+        ["conference", "conferences", "events"].includes(
+          routeSegments[0]
+        )
+      ) {
+        const canonicalSlug =
+          await getServerCanonicalConferenceSlug(
+            routeSegments[1]
+          );
+
+        if (canonicalSlug) {
+          const canonicalPath =
+            `/conference/${canonicalSlug}`;
+
+          const currentPath =
+            req.path.replace(/\/+$/, "") || "/";
+
+          if (
+            currentPath.toLowerCase() !==
+            canonicalPath.toLowerCase()
+          ) {
+            return res.redirect(
+              301,
+              canonicalPath
+            );
+          }
+        }
+      }
+      
       const indexPath = path.join(distPath, "index.html");
 
       let html = await fs.readFile(indexPath, "utf-8");
