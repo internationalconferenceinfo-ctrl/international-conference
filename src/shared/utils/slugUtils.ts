@@ -85,6 +85,12 @@ export const ensureConferenceSlugs = (conferencesList: Conference[]): Conference
 };
 
 export const getConferenceSlug = (conf: Conference, allConferences?: Conference[]): string => {
+    const savedSlug = String(conf.slug || "").trim();
+
+  if (savedSlug) {
+    return savedSlug;
+  }
+  
   if (allConferences && allConferences.length > 0) {
     // Public URLs are allocated only among approved conferences. A pending,
     // rejected or draft duplicate must not add a numeric suffix to a live URL.
