@@ -352,45 +352,18 @@ if (
 ) {
   const organizerSlug = segments[1];
 
-  const organizerRows: any[] = [];
-let error: any = null;
+const {
+  data: organizerRows,
+  error
+} = await supabaseServerClient
+  .from("organizers")
+  .select(
+    "slug,name,about_organization,country,city,is_suspended"
+  )
+  .ilike("slug", organizerSlug)
+  .limit(1);
 
-const SEO_ORGANIZER_PAGE_SIZE = 1000;
-let seoOrganizerFrom = 0;
 
-while (true) {
-  const {
-    data: organizerPage,
-    error: organizerPageError
-  } = await supabaseServerClient
-    .from("organizers")
-    .select(
-      "slug,name,about_organization,country,city,is_suspended"
-    )
-    .range(
-      seoOrganizerFrom,
-      seoOrganizerFrom +
-        SEO_ORGANIZER_PAGE_SIZE -
-        1
-    );
-
-  if (organizerPageError) {
-    error = organizerPageError;
-    break;
-  }
-
-  const rows = Array.isArray(organizerPage)
-    ? organizerPage
-    : [];
-
-  organizerRows.push(...rows);
-
-  if (rows.length < SEO_ORGANIZER_PAGE_SIZE) {
-    break;
-  }
-
-  seoOrganizerFrom += rows.length;
-}
 
   if (!error && Array.isArray(organizerRows)) {
     const organizer = organizerRows.find((item: any) => {
@@ -742,45 +715,54 @@ const conferences = [
   if (segments.length === 1) {
     const slug = segments[0];
 
-  const conferences: any[] = [];
-let error: any = null;
+const searchValue = slug.replace(/-/g, " ");
 
-const SEO_SINGLE_SLUG_PAGE_SIZE = 1000;
-let seoSingleSlugFrom = 0;
-
-while (true) {
-  const {
-    data: conferencePage,
-    error: conferencePageError
-  } = await supabaseServerClient
+const [
+  countryResult,
+  cityResult,
+  topicResult
+] = await Promise.all([
+  supabaseServerClient
     .from("conferences")
     .select(
       "category,country,city,status,is_deactivated"
     )
-    .range(
-      seoSingleSlugFrom,
-      seoSingleSlugFrom +
-        SEO_SINGLE_SLUG_PAGE_SIZE -
-        1
-    );
+    .eq("status", "Approved")
+    .or("is_deactivated.is.null,is_deactivated.eq.false")
+    .ilike("country", searchValue)
+    .limit(25),
 
-  if (conferencePageError) {
-    error = conferencePageError;
-    break;
-  }
+  supabaseServerClient
+    .from("conferences")
+    .select(
+      "category,country,city,status,is_deactivated"
+    )
+    .eq("status", "Approved")
+    .or("is_deactivated.is.null,is_deactivated.eq.false")
+    .ilike("city", searchValue)
+    .limit(25),
 
-  const rows = Array.isArray(conferencePage)
-    ? conferencePage
-    : [];
+  supabaseServerClient
+    .from("conferences")
+    .select(
+      "category,country,city,status,is_deactivated"
+    )
+    .eq("status", "Approved")
+    .or("is_deactivated.is.null,is_deactivated.eq.false")
+    .ilike("category", searchValue)
+    .limit(25),
+]);
 
-  conferences.push(...rows);
+const error =
+  countryResult.error ||
+  cityResult.error ||
+  topicResult.error;
 
-  if (rows.length < SEO_SINGLE_SLUG_PAGE_SIZE) {
-    break;
-  }
-
-  seoSingleSlugFrom += rows.length;
-}
+const conferences = [
+  ...(countryResult.data || []),
+  ...(cityResult.data || []),
+  ...(topicResult.data || []),
+];
 
     if (!error && Array.isArray(conferences)) {
       const visibleConferences = conferences.filter((conference: any) => {
