@@ -7,8 +7,11 @@ import {
 } from "./shared/utils/conferenceDuplicateUtils";
 import { 
   saveToSupabase, 
-  fetchFromSupabase,
-  fetchAllCountriesFromSupabase,
+fetchFromSupabase,
+fetchPaginatedConferencesFromSupabase,
+fetchCityBySlugFromSupabase,
+fetchPublicConferenceBySlugOrIdFromSupabase,
+fetchAllCountriesFromSupabase,
   fetchCitiesByCountryFromSupabase,
   deleteFromSupabase, 
   saveRecordToSupabase, 
@@ -57,7 +60,7 @@ const PortalLoading = () => (
   <div className="min-h-[60vh] flex items-center justify-center bg-slate-50" role="status" aria-live="polite">
     <div className="flex flex-col items-center gap-3 text-slate-600">
       <div className="h-9 w-9 rounded-full border-4 border-slate-200 border-t-[#37494E] animate-spin" />
-      <span className="text-sm font-semibold">Loading portal…</span>
+      <span className="text-sm font-semibold">Loading portalâ€¦</span>
     </div>
   </div>
 );
@@ -434,17 +437,25 @@ const needsAdminData = sessionRole === "ADMIN";
 const needsPrivateNotifications =
   sessionRole === "ADMIN" || sessionRole === "ORGANIZER";
 
-const conferenceReadSource =
-  sessionRole === "VISITOR"
-    ? "conferences_public"
-    : "conferences";
-
       // Resolve route-critical data first. Conference detail URLs should not
       // wait for banners, feedback, locations, subscribers, or audit tables.
-const [routeConferences, routeOrganizers, routeCategories] =
-  await Promise.all([
-    fetchFromSupabase<Conference[]>(
-      conferenceReadSource,
+const [
+  routeConferences,
+  routeOrganizers,
+  routeCategories,
+  routeCountries,
+] = await Promise.all([
+sessionRole === "VISITOR"
+  ? fetchPaginatedConferencesFromSupabase({
+      page: 1,
+      pageSize: 100,
+      onlyApproved: true
+    }).then(
+      (result) =>
+        (result?.data || []) as Conference[]
+    )
+  : fetchFromSupabase<Conference[]>(
+      "conferences",
       needsAdminData
     ),
 fetchOrganizersForRole(
@@ -455,6 +466,7 @@ fetchOrganizersForRole(
       "categories",
       needsAdminData
     ),
+    fetchAllCountriesFromSupabase(),
   ]);
 
       if (Array.isArray(routeConferences)) {
@@ -483,6 +495,19 @@ if (Array.isArray(routeOrganizers)) {
   setOrganizers(ensureOrganizerSlugs(routeOrganizers));
 }
 
+if (Array.isArray(routeCountries)) {
+  setCountriesList(
+    Array.from(
+      new Set(
+        routeCountries
+          .map((country) => String(country || "").trim().toUpperCase())
+          .filter(Boolean)
+      )
+    )
+  );
+}
+
+
 setInitialDataLoaded(true);
 
       const [
@@ -500,10 +525,12 @@ setInitialDataLoaded(true);
         auditData,
         notifData
 ] = await Promise.all([
-  fetchFromSupabase<Conference[]>(
-    conferenceReadSource,
-    needsAdminData
-  ),
+sessionRole === "VISITOR"
+  ? Promise.resolve(null)
+  : fetchFromSupabase<Conference[]>(
+      "conferences",
+      needsAdminData
+    ),
   fetchFromSupabase<Category[]>(
     "categories",
     needsAdminData
@@ -1472,38 +1499,168 @@ const parseURLAndApplyState = (
   // URL state synchronization effect
   useEffect(() => {
     if (!hasParsedInitialUrl.current && initialDataLoaded) {
-      const initialSegments = decodeURIComponent(initialPathRef.current.split("?")[0])
+const initialSegments = decodeURIComponent(initialPathRef.current.split("?")[0])
   .toLowerCase()
   .trim()
   .replace(/^\/+|\/+$/g, "")
   .split("/")
   .filter(Boolean);
 
+const firstSegment = initialSegments[0] || "";
+
+const directConferenceSlug =
+  ["conference", "conferences", "events"].includes(firstSegment)
+    ? initialSegments[1] || ""
+    : "";
+
 const routeCountry = initialSegments
   .map((segment) => matchCountryOrCity(segment))
   .find((location) => location?.type === "country");
-if (routeCountry?.name) {
-  void loadCitiesForCountry(routeCountry.name).then((loadedCities) => {
+
+const resolveInitialDirectoryRoute = async () => {
+  try {
+    // Direct conference detail route:
+    // /conference/slug
+    // /conferences/slug
+    // /events/slug
+    if (directConferenceSlug) {
+      const directConference =
+        await fetchPublicConferenceBySlugOrIdFromSupabase(
+          directConferenceSlug
+        );
+
+      if (directConference) {
+        const targetedConferences: Conference[] = [
+          directConference as Conference
+        ];
+
+        setConferences((prev) => [
+          directConference as Conference,
+          ...prev.filter(
+            (conference) =>
+              conference.id !== directConference.id
+          )
+        ]);
+
+        parseURLAndApplyState(
+          targetedConferences,
+          organizers,
+          initialPathRef.current
+        );
+
+        return;
+      }
+    }
+
+    // COUNTRY / COUNTRY + CITY / COUNTRY + TOPIC
+    if (routeCountry?.name) {
+      const loadedCities =
+        await loadCitiesForCountry(routeCountry.name);
+
+      parseURLAndApplyState(
+        conferences,
+        organizers,
+        initialPathRef.current,
+        loadedCities
+      );
+
+      return;
+    }
+
+    const reservedRoutes = new Set([
+      "home",
+      "about",
+      "about-us",
+      "about_us",
+      "media-partner",
+      "event-media-partner",
+      "media",
+      "associates",
+      "our-associates",
+      "contact",
+      "contact-us",
+      "contact_us",
+      "privacy",
+      "privacy-policy",
+      "privacy_policy",
+      "terms",
+      "terms-of-service",
+      "terms_of_service",
+      "feedback",
+      "feedbacks",
+      "testimonials",
+      "testimonial",
+      "reviews",
+      "login",
+      "signup",
+      "sign-up",
+      "register",
+      "organizer-portal",
+      "admin-portal",
+      "organizers",
+      "organizer",
+      "conference",
+      "conferences",
+      "events"
+    ]);
+
+    // CITY / CITY + TOPIC / TOPIC + CITY
+    if (!reservedRoutes.has(firstSegment)) {
+      const possibleCitySegments =
+        initialSegments.filter(
+          (segment) =>
+            segment &&
+            !matchCategory(segment)
+        );
+
+      let foundCity:
+        | {
+            name: string;
+            country: string;
+            timeZone: string;
+          }
+        | null = null;
+
+      for (const segment of possibleCitySegments) {
+        foundCity =
+          await fetchCityBySlugFromSupabase(
+            segment
+          );
+
+        if (foundCity) {
+          break;
+        }
+      }
+
+      if (foundCity) {
+        const loadedCities =
+          await loadCitiesForCountry(
+            foundCity.country
+          );
+
+        parseURLAndApplyState(
+          conferences,
+          organizers,
+          initialPathRef.current,
+          loadedCities
+        );
+
+        return;
+      }
+    }
+
     parseURLAndApplyState(
       conferences,
       organizers,
-      initialPathRef.current,
-      loadedCities
+      initialPathRef.current
     );
-
+  } finally {
     hasParsedInitialUrl.current = true;
     setInitialRouteResolved(true);
-  });
-} else {
-  parseURLAndApplyState(
-    conferences,
-    organizers,
-    initialPathRef.current
-  );
+  }
+};
 
-  hasParsedInitialUrl.current = true;
-  setInitialRouteResolved(true);
-}
+void resolveInitialDirectoryRoute();
     }
     
     const handlePopState = () => {
@@ -1937,7 +2094,7 @@ canonicalLink.setAttribute("href", canonicalUrl);
           window.history.pushState({ auth: "NONE", portal: "ORGANIZER" }, "", "/organizer-portal");
         }
         addNotification(
-          "Welcome to International Conference! 🎉",
+          "Welcome to International Conference! ðŸŽ‰",
           "Please complete your organizer profile to start submitting conferences.",
           "info",
           sbUser.id
@@ -2582,13 +2739,13 @@ try {
 
     if (finalOrg.organizationName) {
       addNotification(
-        "Profile Submitted to Admin Portal! ⏳",
+        "Profile Submitted to Admin Portal! â³",
         "Your organizer profile setup is complete and has been sent to the Admin Portal for review and activation.",
         "info",
         finalOrg.id
       );
       addNotification(
-        "New Organizer Registration 👤",
+        "New Organizer Registration ðŸ‘¤",
         `Organizer '${finalOrg.organizationName}' (${finalOrg.email}) submitted profile setup for activation.`,
         "info",
         "ADMIN",
@@ -2775,13 +2932,13 @@ if (exactDuplicate) {
 
     if (!isDraft && (orgId || authUser?.organizerId)) {
       addNotification(
-        "Submission Received 📬",
+        "Submission Received ðŸ“¬",
         `Your conference '${conferenceItem.title}' has been submitted for review.`,
         "info",
         orgId || authUser?.organizerId || ""
       );
       addNotification(
-        "New Conference Submitted 📝",
+        "New Conference Submitted ðŸ“",
         `Conference '${conferenceItem.title}' was submitted for review by ${orgName}.`,
         "info",
         "ADMIN",
@@ -2849,14 +3006,14 @@ if (exactDuplicate) {
 
     if (orgId) {
       addNotification(
-        "Resubmission Received 📬",
+        "Resubmission Received ðŸ“¬",
         `Your conference '${titleForSlug}' has been resubmitted for admin review.`,
         "info",
         orgId
       );
     }
     addNotification(
-      "Conference Edited 📝",
+      "Conference Edited ðŸ“",
       `Conference '${titleForSlug}' was updated and resubmitted for review by ${orgName}.`,
       "info",
       "ADMIN",
@@ -3046,7 +3203,7 @@ if (exactDuplicate) {
     authUser?.role === "ADMIN"
   ) {
     addNotification(
-      "Conference Deleted 🗑️",
+      "Conference Deleted ðŸ—‘ï¸",
       `Your conference '${conf.title}' was deleted by Admin.`,
       "warning",
       conf.organizerId
@@ -3220,7 +3377,7 @@ const handleDeleteDraft = async (
   triggerBroadcastSync();
 
   addNotification(
-    "Conference Approved! 🎉",
+    "Conference Approved! ðŸŽ‰",
     `Your conference '${conf.title}' has been published.`,
     "success",
     conf.organizerId
@@ -3526,7 +3683,7 @@ const handleToggleVerifyConference = async (
 
       if (nextState) {
         addNotification(
-          "Account Verified ✅",
+          "Account Verified âœ…",
           "Your organization has been verified!",
           "success",
           orgId
@@ -3569,14 +3726,14 @@ const handleToggleVerifyConference = async (
 
     if (nextSuspended) {
       addNotification(
-        "Account Status Updated ⚠️",
+        "Account Status Updated âš ï¸",
         "Your organizer profile activation was changed to suspended.",
         "warning",
         orgId
       );
     } else {
       addNotification(
-        "Account Approved & Activated 🎉",
+        "Account Approved & Activated ðŸŽ‰",
         "Your organizer account has been approved and activated by Admin!",
         "success",
         orgId
@@ -4306,7 +4463,7 @@ const handleEditCategory = async (
               <input
                 type={showAuthPassword ? "text" : "password"}
                 required
-                placeholder="••••••••"
+                placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
                 value={authPassword}
                 onChange={(e) => setAuthPassword(e.target.value)}
                 className="w-full text-sm bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 pr-12 text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
@@ -4363,7 +4520,7 @@ const handleEditCategory = async (
               </button>
             </div>
                 <p className="text-[11px] text-gray-400">
-                  🔒 Save these six digits safely. They are required to recover a forgotten password, and the PIN itself is never stored.
+                  ðŸ”’ Save these six digits safely. They are required to recover a forgotten password, and the PIN itself is never stored.
                 </p>
               </div>
             )}
@@ -4472,7 +4629,7 @@ const handleEditCategory = async (
 
             {isSignup && (
               <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-xs text-blue-700">
-                <p>📌 You're signing up as an <strong>Organizer</strong>. After registration, you'll complete your profile and start submitting conferences.</p>
+                <p>ðŸ“Œ You're signing up as an <strong>Organizer</strong>. After registration, you'll complete your profile and start submitting conferences.</p>
               </div>
             )}
 
@@ -4485,7 +4642,7 @@ const handleEditCategory = async (
 
             {authError && (
               <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl p-3 flex items-start gap-2">
-                <span className="text-red-500 text-lg leading-none">⚠</span>
+                <span className="text-red-500 text-lg leading-none">âš </span>
                 <span>{authError}</span>
               </div>
             )}
@@ -5155,7 +5312,7 @@ const handleEditCategory = async (
                       )}
 
                       <span className="text-[11px] text-slate-500 block font-medium pt-1 mt-auto">
-                        📍 {sc.city}, {sc.country}
+                        ðŸ“ {sc.city}, {sc.country}
                       </span>
                     </div>
                   </a>

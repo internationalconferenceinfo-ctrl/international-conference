@@ -2,8 +2,9 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   saveToSupabase,
-  fetchFromSupabase,
-  fetchCitiesByCountryFromSupabase,
+fetchFromSupabase,
+fetchPaginatedConferencesFromSupabase,
+fetchCitiesByCountryFromSupabase,
   subscribeToSupabase,
   saveRecordToSupabase
 } from "../database/supabase";
@@ -534,6 +535,14 @@ useEffect(() => {
   const [selectedLiveStatus, setSelectedLiveStatus] = useState<string>("All");
   const [sortBy, setSortBy] = useState<"Upcoming" | "Newest" | "Latest">("Upcoming");
   const [currentPage, setCurrentPage] = useState(1);
+  const [serverConferenceRows, setServerConferenceRows] =
+  useState<Conference[]>([]);
+
+const [serverConferenceTotal, setServerConferenceTotal] =
+  useState(0);
+
+const [serverConferenceLoaded, setServerConferenceLoaded] =
+  useState(false);
   const [mediaPartnerPage, setMediaPartnerPage] = useState(1);
   const [associatesPage, setAssociatesPage] = useState(1);
   const [feedbackPage, setFeedbackPage] = useState(1);
@@ -1190,6 +1199,56 @@ const allFilterCities = useMemo(() => {
     "Education & EdTech": "Education",
     "Environmental Science & Sustainability": "Environmental Science",
   };
+  useEffect(() => {
+  if (tab !== "EVENTS") return;
+
+  let cancelled = false;
+
+  setServerConferenceLoaded(false);
+
+  void fetchPaginatedConferencesFromSupabase({
+    page: currentPage,
+    pageSize: 48,
+    searchTerm,
+    category:
+      selectedCategory === "All"
+        ? "All"
+        : reverseTopicsMapping[selectedCategory] ||
+          selectedCategory,
+    country: selectedCountry,
+    city: selectedCity,
+    liveStatus: selectedLiveStatus,
+    sortBy,
+    onlyApproved: true,
+  }).then((result) => {
+    if (cancelled) return;
+
+    if (result) {
+      setServerConferenceRows(
+        result.data as Conference[]
+      );
+      setServerConferenceTotal(result.total);
+    } else {
+      setServerConferenceRows([]);
+      setServerConferenceTotal(0);
+    }
+
+    setServerConferenceLoaded(true);
+  });
+
+  return () => {
+    cancelled = true;
+  };
+}, [
+  currentPage,
+  searchTerm,
+  selectedCategory,
+  selectedCountry,
+  selectedCity,
+  selectedLiveStatus,
+  sortBy,
+  tab,
+]);
 
   // Active categories list filtering out deactivated topics
   const activeCategories = useMemo(() => {
@@ -1455,12 +1514,37 @@ if (selectedLiveStatus === LiveStatus.Upcoming) {
     return activeList;
   }, [approvedConferences, searchTerm, selectedCategory, selectedCountry, selectedCity, selectedLiveStatus, sortBy]);
 
-  const pageSize = 48;
-  const totalPages = Math.ceil(filteredConferences.length / pageSize) || 1;
-  const paginatedConferences = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    return filteredConferences.slice(start, start + pageSize);
-  }, [filteredConferences, currentPage, pageSize]);
+const pageSize = 48;
+
+const useServerConferencePage =
+  tab === "EVENTS" && serverConferenceLoaded;
+
+const conferenceResultCount =
+  useServerConferencePage
+    ? serverConferenceTotal
+    : filteredConferences.length;
+
+const totalPages =
+  Math.ceil(conferenceResultCount / pageSize) || 1;
+
+const paginatedConferences = useMemo(() => {
+  if (useServerConferencePage) {
+    return serverConferenceRows;
+  }
+
+  const start = (currentPage - 1) * pageSize;
+
+  return filteredConferences.slice(
+    start,
+    start + pageSize
+  );
+}, [
+  filteredConferences,
+  currentPage,
+  pageSize,
+  serverConferenceRows,
+  useServerConferencePage,
+]);
 
   // Dynamic calculation for right sidebar cards to match left main content height exactly without overflowing
   const visibleAssociates = useMemo(() => {
@@ -2686,8 +2770,8 @@ const handleNewsletterSubmit = async (e: React.FormEvent) => {
                 {pageHeadingTitle}
               </h1>
               <h2 className="text-lg sm:text-xl font-bold text-slate-800 mt-2">
-                Currently showing {filteredConferences.length} upcoming{" "}
-                {filteredConferences.length === 1 ? "conference" : "conferences"}
+Currently showing {conferenceResultCount} upcoming{" "}
+{conferenceResultCount === 1 ? "conference" : "conferences"}
               </h2>
             </div>
 
@@ -2917,9 +3001,11 @@ const handleNewsletterSubmit = async (e: React.FormEvent) => {
                  <h2 className="text-base md:text-lg font-bold text-slate-900 font-display flex items-center gap-2">
                   <CheckCircle2 className="h-4.5 w-4.5 text-blue-600 shrink-0" />
                   <span>
-                    {filteredConferences.length > 0
-                      ? `Currently showing ${filteredConferences.length} upcoming ${filteredConferences.length === 1 ? "conference" : "conferences"}`
-                      : "Currently showing 0 upcoming conferences"}
+{conferenceResultCount > 0
+  ? `Currently showing ${conferenceResultCount} upcoming ${
+      conferenceResultCount === 1 ? "conference" : "conferences"
+    }`
+  : "Currently showing 0 upcoming conferences"}
                   </span>
                 </h2>
                 </div>
@@ -2946,14 +3032,14 @@ const handleNewsletterSubmit = async (e: React.FormEvent) => {
                           <ShieldCheck className="h-4 w-4 text-emerald-400" /> Active International Conference Auditing
                         </span>
                         <span className="bg-white/10 px-3 py-1.5 rounded-full border border-white/10">
-                          Showing {filteredConferences.length} {filteredConferences.length === 1 ? "event" : "events"} in {slashCountryLabel}
+                          Showing {conferenceResultCount} {conferenceResultCount === 1 ? "event" : "events"} in {slashCountryLabel}
                         </span>
                       </div>
                     </div>
                   </div>
                 )}
 
-                {filteredConferences.length === 0 ? (
+                {conferenceResultCount === 0 ? (
                   <div className="text-center py-20 bg-slate-50 rounded-2xl border border-dashed border-slate-200 space-y-3">
                     <FileText className="h-12 w-12 text-slate-300 mx-auto" />
                     <p className="text-slate-800 font-bold text-lg">
@@ -3098,11 +3184,22 @@ const handleNewsletterSubmit = async (e: React.FormEvent) => {
               </div>
 
               {/* Status summary & Pagination Controls - matching Media Partners & Our Associates layout */}
-              {filteredConferences.length > 0 && (
+              {conferenceResultCount > 0 && (
                 <div className="space-y-4 pt-4 border-t border-slate-200/80 mt-auto">
                   {/* Status summary */}
                   <div className="flex items-center justify-between text-xs text-slate-500 font-medium">
-                    <span>Showing {filteredConferences.length === 0 ? 0 : ((currentPage - 1) * pageSize) + 1} - {Math.min(currentPage * pageSize, filteredConferences.length)} of {filteredConferences.length} Conferences</span>
+                    <span>
+                        Showing{" "}
+                        {conferenceResultCount === 0
+                          ? 0
+                          : (currentPage - 1) * pageSize + 1}
+                        {" - "}
+                        {Math.min(
+                          currentPage * pageSize,
+                          conferenceResultCount
+                        )}{" "}
+                        of {conferenceResultCount} Conferences
+                      </span>
                     <span className="font-semibold text-slate-700">Page {currentPage} of {totalPages}</span>
                   </div>
 
