@@ -12,10 +12,10 @@
     "source": "/api/:path*",
     "destination": "/api"
   },
-  {
-    "source": "/sitemap.xml",
-    "destination": "/api"
-  },
+{
+  "source": "/sitemaps.xml",
+  "destination": "/api"
+},
   {
     "source": "/robots.txt",
     "destination": "/api"

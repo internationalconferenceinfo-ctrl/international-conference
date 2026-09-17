@@ -4568,7 +4568,7 @@ const setupProductionFrontend = () => {
           }
         }
       }
-      
+
       const indexPath = path.join(distPath, "index.html");
 
       let html = await fs.readFile(indexPath, "utf-8");
@@ -4642,7 +4642,7 @@ async function startServer() {
 
     console.log(`📊 API endpoints:`);
     console.log(`  - /api/health`);
-    console.log(`  - /sitemap.xml`);
+    console.log(`  - /sitemaps.xml`);
     console.log(`  - /robots.txt`);
   });
 }
