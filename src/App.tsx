@@ -8,6 +8,7 @@ import {
 import { 
   saveToSupabase, 
   fetchFromSupabase,
+  fetchCityBySlugFromSupabase,
   fetchAllCountriesFromSupabase,
   fetchCitiesByCountryFromSupabase,
   deleteFromSupabase, 
@@ -82,9 +83,67 @@ export {
   getOrganizerSlug,
 };
 
+const mergeOrganizerPublicAndPrivate = (
+  publicRows: OrganizerProfile[],
+  privateRows: OrganizerProfile[]
+): OrganizerProfile[] => {
+  const privateMap = new Map(
+    privateRows.map((organizer) => [organizer.id, organizer])
+  );
+
+  const merged = publicRows.map((publicOrganizer) => {
+    const privateOrganizer = privateMap.get(publicOrganizer.id);
+
+    return privateOrganizer
+      ? { ...publicOrganizer, ...privateOrganizer }
+      : publicOrganizer;
+  });
+
+  for (const privateOrganizer of privateRows) {
+    if (!merged.some((organizer) => organizer.id === privateOrganizer.id)) {
+      merged.push(privateOrganizer);
+    }
+  }
+
+  return ensureOrganizerSlugs(merged);
+};
+
 // Auth Types
 type AuthMode = "LOGIN" | "SIGNUP" | "FORGOT_PASSWORD" | "NONE";
 type UserRole = "VISITOR" | "ORGANIZER" | "ADMIN";
+
+const fetchOrganizersForRole = async (
+  role: UserRole,
+  needsAdminData: boolean
+): Promise<OrganizerProfile[] | null> => {
+  if (role === "ADMIN") {
+    return fetchFromSupabase<OrganizerProfile[]>(
+      "organizers",
+      needsAdminData
+    );
+  }
+
+  const publicRows =
+    (await fetchFromSupabase<OrganizerProfile[]>(
+      "organizers_public",
+      false
+    )) || [];
+
+  if (role !== "ORGANIZER") {
+    return publicRows;
+  }
+
+  const privateRows =
+    (await fetchFromSupabase<OrganizerProfile[]>(
+      "organizers",
+      true
+    )) || [];
+
+  return mergeOrganizerPublicAndPrivate(
+    publicRows,
+    privateRows
+  );
+};
 
 
 interface AuthUser {
@@ -284,9 +343,9 @@ const loadCitiesForCountry = useCallback(
       .toUpperCase();
 
     if (!normalizedCountry) {
-      setCitiesList([]);
-      return;
-    }
+  setCitiesList([]);
+  return [] as Array<{ name: string; country: string }>;
+}
 
     try {
       const countryCities =
@@ -321,9 +380,14 @@ const loadCitiesForCountry = useCallback(
         );
       });
 
-      setCitiesList(
-        Array.from(cityMap.values())
-      );
+      const loadedCities = Array.from(cityMap.values());
+
+
+
+setCitiesList(loadedCities);
+
+return loadedCities;
+
     } catch (error) {
       console.error(
         `Unable to load cities for ${normalizedCountry}:`,
@@ -331,6 +395,7 @@ const loadCitiesForCountry = useCallback(
       );
 
       setCitiesList([]);
+      return [] as Array<{ name: string; country: string }>;
     }
   },
   []
@@ -366,15 +431,38 @@ const loadCitiesForCountry = useCallback(
           if (savedSession?.role) sessionRole = savedSession.role;
         } catch {}
       }
-      const needsAdminData = sessionRole === "ADMIN";
-      const needsPrivateNotifications = sessionRole === "ADMIN" || sessionRole === "ORGANIZER";
+const needsAdminData = sessionRole === "ADMIN";
+const needsPrivateNotifications =
+  sessionRole === "ADMIN" || sessionRole === "ORGANIZER";
+
+const conferenceReadSource =
+  sessionRole === "VISITOR"
+    ? "conferences_public"
+    : "conferences";
 
       // Resolve route-critical data first. Conference detail URLs should not
       // wait for banners, feedback, locations, subscribers, or audit tables.
-      const [routeConferences, routeOrganizers] = await Promise.all([
-        fetchFromSupabase<Conference[]>("conferences", needsAdminData),
-        fetchFromSupabase<OrganizerProfile[]>("organizers", needsAdminData),
-      ]);
+const [
+  routeConferences,
+  routeOrganizers,
+  routeCategories,
+  routeCountries,
+] = await Promise.all([
+    fetchFromSupabase<Conference[]>(
+      conferenceReadSource,
+      needsAdminData
+    ),
+
+fetchOrganizersForRole(
+  sessionRole,
+  needsAdminData
+),
+    fetchFromSupabase<Category[]>(
+      "categories",
+      needsAdminData
+    ),
+    fetchAllCountriesFromSupabase(),
+  ]);
 
       if (Array.isArray(routeConferences)) {
         setConferences((prevConfs) => {
@@ -394,10 +482,28 @@ const loadCitiesForCountry = useCallback(
         });
       }
 
-      if (Array.isArray(routeOrganizers)) {
-        setOrganizers(ensureOrganizerSlugs(routeOrganizers));
-      }
-      setInitialDataLoaded(true);
+if (Array.isArray(routeCategories)) {
+  setCategories(deduplicateCategories(routeCategories));
+}
+
+if (Array.isArray(routeOrganizers)) {
+  setOrganizers(ensureOrganizerSlugs(routeOrganizers));
+}
+
+if (Array.isArray(routeCountries)) {
+  setCountriesList(
+    Array.from(
+      new Set(
+        routeCountries
+          .map((country) => String(country || "").trim().toUpperCase())
+          .filter(Boolean)
+      )
+    )
+  );
+}
+
+
+setInitialDataLoaded(true);
 
       const [
         confData,
@@ -413,24 +519,39 @@ const loadCitiesForCountry = useCallback(
         inactCityData,
         auditData,
         notifData
-      ] = await Promise.all([
-        fetchFromSupabase<Conference[]>("conferences", needsAdminData),
-        fetchFromSupabase<Category[]>("categories", needsAdminData),
-        fetchFromSupabase<OrganizerProfile[]>("organizers", needsAdminData),
-        fetchFromSupabase<Banner[]>("banners"),
-        fetchFromSupabase<BannerContentItem[]>("banner_contents"),
-        fetchFromSupabase<UserFeedback[]>("user_feedbacks"),
-        needsAdminData ? fetchFromSupabase<SubscriberItem[]>("subscriber_emails") : Promise.resolve([]),
-        fetchAllCountriesFromSupabase(),
-        // IMPORTANT: 
-        // Never load the complete cities table here.
-        // With millions of cities, cities are loaded only when a country is selected.
-        Promise.resolve([] as Array<{ name: string; country: string }>),
-        fetchFromSupabase<string[]>("inactive_countries"),
-        fetchFromSupabase<string[]>("inactive_cities"),
-        needsAdminData ? fetchFromSupabase<AuditLog[]>("audit_logs") : Promise.resolve([]),
-        needsPrivateNotifications ? fetchFromSupabase<Notification[]>("notifications") : Promise.resolve([]),
-      ]);
+] = await Promise.all([
+  fetchFromSupabase<Conference[]>(
+    conferenceReadSource,
+    needsAdminData
+  ),
+  fetchFromSupabase<Category[]>(
+    "categories",
+    needsAdminData
+  ),
+fetchOrganizersForRole(
+  sessionRole,
+  needsAdminData
+),
+  fetchFromSupabase<Banner[]>("banners"),
+  fetchFromSupabase<BannerContentItem[]>("banner_contents"),
+  fetchFromSupabase<UserFeedback[]>("user_feedbacks"),
+  needsAdminData
+    ? fetchFromSupabase<SubscriberItem[]>("subscriber_emails")
+    : Promise.resolve([]),
+  fetchAllCountriesFromSupabase(),
+
+  // Never load the complete cities table here.
+  Promise.resolve([] as Array<{ name: string; country: string }>),
+
+  fetchFromSupabase<string[]>("inactive_countries"),
+  fetchFromSupabase<string[]>("inactive_cities"),
+  needsAdminData
+    ? fetchFromSupabase<AuditLog[]>("audit_logs")
+    : Promise.resolve([]),
+  needsPrivateNotifications
+    ? fetchFromSupabase<Notification[]>("notifications")
+    : Promise.resolve([]),
+]);
 
       if (confData !== null && Array.isArray(confData)) {
         setConferences((prevConfs) => {
@@ -701,6 +822,8 @@ const loadCitiesForCountry = useCallback(
           sbUser.id,
       }));
 
+      void syncAllDataFromSupabase("ORGANIZER");
+
       // Only force the Organizer dashboard when the user is actually on
       // the Organizer portal route.
       // Public conference/detail pages must remain public even when the
@@ -928,42 +1051,113 @@ useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [publicTab, selectedConference, selectedOrganizerId, activePortal]);
 
-  // Match category from URL pathname
-  const matchCategory = (cleanPath: string): string | null => {
-    if (!cleanPath) return null;
+ // Match category from URL pathname
+const matchCategory = (cleanPath: string): string | null => {
+  if (!cleanPath) return null;
 
-    if (cleanPath === "artificial-intelligence" || cleanPath === "artificial-intelligence-ml" || cleanPath === "ai") return "Artificial Intelligence & ML";
-    if (cleanPath === "medical-health-sciences" || cleanPath === "health-medicine" || cleanPath === "medical") return "Medical & Health Sciences";
-    if (cleanPath === "information-technology-security" || cleanPath === "information-technology" || cleanPath === "computer-science") return "Information Technology & Security";
-    if (cleanPath === "business-finance-fintech" || cleanPath === "business-economics") return "Business, Finance & Fintech";
-    if (cleanPath === "civil-mechanical-engineering" || cleanPath === "engineering-technology") return "Civil & Mechanical Engineering";
-    if (cleanPath === "education-edtech" || cleanPath === "education") return "Education & EdTech";
-    if (cleanPath === "environmental-science-sustainability" || cleanPath === "environmental-science") return "Environmental Science & Sustainability";
-    if (cleanPath === "mathematics-statistics") return "Mathematics & Statistics";
+  const normalizedPath = cleanPath
+    .trim()
+    .toLowerCase()
+    .replace(/^\/+|\/+$/g, "");
 
-    for (const cat of categories) {
-      const sName = slugify(cat.name);
-      if (sName === cleanPath || cat.name.toLowerCase() === cleanPath) return cat.name;
-    }
-
-    for (const cat of INITIAL_CATEGORIES) {
-      const sName = slugify(cat.name);
-      if (sName === cleanPath || cat.name.toLowerCase() === cleanPath) return cat.name;
-    }
-
-    for (const c of conferences) {
-      if (c.category) {
-        const sName = slugify(c.category);
-        if (sName === cleanPath || c.category.toLowerCase() === cleanPath) return c.category;
-      }
-    }
-
-    return null;
+  // Sitemap aliases where the public SEO slug intentionally differs
+  // from the actual category name.
+  const CATEGORY_SLUG_ALIASES: Record<string, string> = {
+    "artificial-intelligence": "ARTIFICIAL INTELLIGENCE",
   };
 
+  const aliasCategory = CATEGORY_SLUG_ALIASES[normalizedPath];
+
+  // Build the category source dynamically from the current app data.
+  const availableCategories = [
+    ...categories.map((cat) => cat.name),
+    ...INITIAL_CATEGORIES.map((cat) => cat.name),
+    ...conferences
+      .map((conference) => conference.category)
+      .filter((category): category is string => Boolean(category)),
+  ];
+
+  // First try the sitemap alias against the real available category names.
+  if (aliasCategory) {
+    const aliasMatch = availableCategories.find(
+      (category) =>
+        category.trim().toUpperCase() === aliasCategory.toUpperCase() ||
+        category.trim().toUpperCase() ===
+          `${aliasCategory.toUpperCase()} & ML`
+    );
+
+    if (aliasMatch) {
+      return aliasMatch;
+    }
+  }
+
+  // All normal topics resolve automatically from their category name.
+  const directMatch = availableCategories.find(
+    (category) =>
+      slugify(category) === normalizedPath ||
+      category.trim().toLowerCase() === normalizedPath
+  );
+
+  return directMatch || null;
+};
+
+  const getCategorySlug = (category: string): string => {
+  const normalizedCategory = String(category || "")
+    .trim()
+    .toUpperCase();
+
+  if (
+    normalizedCategory === "ARTIFICIAL INTELLIGENCE & ML" ||
+    normalizedCategory === "ARTIFICIAL INTELLIGENCE"
+  ) {
+    return "artificial-intelligence";
+  }
+
+  return slugify(category);
+};
+
+  // SEO country aliases used by public URLs and the manual sitemap.
+// The value must match the country name stored in the website/database.
+const COUNTRY_SLUG_ALIASES: Record<string, string> = {
+  usa: "USA",
+  uk: "UK",
+  uae: "UNITED ARAB EMIRATES",
+};
+
+const getCountrySlug = (country: string): string => {
+  const normalizedCountry = String(country || "")
+    .trim()
+    .toUpperCase();
+
+  const aliasEntry = Object.entries(COUNTRY_SLUG_ALIASES).find(
+    ([, countryName]) => countryName === normalizedCountry
+  );
+
+  return aliasEntry ? aliasEntry[0] : slugify(country);
+};
+
   // Match country or city from URL pathname
-  const matchCountryOrCity = (cleanPath: string) => {
+  const matchCountryOrCity = (
+  cleanPath: string,
+  targetCities?: Array<{ name: string; country: string }>
+) => {
+
     if (!cleanPath) return null;
+
+    const citySource = targetCities ?? citiesList;
+
+        // Resolve SEO aliases such as /usa, /uk and /uae.
+    const aliasCountry = COUNTRY_SLUG_ALIASES[cleanPath];
+
+if (
+  aliasCountry &&
+  !inactiveCountries.includes(aliasCountry)
+) {
+  return {
+    type: "country",
+    name: aliasCountry
+  };
+}
     
     // Check if cleanPath matches any active country in countriesList
     const matchedCountry = countriesList.find(
@@ -982,7 +1176,7 @@ useEffect(() => {
     }
     
     // Check if cleanPath matches any active city in citiesList
-    const adminCity = citiesList.find(
+    const adminCity = citySource.find(
       (ct) => (slugify(ct.name || "") === cleanPath || ct.name?.toLowerCase() === cleanPath) &&
               !inactiveCountries.includes(ct.country) &&
               !inactiveCities.includes(`${ct.country}:::${ct.name}`)
@@ -1014,13 +1208,16 @@ useEffect(() => {
   });
 
   // Parse URL and apply application state accordingly
-  const parseURLAndApplyState = (
-    targetConfsList?: Conference[],
-    targetOrgsList?: OrganizerProfile[],
-    customPath?: string
-  ) => {
+const parseURLAndApplyState = (
+  targetConfsList?: Conference[],
+  targetOrgsList?: OrganizerProfile[],
+  customPath?: string,
+  targetCitiesList?: Array<{ name: string; country: string }>
+) => {
     const confsToUse = targetConfsList && targetConfsList.length > 0 ? targetConfsList : conferences;
     const orgsToUse = targetOrgsList && targetOrgsList.length > 0 ? targetOrgsList : organizers;
+
+    const citiesToUse = targetCitiesList ?? citiesList;
 
     const fullPath = customPath || (typeof window !== "undefined" ? window.location.pathname + window.location.search : "/");
     const [pathname, searchStr] = fullPath.split("?");
@@ -1100,7 +1297,10 @@ useEffect(() => {
           nextTab = "EVENTS";
         } else {
           let matchedAnyFilter = false;
-          const hasExplicitCountry = subSegments.some((s) => matchCountryOrCity(s)?.type === "country");
+          let hasInvalidSegment = false;
+          const hasExplicitCountry = subSegments.some(
+            (s) => matchCountryOrCity(s, citiesToUse)?.type === "country"
+          );
 
           for (const seg of subSegments) {
             if (!seg) continue;
@@ -1155,7 +1355,7 @@ useEffect(() => {
             }
 
             const cat = matchCategory(seg);
-            const loc = matchCountryOrCity(seg);
+            const loc = matchCountryOrCity(seg, citiesToUse);
 
             if (cat) {
               nextCategory = cat;
@@ -1164,10 +1364,12 @@ useEffect(() => {
             } else if (loc) {
               nextTab = "EVENTS";
               matchedAnyFilter = true;
+
               if (loc.type === "country") {
                 nextCountry = loc.name;
               } else if (loc.type === "city") {
                 nextCity = loc.name;
+
                 if (hasExplicitCountry && loc.country) {
                   nextCountry = loc.country;
                 }
@@ -1176,10 +1378,12 @@ useEffect(() => {
               nextConf = foundConf;
               nextTab = "EVENTS";
               matchedAnyFilter = true;
+            } else {
+              hasInvalidSegment = true;
             }
           }
 
-          if (!matchedAnyFilter && !nextConf) {
+          if (hasInvalidSegment || (!matchedAnyFilter && !nextConf)) {
             nextTab = "NOT_FOUND";
           }
         }
@@ -1288,9 +1492,131 @@ useEffect(() => {
   // URL state synchronization effect
   useEffect(() => {
     if (!hasParsedInitialUrl.current && initialDataLoaded) {
-      parseURLAndApplyState(conferences, organizers, initialPathRef.current);
-      hasParsedInitialUrl.current = true;
-      setInitialRouteResolved(true);
+      const initialSegments = decodeURIComponent(initialPathRef.current.split("?")[0])
+  .toLowerCase()
+  .trim()
+  .replace(/^\/+|\/+$/g, "")
+  .split("/")
+  .filter(Boolean);
+
+const routeCountry = initialSegments
+  .map((segment) => matchCountryOrCity(segment))
+  .find((location) => location?.type === "country");
+
+const resolveInitialDirectoryRoute = async () => {
+  try {
+    // COUNTRY / COUNTRY + CITY / COUNTRY + TOPIC
+    if (routeCountry?.name) {
+      const loadedCities =
+        await loadCitiesForCountry(routeCountry.name);
+
+      parseURLAndApplyState(
+        conferences,
+        organizers,
+        initialPathRef.current,
+        loadedCities
+      );
+
+      return;
+    }
+
+    const firstSegment =
+      initialSegments[0] || "";
+
+    const reservedRoutes = new Set([
+      "home",
+      "about",
+      "about-us",
+      "about_us",
+      "media-partner",
+      "event-media-partner",
+      "media",
+      "associates",
+      "our-associates",
+      "contact",
+      "contact-us",
+      "contact_us",
+      "privacy",
+      "privacy-policy",
+      "privacy_policy",
+      "terms",
+      "terms-of-service",
+      "terms_of_service",
+      "feedback",
+      "feedbacks",
+      "testimonials",
+      "testimonial",
+      "reviews",
+      "login",
+      "signup",
+      "sign-up",
+      "register",
+      "organizer-portal",
+      "admin-portal",
+      "organizers",
+      "organizer",
+      "conference",
+      "conferences",
+      "events"
+    ]);
+
+    // CITY / CITY + TOPIC / TOPIC + CITY
+    if (!reservedRoutes.has(firstSegment)) {
+      const possibleCitySegments =
+        initialSegments.filter(
+          (segment) =>
+            segment &&
+            !matchCategory(segment)
+        );
+
+      let foundCity:
+        | {
+            name: string;
+            country: string;
+            timeZone: string;
+          }
+        | null = null;
+
+      for (const segment of possibleCitySegments) {
+        foundCity =
+          await fetchCityBySlugFromSupabase(
+            segment
+          );
+
+        if (foundCity) {
+          break;
+        }
+      }
+
+      if (foundCity) {
+        const loadedCities =
+          await loadCitiesForCountry(
+            foundCity.country
+          );
+
+        parseURLAndApplyState(
+          conferences,
+          organizers,
+          initialPathRef.current,
+          loadedCities
+        );
+
+        return;
+      }
+    }
+
+    parseURLAndApplyState(
+      conferences,
+      organizers,
+      initialPathRef.current
+    );
+  } finally {
+    hasParsedInitialUrl.current = true;
+    setInitialRouteResolved(true);
+  }
+};
+
+void resolveInitialDirectoryRoute();
     }
     
     const handlePopState = () => {
@@ -1354,19 +1680,19 @@ useEffect(() => {
       const hasCity = selectedCity && selectedCity !== "All";
 
       if (hasCountry && hasCity && hasCat) {
-        newPath = `/${slugify(selectedCountry)}/${slugify(selectedCity)}/${slugify(selectedCategory)}`;
+        newPath = `/${getCountrySlug(selectedCountry)}/${slugify(selectedCity)}/${getCategorySlug(selectedCategory)}`;
       } else if (hasCountry && hasCity) {
-        newPath = `/${slugify(selectedCountry)}/${slugify(selectedCity)}`;
+        newPath = `/${getCountrySlug(selectedCountry)}/${slugify(selectedCity)}`;
       } else if (hasCountry && hasCat) {
-        newPath = `/${slugify(selectedCountry)}/${slugify(selectedCategory)}`;
+        newPath = `/${getCountrySlug(selectedCountry)}/${getCategorySlug(selectedCategory)}`;
       } else if (hasCat && hasCity) {
         newPath = `/${slugify(selectedCategory)}/${slugify(selectedCity)}`;
       } else if (hasCountry) {
-        newPath = `/${slugify(selectedCountry)}`;
+        newPath = `/${getCountrySlug(selectedCountry)}`;
       } else if (hasCity) {
         newPath = `/${slugify(selectedCity)}`;
       } else if (hasCat) {
-        newPath = `/${slugify(selectedCategory)}`;
+        newPath = `/${getCategorySlug(selectedCategory)}`;
       } else {
         newPath = "/conferences";
       }
@@ -1700,7 +2026,14 @@ canonicalLink.setAttribute("href", canonicalUrl);
         }
 
         const freshOrgs = await fetchFromSupabase<OrganizerProfile[]>("organizers", true);
-        if (freshOrgs && Array.isArray(freshOrgs)) setOrganizers(ensureOrganizerSlugs(freshOrgs));
+        if (freshOrgs && Array.isArray(freshOrgs)) {
+  setOrganizers((current) =>
+    mergeOrganizerPublicAndPrivate(
+      current,
+      freshOrgs
+    )
+  );
+}
         const organizer = freshOrgs?.find((o) => o.authUserId === sbUser.id || o.id === sbUser.id || o.email?.toLowerCase().trim() === sbUser.email?.toLowerCase().trim());
         const newAuthUser: AuthUser = {
           id: sbUser.id,
@@ -1844,7 +2177,14 @@ canonicalLink.setAttribute("href", canonicalUrl);
         return;
       }
       const freshOrgs = await fetchFromSupabase<OrganizerProfile[]>("organizers", true);
-      if (freshOrgs && Array.isArray(freshOrgs)) setOrganizers(ensureOrganizerSlugs(freshOrgs));
+      if (freshOrgs && Array.isArray(freshOrgs)) {
+  setOrganizers((current) =>
+    mergeOrganizerPublicAndPrivate(
+      current,
+      freshOrgs
+    )
+  );
+}
       const organizer = freshOrgs?.find((o) => o.authUserId === sbUser.id || o.id === sbUser.id || o.email?.toLowerCase().trim() === sbUser.email?.toLowerCase().trim());
       if (!organizer) {
         await signOutWithSupabase().catch(() => undefined);
@@ -1885,7 +2225,14 @@ canonicalLink.setAttribute("href", canonicalUrl);
         const sbUser = migratedAuth.user;
         if (!sbUser) throw new Error("No authenticated user");
         const freshOrgs = await fetchFromSupabase<OrganizerProfile[]>("organizers", true);
-        if (freshOrgs && Array.isArray(freshOrgs)) setOrganizers(ensureOrganizerSlugs(freshOrgs));
+        if (freshOrgs && Array.isArray(freshOrgs)) {
+  setOrganizers((current) =>
+    mergeOrganizerPublicAndPrivate(
+      current,
+      freshOrgs
+    )
+  );
+}
         const organizer = freshOrgs?.find((o) => o.authUserId === sbUser.id || o.id === sbUser.id || o.email?.toLowerCase().trim() === sbUser.email?.toLowerCase().trim());
         if (!organizer || organizer.isSuspended) {
           await signOutWithSupabase().catch(() => undefined);

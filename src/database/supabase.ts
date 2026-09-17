@@ -1,5 +1,6 @@
 import { createClient, SupabaseClient, User as SupabaseAuthUser } from "@supabase/supabase-js";
 import { adminFetch, getAdminTabToken } from "../shared/utils/adminSession";
+import { slugify } from "../shared/utils/slugUtils";
 
 /**
  * Supabase Primary Backend, Database, & Auth Client
@@ -428,7 +429,7 @@ const normalizeConferenceStatus = (value: any): string => {
 function normalizeFromTable(table: string, data: any): any {
   if (!Array.isArray(data)) return data;
 
-  if (table === "conferences") {
+  if (table === "conferences" || table === "conferences_public") {
     return data.map((row: any) => ({
       id: row.id,
       title: row.title || "",
@@ -478,7 +479,7 @@ function normalizeFromTable(table: string, data: any): any {
     }));
   }
 
-  if (table === "organizers") {
+  if (table === "organizers" || table === "organizers_public") {
     return data.map((row: any) => {
       const orgName = row.name || row.organizationName || row.organization_name || "";
       const isComplete = Boolean(
@@ -1627,6 +1628,8 @@ export async function fetchCitiesByCountryFromSupabase(
   const normalizedCountry =
     country.trim().toUpperCase();
 
+
+
   const PAGE_SIZE = 500;
   const allRows: any[] = [];
 
@@ -1672,6 +1675,87 @@ export async function fetchCitiesByCountryFromSupabase(
       err
     );
     return [];
+  }
+}
+
+/**
+ * Find one city directly from its SEO URL slug.
+ * Example: "new-york" -> NEW YORK
+ *
+ * This does NOT download the complete cities table.
+ * Newly added Admin cities work automatically.
+ */
+export async function fetchCityBySlugFromSupabase(
+  citySlug: string
+): Promise<{
+  name: string;
+  country: string;
+  timeZone: string;
+} | null> {
+  const client = getSupabaseClient();
+
+  const normalizedSlug = String(citySlug || "")
+    .trim()
+    .toLowerCase()
+    .replace(/^\/+|\/+$/g, "");
+
+  if (!client || !normalizedSlug) {
+    return null;
+  }
+
+  const searchPattern = `%${normalizedSlug
+    .split("-")
+    .filter(Boolean)
+    .join("%")}%`;
+
+  try {
+    const { data, error } = await client
+      .from("cities")
+      .select("name,country,time_zone")
+      .ilike("name", searchPattern)
+      .order("country", { ascending: true })
+      .limit(50);
+
+    if (error) {
+      console.error(
+        `[City Slug Lookup Error] ${normalizedSlug}:`,
+        error
+      );
+
+      return null;
+    }
+
+    const rows = Array.isArray(data) ? data : [];
+
+    const matchedCity = rows.find(
+      (row: any) =>
+        slugify(String(row?.name || "")) === normalizedSlug
+    );
+
+    if (!matchedCity) {
+      return null;
+    }
+
+    return {
+      name: String(matchedCity.name || "")
+        .trim()
+        .toUpperCase(),
+
+      country: String(matchedCity.country || "")
+        .trim()
+        .toUpperCase(),
+
+      timeZone: String(
+        matchedCity.time_zone || ""
+      ).trim()
+    };
+  } catch (error) {
+    console.error(
+      `[City Slug Lookup Error] ${normalizedSlug}:`,
+      error
+    );
+
+    return null;
   }
 }
 
