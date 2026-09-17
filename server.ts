@@ -23,6 +23,16 @@ function sitemapSlugify(text: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
+const SERVER_COUNTRY_SLUG_ALIASES: Record<string, string> = {
+  usa: "USA",
+  uk: "UK",
+  uae: "UNITED ARAB EMIRATES",
+};
+
+const SERVER_CATEGORY_SLUG_ALIASES: Record<string, string> = {
+  "artificial-intelligence": "ARTIFICIAL INTELLIGENCE",
+};
+
 type SeoMetadata = {
   title: string;
   description: string;
@@ -982,6 +992,368 @@ const supabaseServerClient = createClient(supabaseUrl, supabaseServerKey, {
   auth: { persistSession: false, autoRefreshToken: false },
   global: { fetch: fetchWithTimeout },
 });
+
+const buildServerSlugSearchPattern = (slug: string): string => {
+  const parts = String(slug || "")
+    .trim()
+    .toLowerCase()
+    .split("-")
+    .filter(Boolean);
+
+  return parts.length > 0
+    ? `%${parts.join("%")}%`
+    : "%";
+};
+
+async function findServerCountryBySlug(
+  slug: string
+): Promise<string | null> {
+  const normalizedSlug = String(slug || "")
+    .trim()
+    .toLowerCase();
+
+  if (!normalizedSlug) return null;
+
+  const aliasCountry =
+    SERVER_COUNTRY_SLUG_ALIASES[normalizedSlug];
+
+  if (aliasCountry) {
+    return aliasCountry;
+  }
+
+  const { data, error } = await supabaseServerClient
+    .from("countries")
+    .select("name")
+    .ilike(
+      "name",
+      buildServerSlugSearchPattern(normalizedSlug)
+    )
+    .limit(50);
+
+  if (error || !Array.isArray(data)) {
+    return null;
+  }
+
+  const match = data.find(
+    (row: any) =>
+      sitemapSlugify(String(row?.name || "")) ===
+      normalizedSlug
+  );
+
+  return match?.name
+    ? String(match.name).trim()
+    : null;
+}
+
+async function findServerCategoryBySlug(
+  slug: string
+): Promise<string | null> {
+  const normalizedSlug = String(slug || "")
+    .trim()
+    .toLowerCase();
+
+  if (!normalizedSlug) return null;
+
+  const aliasCategory =
+    SERVER_CATEGORY_SLUG_ALIASES[normalizedSlug];
+
+  const searchSlug = aliasCategory
+    ? sitemapSlugify(aliasCategory)
+    : normalizedSlug;
+
+  const { data, error } = await supabaseServerClient
+    .from("categories")
+    .select("name,status")
+    .ilike(
+      "name",
+      buildServerSlugSearchPattern(searchSlug)
+    )
+    .limit(50);
+
+  if (error || !Array.isArray(data)) {
+    return null;
+  }
+
+  const match = data.find((row: any) => {
+    const name = String(row?.name || "").trim();
+
+    if (
+      aliasCategory &&
+      (
+        name.toUpperCase() ===
+          aliasCategory.toUpperCase() ||
+        name.toUpperCase() ===
+          `${aliasCategory.toUpperCase()} & ML`
+      )
+    ) {
+      return true;
+    }
+
+    return sitemapSlugify(name) === normalizedSlug;
+  });
+
+  return match?.name
+    ? String(match.name).trim()
+    : null;
+}
+
+async function findServerCityBySlug(
+  slug: string,
+  country?: string
+): Promise<{
+  name: string;
+  country: string;
+} | null> {
+  const normalizedSlug = String(slug || "")
+    .trim()
+    .toLowerCase();
+
+  if (!normalizedSlug) return null;
+
+  let query = supabaseServerClient
+    .from("cities")
+    .select("name,country")
+    .ilike(
+      "name",
+      buildServerSlugSearchPattern(normalizedSlug)
+    )
+    .limit(100);
+
+  if (country) {
+    query = query.ilike("country", country);
+  }
+
+  const { data, error } = await query;
+
+  if (error || !Array.isArray(data)) {
+    return null;
+  }
+
+  const match = data.find(
+    (row: any) =>
+      sitemapSlugify(String(row?.name || "")) ===
+      normalizedSlug
+  );
+
+  if (!match) return null;
+
+  return {
+    name: String(match.name || "").trim(),
+    country: String(match.country || "").trim(),
+  };
+}
+
+async function serverConferenceExistsBySlugOrId(
+  value: string
+): Promise<boolean> {
+  const target = String(value || "").trim();
+
+  if (!target) return false;
+
+  const isVisible = (row: any) =>
+    String(row?.status || "").trim().toLowerCase() ===
+      "approved" &&
+    row?.is_deactivated !== true;
+
+  const { data: slugRows, error: slugError } =
+    await supabaseServerClient
+      .from("conferences")
+      .select("id,slug,status,is_deactivated")
+      .ilike("slug", target)
+      .limit(1);
+
+  if (
+    !slugError &&
+    Array.isArray(slugRows) &&
+    slugRows.some(isVisible)
+  ) {
+    return true;
+  }
+
+  const { data: idRows, error: idError } =
+    await supabaseServerClient
+      .from("conferences")
+      .select("id,slug,status,is_deactivated")
+      .eq("id", target)
+      .limit(1);
+
+  return (
+    !idError &&
+    Array.isArray(idRows) &&
+    idRows.some(isVisible)
+  );
+}
+
+async function serverOrganizerExistsBySlugOrId(
+  value: string
+): Promise<boolean> {
+  const target = String(value || "").trim();
+
+  if (!target) return false;
+
+  const isVisible = (row: any) =>
+    row?.is_suspended !== true;
+
+  const { data: slugRows, error: slugError } =
+    await supabaseServerClient
+      .from("organizers")
+      .select("id,slug,name,is_suspended")
+      .ilike("slug", target)
+      .limit(1);
+
+  if (
+    !slugError &&
+    Array.isArray(slugRows) &&
+    slugRows.some(isVisible)
+  ) {
+    return true;
+  }
+
+  const { data: idRows, error: idError } =
+    await supabaseServerClient
+      .from("organizers")
+      .select("id,slug,name,is_suspended")
+      .eq("id", target)
+      .limit(1);
+
+  if (
+    !idError &&
+    Array.isArray(idRows) &&
+    idRows.some(isVisible)
+  ) {
+    return true;
+  }
+
+  const { data: nameRows, error: nameError } =
+    await supabaseServerClient
+      .from("organizers")
+      .select("id,slug,name,is_suspended")
+      .ilike(
+        "name",
+        buildServerSlugSearchPattern(target)
+      )
+      .limit(50);
+
+  return (
+    !nameError &&
+    Array.isArray(nameRows) &&
+    nameRows.some(
+      (row: any) =>
+        isVisible(row) &&
+        sitemapSlugify(String(row?.name || "")) ===
+          target.toLowerCase()
+    )
+  );
+}
+
+const SERVER_PUBLIC_APP_ROUTES = new Set([
+  "home",
+  "about",
+  "about-us",
+  "about_us",
+  "media-partner",
+  "event-media-partner",
+  "media",
+  "associates",
+  "our-associates",
+  "contact",
+  "contact-us",
+  "contact_us",
+  "privacy",
+  "privacy-policy",
+  "privacy_policy",
+  "terms",
+  "terms-of-service",
+  "terms_of_service",
+  "feedback",
+  "feedbacks",
+  "testimonials",
+  "testimonial",
+  "reviews",
+  "login",
+  "signup",
+  "sign-up",
+  "register",
+  "admin-portal",
+  "organizer-portal",
+]);
+
+async function isValidServerFrontendPath(
+  pathname: string
+): Promise<boolean> {
+  const segments = String(pathname || "/")
+    .split("?")[0]
+    .toLowerCase()
+    .replace(/^\/+|\/+$/g, "")
+    .split("/")
+    .filter(Boolean);
+
+  if (segments.length === 0) {
+    return true;
+  }
+
+  const firstSegment = segments[0];
+
+  if (SERVER_PUBLIC_APP_ROUTES.has(firstSegment)) {
+    return true;
+  }
+
+  if (
+    firstSegment === "organizers" ||
+    firstSegment === "organizer"
+  ) {
+    if (segments.length === 1) {
+      return true;
+    }
+
+    if (segments.length === 2) {
+      return serverOrganizerExistsBySlugOrId(
+        segments[1]
+      );
+    }
+
+    return false;
+  }
+
+  const conferenceRoute =
+    firstSegment === "conference" ||
+    firstSegment === "conferences" ||
+    firstSegment === "events";
+
+  const dynamicSegments = conferenceRoute
+    ? segments.slice(1)
+    : segments;
+
+  if (dynamicSegments.length === 0) {
+    return conferenceRoute;
+  }
+
+  for (const segment of dynamicSegments) {
+    if (
+      conferenceRoute &&
+      dynamicSegments.length === 1 &&
+      await serverConferenceExistsBySlugOrId(segment)
+    ) {
+      continue;
+    }
+
+    const [
+      country,
+      city,
+      category
+    ] = await Promise.all([
+      findServerCountryBySlug(segment),
+      findServerCityBySlug(segment),
+      findServerCategoryBySlug(segment),
+    ]);
+
+    if (!country && !city && !category) {
+      return false;
+    }
+  }
+
+  return true;
+}
 
 /**
  * Server-side timezone and completion calculation helper
@@ -4120,6 +4492,10 @@ const setupProductionFrontend = () => {
 
       const seoMetadata = await getSeoMetadataForPath(req.path);
 
+      const isValidFrontendPath =
+  seoMetadata !== null ||
+  await isValidServerFrontendPath(req.path);
+
       if (seoMetadata) {
         html = injectSeoMetadata(html, seoMetadata);
       } else {
@@ -4143,10 +4519,14 @@ const setupProductionFrontend = () => {
 
       html = injectCanonicalUrl(html, req.path);
 
-      res.setHeader("Content-Type", "text/html");
-      res.setHeader("Cache-Control", "no-cache");
+res.setHeader("Content-Type", "text/html");
+res.setHeader("Cache-Control", "no-cache");
 
-      res.send(html);
+if (!isValidFrontendPath) {
+  res.status(404);
+}
+
+res.send(html);
     } catch (error) {
       console.error("Failed to serve frontend:", error);
 
