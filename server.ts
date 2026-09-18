@@ -876,27 +876,70 @@ app.use((_req, res, next) => {
   next();
 });
 
-type RateEntry = { count: number; resetAt: number };
-const rateBuckets = new Map<string, RateEntry>();
-const rateLimit = (name: string, max: number, windowMs: number) => (req: Request, res: Response, next: NextFunction) => {
-  const now = Date.now();
-  const key = `${name}:${req.ip || req.socket.remoteAddress || "unknown"}`;
-  const current = rateBuckets.get(key);
-  if (!current || current.resetAt <= now) {
-    rateBuckets.set(key, { count: 1, resetAt: now + windowMs });
-    return next();
-  }
-  current.count += 1;
-  if (current.count > max) {
-    res.setHeader("Retry-After", String(Math.max(1, Math.ceil((current.resetAt - now) / 1000))));
-    return res.status(429).json({ success: false, error: "Too many requests. Please wait and try again." });
-  }
-  next();
-};
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, value] of rateBuckets) if (value.resetAt <= now) rateBuckets.delete(key);
-}, 10 * 60 * 1000).unref();
+const rateLimit =
+  (name: string, max: number, windowMs: number) =>
+  async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    const key =
+      `${name}:${req.ip || req.socket.remoteAddress || "unknown"}`;
+
+    try {
+      const { data, error } =
+        await supabaseServerClient.rpc(
+          "consume_rate_limit",
+          {
+            p_key: key,
+            p_max: max,
+            p_window_ms: windowMs,
+          }
+        );
+
+      if (error) {
+        console.error(
+          `[rate-limit] ${name}:`,
+          error.message
+        );
+
+        // Do not take the entire site offline if
+        // the rate-limit store is temporarily unavailable.
+        return next();
+      }
+
+      const result = Array.isArray(data)
+        ? data[0]
+        : data;
+
+      if (result?.allowed === false) {
+        const retryAfter = Math.max(
+          1,
+          Number(result.retry_after_seconds) || 1
+        );
+
+        res.setHeader(
+          "Retry-After",
+          String(retryAfter)
+        );
+
+        return res.status(429).json({
+          success: false,
+          error:
+            "Too many requests. Please wait and try again.",
+        });
+      }
+
+      return next();
+    } catch (error) {
+      console.error(
+        `[rate-limit] ${name}:`,
+        error
+      );
+
+      return next();
+    }
+  };
 
 const SESSION_COOKIE = "gch_admin_session";
 const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
