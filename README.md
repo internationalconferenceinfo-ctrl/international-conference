@@ -1,6 +1,6 @@
 # International Conference
 
-A comprehensive, production-ready International Conference Platform built with **React 19**, **TypeScript**, **Tailwind CSS v4**, **Express**, **Supabase**, and **Google Gemini AI**.
+A comprehensive, production-ready International Conference Platform built with **React 19**, **TypeScript**, **Tailwind CSS v4**, **Express**, **Supabase**.
 
 ---
 
@@ -34,8 +34,6 @@ SUPABASE_ANON_KEY=sb_publishable_EIJRqidBxMleMh6UPlHWWA_Z95fCpsp
 # Copy it from Supabase Project Settings → API and never expose it in VITE_* variables.
 SUPABASE_SERVICE_ROLE_KEY=
 
-# Gemini API Key (Optional for AI Quality Score & Duplicate Detection)
-GEMINI_API_KEY=
 
 # Server Port
 PORT=3000
@@ -74,7 +72,7 @@ npm start
 - `src/organizerportal/` - Organizer dashboard for submitting and managing academic events.
 - `src/database/` - Supabase schema and client integration with offline/localStorage fallback.
 - `src/shared/` - Shared TypeScript interfaces, components, utilities, and helpers.
-- `server.ts` - Express backend with Vite middleware, timezone computation, Gemini AI integration, and auto-completion cron tasks.
+- `server.ts` - Express backend with Vite middleware, timezone computation, and auto-completion cron tasks.
 
 ---
 
@@ -83,7 +81,6 @@ npm start
 - **Full Conference Discovery & Filtering**: Search by keyword, category, country, city, date, and venue status (in-person/hybrid/online).
 - **Automated Feedback Carousel**: Smooth single-card auto-sliding customer testimonials pool with Fisher-Yates randomization.
 - **Collaboration & Registration Form**: Validated 150-character submissions for media partners and academic associates.
-- **AI-Powered Quality Score & Duplicate Detection**: Integrated Google Gemini AI analysis.
 - **Real-Time Database Sync**: Powered by Supabase with resilient offline caching and recovery.
 - **Role-Based Access**: Dedicated Public Portal, Organizer Portal, and Super Admin Management.
 
