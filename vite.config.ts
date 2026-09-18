@@ -26,7 +26,16 @@ export default defineConfig(() => {
           manualChunks(id) {
             if (!id.includes('node_modules')) return undefined;
             if (id.includes('@supabase') || id.includes('/realtime-js/') || id.includes('/postgrest-js/') || id.includes('/gotrue-js/') || id.includes('/storage-js/')) return 'supabase';
-            if (id.includes('/xlsx/')) return 'spreadsheet';
+
+if (id.includes('/countries-and-timezones/')) {
+  return 'countries-timezones';
+}
+
+if (id.includes('/city-timezones/')) {
+  return 'city-timezones';
+}
+
+if (id.includes('/xlsx/')) return 'spreadsheet';
             if (id.includes('/lucide-react/')) return 'icons';
             if (id.includes('/motion') || id.includes('/framer-motion')) return 'motion';
             if (id.includes('/react/') || id.includes('/react-dom/') || id.includes('/scheduler/')) return 'react-vendor';
