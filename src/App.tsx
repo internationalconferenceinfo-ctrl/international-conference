@@ -60,7 +60,7 @@ const PortalLoading = () => (
   <div className="min-h-[60vh] flex items-center justify-center bg-slate-50" role="status" aria-live="polite">
     <div className="flex flex-col items-center gap-3 text-slate-600">
       <div className="h-9 w-9 rounded-full border-4 border-slate-200 border-t-[#37494E] animate-spin" />
-      <span className="text-sm font-semibold">Loading portalâ€¦</span>
+      <span className="text-sm font-semibold">Loading portal...</span>
     </div>
   </div>
 );
@@ -4463,7 +4463,7 @@ const handleEditCategory = async (
               <input
                 type={showAuthPassword ? "text" : "password"}
                 required
-                placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+                placeholder="Enter your password"
                 value={authPassword}
                 onChange={(e) => setAuthPassword(e.target.value)}
                 className="w-full text-sm bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 pr-12 text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
@@ -5884,6 +5884,21 @@ if (selectedConference && (activePortal === "VISITOR" || !authUser)) {
 
     return null;
   };
+
+  // Wait until the authenticated Organizer's profile has been loaded.
+// This prevents the "Complete Your Organizer Profile" screen from
+// flashing briefly during a browser refresh.
+if (
+  authUser?.role === "ORGANIZER" &&
+  activePortal === "ORGANIZER" &&
+  !activeOrganizerProfile
+) {
+  return (
+    <div className="h-screen w-screen overflow-hidden bg-slate-100 font-sans">
+      <PortalLoading />
+    </div>
+  );
+}
 
   // If Organizer user is logged in and activePortal is ORGANIZER, render dedicated full-screen OrganizerPortal layout without public navbar wrapper
   if (authUser?.role === "ORGANIZER" && activePortal === "ORGANIZER") {
