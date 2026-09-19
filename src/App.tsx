@@ -835,9 +835,17 @@ fetchOrganizersForRole(
       // the Organizer portal route.
       // Public conference/detail pages must remain public even when the
       // Organizer is logged in.
-      const organizerPortalRoute =
-        currentPath === "/organizer-portal" ||
-        currentPath.startsWith("/organizer-portal/");
+// Re-read the current URL after the async profile lookup.
+// During signup the route may have changed to /organizer-portal
+// while this auth callback was waiting for Supabase.
+const latestPath =
+  decodeURIComponent(window.location.pathname)
+    .toLowerCase()
+    .replace(/\/+$/, "") || "/";
+
+const organizerPortalRoute =
+  latestPath === "/organizer-portal" ||
+  latestPath.startsWith("/organizer-portal/");
 
       if (organizerPortalRoute) {
         setActivePortal("ORGANIZER");
