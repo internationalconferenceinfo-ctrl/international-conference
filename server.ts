@@ -9,6 +9,11 @@ import crypto from "crypto";
 import { promises as fs } from "fs";
 import type { NextFunction, Request, Response } from "express";
 import { getIanaDateBoundaryTimestamp, resolveConferenceTimeZone } from "./src/shared/utils/timezoneUtils";
+import {
+  getDynamicSitemapUrls,
+  renderSitemapIndex,
+  renderSitemapPage,
+} from "./src/shared/utils/dynamicSitemap";
 
 dotenv.config();
 
@@ -132,6 +137,50 @@ function injectCanonicalUrl(
   return html.replace(
     "</head>",
     `<link rel="canonical" href="${safeCanonicalUrl}" />\n</head>`
+  );
+}
+
+function injectSocialSeoMetadata(
+  html: string,
+  metadata: SeoMetadata,
+  pathname: string
+): string {
+  const canonicalOrigin =
+    "https://www.internationalconference.info";
+
+  const cleanPath =
+    "/" +
+    String(pathname || "/")
+      .split("?")[0]
+      .replace(/^\/+|\/+$/g, "");
+
+  const canonicalUrl =
+    cleanPath === "/"
+      ? `${canonicalOrigin}/`
+      : `${canonicalOrigin}${cleanPath}`;
+
+  const safeTitle =
+    escapeHtmlAttribute(metadata.title);
+
+  const safeDescription =
+    escapeHtmlAttribute(metadata.description);
+
+  const safeUrl =
+    escapeHtmlAttribute(canonicalUrl);
+
+  const tags = `
+<meta property="og:title" content="${safeTitle}" />
+<meta property="og:description" content="${safeDescription}" />
+<meta property="og:url" content="${safeUrl}" />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="International Conferences" />
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="${safeTitle}" />
+<meta name="twitter:description" content="${safeDescription}" />`;
+
+  return html.replace(
+    "</head>",
+    `${tags}\n</head>`
   );
 }
 
@@ -1035,6 +1084,89 @@ const supabaseServerClient = createClient(supabaseUrl, supabaseServerKey, {
   auth: { persistSession: false, autoRefreshToken: false },
   global: { fetch: fetchWithTimeout },
 });
+
+app.get("/sitemaps.xml", async (_req, res) => {
+  try {
+    const urls =
+      await getDynamicSitemapUrls(
+        supabaseServerClient
+      );
+
+    res.setHeader(
+      "Content-Type",
+      "application/xml; charset=utf-8"
+    );
+
+    res.setHeader(
+      "Cache-Control",
+      "public, s-maxage=300, max-age=0"
+    );
+
+    return res.send(
+      renderSitemapIndex(urls.length)
+    );
+  } catch (error) {
+    console.error(
+      "Dynamic sitemap index error:",
+      error
+    );
+
+    return res
+      .status(500)
+      .type("text/plain")
+      .send("Unable to generate sitemap.");
+  }
+});
+
+app.get(
+  "/sitemaps/sitemap-:number.xml",
+  async (req, res) => {
+    try {
+      const sitemapNumber =
+        Number(req.params.number);
+
+      const urls =
+        await getDynamicSitemapUrls(
+          supabaseServerClient
+        );
+
+      const xml =
+        renderSitemapPage(
+          urls,
+          sitemapNumber
+        );
+
+      if (!xml) {
+        return res
+          .status(404)
+          .type("text/plain")
+          .send("Sitemap not found.");
+      }
+
+      res.setHeader(
+        "Content-Type",
+        "application/xml; charset=utf-8"
+      );
+
+      res.setHeader(
+        "Cache-Control",
+        "public, s-maxage=300, max-age=0"
+      );
+
+      return res.send(xml);
+    } catch (error) {
+      console.error(
+        "Dynamic sitemap page error:",
+        error
+      );
+
+      return res
+        .status(500)
+        .type("text/plain")
+        .send("Unable to generate sitemap.");
+    }
+  }
+);
 
 const buildServerSlugSearchPattern = (slug: string): string => {
   const parts = String(slug || "")
@@ -4622,9 +4754,15 @@ const setupProductionFrontend = () => {
   seoMetadata !== null ||
   await isValidServerFrontendPath(req.path);
 
-      if (seoMetadata) {
-        html = injectSeoMetadata(html, seoMetadata);
-      } else {
+if (seoMetadata) {
+  html = injectSeoMetadata(html, seoMetadata);
+
+  html = injectSocialSeoMetadata(
+    html,
+    seoMetadata,
+    req.path
+  );
+} else {
         const currentYear = new Date().getFullYear();
 
         html = html.replace(
