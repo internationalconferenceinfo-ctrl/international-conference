@@ -2094,7 +2094,7 @@ canonicalLink.setAttribute("href", canonicalUrl);
           window.history.pushState({ auth: "NONE", portal: "ORGANIZER" }, "", "/organizer-portal");
         }
         addNotification(
-          "Welcome to International Conference! ðŸŽ‰",
+          "Welcome to International Conference! 🎉",
           "Please complete your organizer profile to start submitting conferences.",
           "info",
           sbUser.id
@@ -2739,13 +2739,13 @@ try {
 
     if (finalOrg.organizationName) {
       addNotification(
-        "Profile Submitted to Admin Portal! â³",
+        "Profile Submitted to Admin Portal! ✅",
         "Your organizer profile setup is complete and has been sent to the Admin Portal for review and activation.",
         "info",
         finalOrg.id
       );
       addNotification(
-        "New Organizer Registration ðŸ‘¤",
+        "New Organizer Registration 👤",
         `Organizer '${finalOrg.organizationName}' (${finalOrg.email}) submitted profile setup for activation.`,
         "info",
         "ADMIN",
@@ -2932,13 +2932,13 @@ if (exactDuplicate) {
 
     if (!isDraft && (orgId || authUser?.organizerId)) {
       addNotification(
-        "Submission Received ðŸ“¬",
+        "Submission Received 📬",
         `Your conference '${conferenceItem.title}' has been submitted for review.`,
         "info",
         orgId || authUser?.organizerId || ""
       );
       addNotification(
-        "New Conference Submitted ðŸ“",
+        "New Conference Submitted 📝",
         `Conference '${conferenceItem.title}' was submitted for review by ${orgName}.`,
         "info",
         "ADMIN",
@@ -3006,14 +3006,14 @@ if (exactDuplicate) {
 
     if (orgId) {
       addNotification(
-        "Resubmission Received ðŸ“¬",
+        "Resubmission Received 📬",
         `Your conference '${titleForSlug}' has been resubmitted for admin review.`,
         "info",
         orgId
       );
     }
     addNotification(
-      "Conference Edited ðŸ“",
+      "Conference Edited 📝",
       `Conference '${titleForSlug}' was updated and resubmitted for review by ${orgName}.`,
       "info",
       "ADMIN",
@@ -3203,7 +3203,7 @@ if (exactDuplicate) {
     authUser?.role === "ADMIN"
   ) {
     addNotification(
-      "Conference Deleted ðŸ—‘ï¸",
+      "Conference Deleted 🗑️",
       `Your conference '${conf.title}' was deleted by Admin.`,
       "warning",
       conf.organizerId
@@ -3377,7 +3377,7 @@ const handleDeleteDraft = async (
   triggerBroadcastSync();
 
   addNotification(
-    "Conference Approved! ðŸŽ‰",
+    "Conference Approved! 🎉",
     `Your conference '${conf.title}' has been published.`,
     "success",
     conf.organizerId
@@ -3683,7 +3683,7 @@ const handleToggleVerifyConference = async (
 
       if (nextState) {
         addNotification(
-          "Account Verified âœ…",
+          "Account Verified ✅",
           "Your organization has been verified!",
           "success",
           orgId
@@ -3726,14 +3726,14 @@ const handleToggleVerifyConference = async (
 
     if (nextSuspended) {
       addNotification(
-        "Account Status Updated âš ï¸",
+        "Account Status Updated ⚠️",
         "Your organizer profile activation was changed to suspended.",
         "warning",
         orgId
       );
     } else {
       addNotification(
-        "Account Approved & Activated ðŸŽ‰",
+        "Account Approved & Activated 🎉",
         "Your organizer account has been approved and activated by Admin!",
         "success",
         orgId
@@ -4520,7 +4520,7 @@ const handleEditCategory = async (
               </button>
             </div>
                 <p className="text-[11px] text-gray-400">
-                  ðŸ”’ Save these six digits safely. They are required to recover a forgotten password, and the PIN itself is never stored.
+                  🔒 Save these six digits safely. They are required to recover a forgotten password, and the PIN itself is never stored.
                 </p>
               </div>
             )}
@@ -4629,7 +4629,7 @@ const handleEditCategory = async (
 
             {isSignup && (
               <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-xs text-blue-700">
-                <p>ðŸ“Œ You're signing up as an <strong>Organizer</strong>. After registration, you'll complete your profile and start submitting conferences.</p>
+                <p>📌 You're signing up as an <strong>Organizer</strong>. After registration, you'll complete your profile and start submitting conferences.</p>
               </div>
             )}
 
@@ -4642,7 +4642,7 @@ const handleEditCategory = async (
 
             {authError && (
               <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl p-3 flex items-start gap-2">
-                <span className="text-red-500 text-lg leading-none">âš </span>
+                <span className="text-red-500 text-lg leading-none">⚠️</span>
                 <span>{authError}</span>
               </div>
             )}
@@ -5312,7 +5312,7 @@ const handleEditCategory = async (
                       )}
 
                       <span className="text-[11px] text-slate-500 block font-medium pt-1 mt-auto">
-                        ðŸ“ {sc.city}, {sc.country}
+                        📍 {sc.city}, {sc.country}
                       </span>
                     </div>
                   </a>
