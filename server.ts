@@ -4693,6 +4693,20 @@ const newRecord = {
 const setupProductionFrontend = () => {
   const distPath = path.join(process.cwd(), "dist");
 
+    // Never expose backend build artifacts from the public dist directory.
+  app.use((req, res, next) => {
+    const requestPath = req.path.toLowerCase();
+
+    if (
+      requestPath === "/server.cjs" ||
+      requestPath === "/server.cjs.map"
+    ) {
+      return res.status(404).send("Not Found");
+    }
+
+    next();
+  });
+
   app.use(
     express.static(distPath, {
       maxAge: "1y",
