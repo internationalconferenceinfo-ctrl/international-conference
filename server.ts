@@ -1499,6 +1499,169 @@ const SERVER_PUBLIC_APP_ROUTES = new Set([
   "organizer-portal",
 ]);
 
+async function serverPublicDiscoveryPathExists(
+  segments: string[]
+): Promise<boolean> {
+  if (segments.length < 1 || segments.length > 3) {
+    return false;
+  }
+
+  const hasVisibleConference = async (filters: {
+    country?: string;
+    city?: string;
+    category?: string;
+  }): Promise<boolean> => {
+    let query = supabaseServerClient
+      .from("conferences")
+      .select("id")
+      .eq("status", "Approved")
+      .or("is_deactivated.is.null,is_deactivated.eq.false")
+      .limit(1);
+
+    if (filters.country) {
+      query = query.ilike("country", filters.country);
+    }
+
+    if (filters.city) {
+      query = query.ilike("city", filters.city);
+    }
+
+    if (filters.category) {
+      query = query.ilike("category", filters.category);
+    }
+
+    const { data, error } = await query;
+
+    return (
+      !error &&
+      Array.isArray(data) &&
+      data.length > 0
+    );
+  };
+
+  if (segments.length === 1) {
+    const slug = segments[0];
+
+    const [country, city, category] = await Promise.all([
+      findServerCountryBySlug(slug),
+      findServerCityBySlug(slug),
+      findServerCategoryBySlug(slug),
+    ]);
+
+    const checks: Promise<boolean>[] = [];
+
+    if (country) {
+      checks.push(
+        hasVisibleConference({ country })
+      );
+    }
+
+    if (city) {
+      checks.push(
+        hasVisibleConference({ city: city.name })
+      );
+    }
+
+    if (category) {
+      checks.push(
+        hasVisibleConference({ category })
+      );
+    }
+
+    if (checks.length === 0) {
+      return false;
+    }
+
+    const results = await Promise.all(checks);
+    return results.some(Boolean);
+  }
+
+  if (segments.length === 2) {
+    const [firstSlug, secondSlug] = segments;
+
+    const [
+      country,
+      firstCategory,
+      secondCategory,
+      secondCity
+    ] = await Promise.all([
+      findServerCountryBySlug(firstSlug),
+      findServerCategoryBySlug(firstSlug),
+      findServerCategoryBySlug(secondSlug),
+      findServerCityBySlug(secondSlug),
+    ]);
+
+    const checks: Promise<boolean>[] = [];
+
+    if (country) {
+      const cityInCountry =
+        await findServerCityBySlug(
+          secondSlug,
+          country
+        );
+
+      if (cityInCountry) {
+        checks.push(
+          hasVisibleConference({
+            country,
+            city: cityInCountry.name,
+          })
+        );
+      }
+
+      if (secondCategory) {
+        checks.push(
+          hasVisibleConference({
+            country,
+            category: secondCategory,
+          })
+        );
+      }
+    }
+
+    if (firstCategory && secondCity) {
+      checks.push(
+        hasVisibleConference({
+          category: firstCategory,
+          city: secondCity.name,
+        })
+      );
+    }
+
+    if (checks.length === 0) {
+      return false;
+    }
+
+    const results = await Promise.all(checks);
+    return results.some(Boolean);
+  }
+
+  const [countrySlug, citySlug, categorySlug] =
+    segments;
+
+  const country =
+    await findServerCountryBySlug(countrySlug);
+
+  if (!country) {
+    return false;
+  }
+
+  const [city, category] = await Promise.all([
+    findServerCityBySlug(citySlug, country),
+    findServerCategoryBySlug(categorySlug),
+  ]);
+
+  if (!city || !category) {
+    return false;
+  }
+
+  return hasVisibleConference({
+    country,
+    city: city.name,
+    category,
+  });
+}
+
 async function isValidServerFrontendPath(
   pathname: string
 ): Promise<boolean> {
@@ -1549,38 +1712,24 @@ async function isValidServerFrontendPath(
     return conferenceRoute;
   }
 
-  for (const segment of dynamicSegments) {
-    if (
-      conferenceRoute &&
-      dynamicSegments.length === 1 &&
-      await serverConferenceExistsBySlugOrId(segment)
-    ) {
-      continue;
-    }
-
-    const [
-      country,
-      city,
-      category
-    ] = await Promise.all([
-      findServerCountryBySlug(segment),
-      findServerCityBySlug(segment),
-      findServerCategoryBySlug(segment),
-    ]);
-
-    if (!country && !city && !category) {
-      return false;
-    }
-  }
-
+if (
+  conferenceRoute &&
+  dynamicSegments.length === 1 &&
+  await serverConferenceExistsBySlugOrId(
+    dynamicSegments[0]
+  )
+) {
   return true;
+}
+
+return serverPublicDiscoveryPathExists(
+  dynamicSegments
+);
 }
 
 /**
  * Server-side timezone and completion calculation helper
  */
-
-
 function getConferenceEndTimestamp(conf: any): number | null {
   const dateStr = conf.end_date || conf.endDate || conf.start_date || conf.startDate;
   const zone = resolveConferenceTimeZone(conf.time_zone || conf.timeZone, conf.country, conf.city);
