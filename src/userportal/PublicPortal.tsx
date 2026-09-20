@@ -2262,7 +2262,7 @@ const handleNewsletterSubmit = async (e: React.FormEvent) => {
       </div>
 
       <p className="text-slate-500 text-xs sm:text-sm">
-        Explore selected upcoming international conferences recommended by our team.
+        Discover International Conferences, Connect with Experts, and Expand Your Knowledge and Innovation
       </p>
     </div>
 
@@ -2425,7 +2425,7 @@ const handleNewsletterSubmit = async (e: React.FormEvent) => {
               <Globe className="h-6 w-6 text-blue-600" /> International Conference Countries
             </h3>
             <p className="text-slate-500 text-sm mt-1">
-              Browse and filter academic conferences hosted by verified physical locations dynamically.
+              Explore International Conferences Across Countries and Connect with your Global Community.
             </p>
           </div>
           <div className="relative w-full sm:w-64 shrink-0">
@@ -2487,7 +2487,7 @@ const handleNewsletterSubmit = async (e: React.FormEvent) => {
               <Building2 className="h-6 w-6 text-emerald-600" /> International Conference Cities
             </h3>
             <p className="text-slate-500 text-xs sm:text-sm mt-1 leading-5 sm:leading-6">
-              Browse conferences by city. Click any city to view all conferences held in that location.
+              Connect, Learn, and Collaborate in International Conference Cities that view all conferences held in that location.
             </p>
           </div>
           <div className="relative w-full sm:w-64 md:w-72 shrink-0">
@@ -2564,7 +2564,7 @@ const handleNewsletterSubmit = async (e: React.FormEvent) => {
               <BookOpen className="h-6 w-6 text-indigo-600" /> International Conference Topics
             </h3>
             <p className="text-slate-500 text-xs sm:text-sm mt-1 leading-5 sm:leading-6">
-              Explore diverse topics and research fields available in event filter categories.
+              Find Verified Upcoming International Conferences that Match Your Research and Interests.
             </p>
           </div>
           <div className="relative w-full sm:w-64 md:w-72 shrink-0">
@@ -2640,7 +2640,7 @@ const handleNewsletterSubmit = async (e: React.FormEvent) => {
               <Users className="h-6 w-6 text-blue-600" /> Trusted Organizers
             </h3>
             <p className="text-slate-500 text-sm max-w-xl">
-              Browse verified academic institutions, scientific societies, and professional boards hosting events globally. Click any card to view their complete profile.
+              Browse verified academic institutions, scientific societies, and professional boards hosting conferences Internationally. Click any card to view their complete profile with Upcoming Conferences.
             </p>
           </div>
         </div>
