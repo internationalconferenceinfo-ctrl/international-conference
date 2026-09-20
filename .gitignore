@@ -23,3 +23,5 @@ Thumbs.db
 .vscode/
 .idea/
 supabase/.temp/
+server.cjs
+server.cjs.map

@@ -1,3 +1,3 @@
-import serverModule from "../dist/server.cjs";
+import serverModule from "../server.cjs";
 
 export default serverModule?.default || serverModule;
