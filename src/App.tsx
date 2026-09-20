@@ -966,6 +966,9 @@ const organizerPortalRoute =
 
   // Other state
   const [selectedConference, setSelectedConference] = useState<Conference | null>(null);
+  const [activeScheduleTab, setActiveScheduleTab] = useState<
+    "offline" | "online" | "hybrid"
+  >("offline");
   const [selectedOrganizerId, setSelectedOrganizerId] = useState<string | null>(null);
   const [activePortal, setActivePortal] = useState<"VISITOR" | "ORGANIZER" | "ADMIN">(() => {
     const pathname = decodeURIComponent(window.location.pathname).toLowerCase().trim().replace(/^\/+|\/+$/g, "");
@@ -1214,6 +1217,7 @@ if (
   };
 
   const hasParsedInitialUrl = useRef(false);
+  const isResolvingInitialRoute = useRef(false);
   const initialPathRef = useRef(
     typeof window !== "undefined" ? window.location.pathname + window.location.search : "/"
   );
@@ -1504,17 +1508,29 @@ const parseURLAndApplyState = (
     setActivePortal(nextPortal);
   };
 
-  // URL state synchronization effect
-  useEffect(() => {
-    if (!hasParsedInitialUrl.current && initialDataLoaded) {
-const initialSegments = decodeURIComponent(initialPathRef.current.split("?")[0])
-  .toLowerCase()
-  .trim()
-  .replace(/^\/+|\/+$/g, "")
-  .split("/")
-  .filter(Boolean);
+// URL state synchronization effect
+useEffect(() => {
+  const initialSegments = decodeURIComponent(
+    initialPathRef.current.split("?")[0]
+  )
+    .toLowerCase()
+    .trim()
+    .replace(/^\/+|\/+$/g, "")
+    .split("/")
+    .filter(Boolean);
 
-const firstSegment = initialSegments[0] || "";
+  const firstSegment = initialSegments[0] || "";
+
+  const isDirectConferenceInitialRoute =
+    ["conference", "conferences", "events"].includes(firstSegment) &&
+    Boolean(initialSegments[1]);
+
+if (
+  !hasParsedInitialUrl.current &&
+  !isResolvingInitialRoute.current &&
+  (initialDataLoaded || isDirectConferenceInitialRoute)
+) {
+  isResolvingInitialRoute.current = true;
 
 const directConferenceSlug =
   ["conference", "conferences", "events"].includes(firstSegment)
@@ -1662,10 +1678,11 @@ const resolveInitialDirectoryRoute = async () => {
       organizers,
       initialPathRef.current
     );
-  } finally {
-    hasParsedInitialUrl.current = true;
-    setInitialRouteResolved(true);
-  }
+} finally {
+  hasParsedInitialUrl.current = true;
+  isResolvingInitialRoute.current = false;
+  setInitialRouteResolved(true);
+}
 };
 
 void resolveInitialDirectoryRoute();
@@ -5097,9 +5114,8 @@ const handleEditCategory = async (
         </div>
 
 
-{/* Other Conference Details - 3 Equal Columns */}
-<div className="grid grid-cols-1 md:grid-cols-3 gap-5 lg:gap-6">
-
+{/* Conference Information & Schedule */}
+<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 lg:gap-6 items-start">
   {/* COLUMN 1 - DATE & SCHEDULE */}
   <div className="bg-blue-50/90 border border-blue-200/90 p-5 rounded-2xl shadow-2xs">
     <div className="text-blue-900 font-extrabold text-xs uppercase tracking-wider flex items-center gap-2 border-b border-blue-200 pb-3 mb-4">
@@ -5194,8 +5210,124 @@ const handleEditCategory = async (
     </div>
   </div>
 
+  {/* COLUMN 3 - CONFERENCE SCHEDULE */}
+  <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-2xs">
+    <div className="space-y-2 border-b border-slate-100 pb-3 mb-4">
+      <div className="flex items-center gap-2">
+        <CalendarIcon className="h-5 w-5 text-blue-600 shrink-0" />
+        <h3 className="text-base md:text-lg font-extrabold text-slate-900 font-display">
+          Conference Schedule
+        </h3>
+      </div>
 
-  {/* COLUMN 3 - OTHER DETAILS */}
+      <p className="text-[10px] text-slate-500 font-medium leading-relaxed">
+        Indicative schedule. Final timings may vary by organizer.
+      </p>
+    </div>
+
+    <div className="grid grid-cols-3 gap-2 bg-slate-100 p-1.5 rounded-xl mb-5">
+      <button
+        type="button"
+        onClick={() => setActiveScheduleTab("offline")}
+        className={`px-3 py-2.5 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+          activeScheduleTab === "offline"
+            ? "bg-white text-blue-700 shadow-sm"
+            : "text-slate-600 hover:text-slate-900"
+        }`}
+      >
+        Offline
+      </button>
+
+      <button
+        type="button"
+        onClick={() => setActiveScheduleTab("online")}
+        className={`px-3 py-2.5 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+          activeScheduleTab === "online"
+            ? "bg-white text-blue-700 shadow-sm"
+            : "text-slate-600 hover:text-slate-900"
+        }`}
+      >
+        Online
+      </button>
+
+      <button
+        type="button"
+        onClick={() => setActiveScheduleTab("hybrid")}
+        className={`px-3 py-2.5 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+          activeScheduleTab === "hybrid"
+            ? "bg-white text-blue-700 shadow-sm"
+            : "text-slate-600 hover:text-slate-900"
+        }`}
+      >
+        Hybrid
+      </button>
+    </div>
+
+    {activeScheduleTab === "offline" && (
+      <div className="grid grid-cols-1 gap-2.5">
+        {[
+          "Registration & Venue Check-In",
+          "Opening Session",
+          "Keynote Session",
+          "Technical & Paper Presentations",
+          "Networking & Refreshment Break",
+          "Closing Session"
+        ].map((item) => (
+          <div
+            key={item}
+            className="flex items-start gap-2.5 bg-blue-50/70 border border-blue-100 p-3.5 rounded-xl"
+          >
+            <CheckCircle2 className="h-4 w-4 text-blue-600 mt-0.5 shrink-0" />
+            <span className="text-sm font-semibold text-slate-700">{item}</span>
+          </div>
+        ))}
+      </div>
+    )}
+
+    {activeScheduleTab === "online" && (
+      <div className="grid grid-cols-1 gap-2.5">
+        {[
+          "Virtual Platform Check-In",
+          "Online Opening Session",
+          "Keynote Session",
+          "Virtual Paper Presentations",
+          "Interactive Q&A & Networking",
+          "Online Closing Session"
+        ].map((item) => (
+          <div
+            key={item}
+            className="flex items-start gap-2.5 bg-indigo-50/70 border border-indigo-100 p-3.5 rounded-xl"
+          >
+            <CheckCircle2 className="h-4 w-4 text-indigo-600 mt-0.5 shrink-0" />
+            <span className="text-sm font-semibold text-slate-700">{item}</span>
+          </div>
+        ))}
+      </div>
+    )}
+
+    {activeScheduleTab === "hybrid" && (
+      <div className="grid grid-cols-1 gap-2.5">
+        {[
+          "Venue & Online Access Check-In",
+          "Combined Opening Session",
+          "Keynote Session",
+          "Hybrid Paper Presentations",
+          "On-Site & Virtual Networking",
+          "Combined Closing Session"
+        ].map((item) => (
+          <div
+            key={item}
+            className="flex items-start gap-2.5 bg-emerald-50/70 border border-emerald-100 p-3.5 rounded-xl"
+          >
+            <CheckCircle2 className="h-4 w-4 text-emerald-600 mt-0.5 shrink-0" />
+            <span className="text-sm font-semibold text-slate-700">{item}</span>
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+
+  {/* COLUMN 4 - OTHER DETAILS */}
   <div className="bg-purple-50/90 border border-purple-200/90 p-5 rounded-2xl shadow-2xs">
     <div className="text-purple-900 font-extrabold text-xs uppercase tracking-wider flex items-center gap-2 border-b border-purple-200 pb-3 mb-4">
       <Sparkles className="h-4 w-4 text-purple-600 shrink-0" />

@@ -1883,7 +1883,7 @@ export async function fetchPublicConferenceBySlugOrIdFromSupabase(
       await client
         .from("conferences_public")
         .select("*")
-        .ilike("slug", target)
+        .eq("slug", target)
         .limit(1);
 
     if (slugError) {

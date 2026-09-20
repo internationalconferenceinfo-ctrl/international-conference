@@ -1631,6 +1631,33 @@ const paginatedConferences = useMemo(() => {
     return "International Conferences";
   }, [selectedCategory, selectedCity, selectedCountry, searchTerm]);
 
+  const conferenceResultsHeading = useMemo(() => {
+    const countLabel =
+      conferenceResultCount === 1 ? "conference" : "conferences";
+
+    const topicText =
+      selectedCategory !== "All"
+        ? ` ${formatDisplayText(selectedCategory)}`
+        : "";
+
+    let locationText = "";
+
+    if (selectedCity !== "All" && selectedCountry !== "All") {
+      locationText = ` in ${formatDisplayText(selectedCity)}, ${formatDisplayText(selectedCountry)}`;
+    } else if (selectedCity !== "All") {
+      locationText = ` in ${formatDisplayText(selectedCity)}`;
+    } else if (selectedCountry !== "All") {
+      locationText = ` in ${formatDisplayText(selectedCountry)}`;
+    }
+
+    return `Currently showing ${conferenceResultCount} upcoming${topicText} ${countLabel}${locationText}`;
+  }, [
+    conferenceResultCount,
+    selectedCategory,
+    selectedCity,
+    selectedCountry
+  ]);
+
  // Dynamic filter description from Admin-controlled templates
 const filterDescription = useMemo(() => {
   const hasCategory = selectedCategory !== "All";
@@ -2237,15 +2264,19 @@ const handleNewsletterSubmit = async (e: React.FormEvent) => {
       </section>
 
       {/* Admin Controlled Home Main Description */}
-        {homeMainDescription && (
-          <section className="w-full">
-            <div className="bg-white border border-slate-200 rounded-2xl px-5 py-5 sm:px-7 sm:py-6 shadow-sm">
-              <p className="text-sm sm:text-base text-slate-600 leading-7 text-justify">
-                {homeMainDescription}
-              </p>
-            </div>
-          </section>
-        )}
+      {homeMainDescription && (
+        <section className="w-full space-y-4">
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-slate-900 font-display">
+            Upcoming International Conferences 2026
+          </h2>
+
+          <div className="bg-white border border-slate-200 rounded-2xl px-5 py-5 sm:px-7 sm:py-6 shadow-sm">
+            <p className="text-sm sm:text-base text-slate-600 leading-7 text-justify">
+              {homeMainDescription}
+            </p>
+          </div>
+        </section>
+      )}
 
 {/* Featured Conferences */}
 {featuredConferences.length > 0 && (
@@ -2769,10 +2800,6 @@ const handleNewsletterSubmit = async (e: React.FormEvent) => {
               <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight font-display mt-1 leading-tight break-words">
                 {pageHeadingTitle}
               </h1>
-              <h2 className="text-lg sm:text-xl font-bold text-slate-800 mt-2">
-Currently showing {conferenceResultCount} upcoming{" "}
-{conferenceResultCount === 1 ? "conference" : "conferences"}
-              </h2>
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
@@ -2998,16 +3025,10 @@ Currently showing {conferenceResultCount} upcoming{" "}
               <div className="space-y-6 flex-1">
                 {/* Subheading displaying count after filter */}
                 <div className="flex items-center justify-between pb-3 border-b border-slate-200">
-                 <h2 className="text-base md:text-lg font-bold text-slate-900 font-display flex items-center gap-2">
-                  <CheckCircle2 className="h-4.5 w-4.5 text-blue-600 shrink-0" />
-                  <span>
-{conferenceResultCount > 0
-  ? `Currently showing ${conferenceResultCount} upcoming ${
-      conferenceResultCount === 1 ? "conference" : "conferences"
-    }`
-  : "Currently showing 0 upcoming conferences"}
-                  </span>
-                </h2>
+                  <h2 className="text-base md:text-lg font-bold text-slate-900 font-display flex items-center gap-2">
+                    <CheckCircle2 className="h-4.5 w-4.5 text-blue-600 shrink-0" />
+                    <span>{conferenceResultsHeading}</span>
+                  </h2>
                 </div>
 
                 {isSlashSearch && slashCountryLabel && (
