@@ -2422,7 +2422,7 @@ const handleNewsletterSubmit = async (e: React.FormEvent) => {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h3 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight font-display flex items-start sm:items-center gap-2 leading-tight">
-              <Globe className="h-6 w-6 text-blue-600" /> International Conference Countries 2026
+              <Globe className="h-6 w-6 text-blue-600" /> International Conference Countries
             </h3>
             <p className="text-slate-500 text-sm mt-1">
               Browse and filter academic conferences hosted by verified physical locations dynamically.
