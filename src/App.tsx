@@ -1810,7 +1810,7 @@ void resolveInitialDirectoryRoute();
           //subrat bro
           
         case "HOME":
-        title = `International Conferences ${currentYear} | Upcoming Global International Conferences and Events`;
+        title = `International Conferences ${currentYear} | Upcoming International Conferences worldwide`;
 
         description =
           "Find the latest international conferences covering diverse subjects and industries worldwide. Join global professionals and experts to exchange insights, discover emerging trends, build connections, and participate in valuable academic and professional conferences.";
@@ -1871,7 +1871,7 @@ void resolveInitialDirectoryRoute();
           break;
         }
         case "ABOUT":
-          title = "About International Conferences | Global Academic & Professional Events";
+          title = "About International Conferences | Global Academic & Professional Conferences";
 
           description =
             "Learn about international conferences, global events, and networking opportunities that connect professionals, researchers, academics, and organizations from around the world.";
@@ -1881,7 +1881,7 @@ void resolveInitialDirectoryRoute();
 
           break;
         case "MEDIAPARTNER":
-          title = "Media Partners of International Conferences | Global Events";
+          title = "Media Partners of International Conferences | Partner with Us";
 
           description =
             "Find media partners for international conferences and showcase your events to a wider audience through conference promotion, media coverage, and global networking opportunities.";
