@@ -2256,9 +2256,9 @@ const handleNewsletterSubmit = async (e: React.FormEvent) => {
       <div className="flex items-center gap-2 mb-1">
         <Star className="h-6 w-6 text-amber-500 fill-amber-500" />
 
-        <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight font-display">
+        <h3 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight font-display">
           Featured Conferences
-        </h2>
+        </h3>
       </div>
 
       <p className="text-slate-500 text-xs sm:text-sm">
@@ -2421,9 +2421,9 @@ const handleNewsletterSubmit = async (e: React.FormEvent) => {
       <section className="space-y-4 sm:space-y-5 md:space-y-6 min-w-0">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight font-display flex items-start sm:items-center gap-2 leading-tight">
+            <h3 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight font-display flex items-start sm:items-center gap-2 leading-tight">
               <Globe className="h-6 w-6 text-blue-600" /> International Conference Countries 2026
-            </h2>
+            </h3>
             <p className="text-slate-500 text-sm mt-1">
               Browse and filter academic conferences hosted by verified physical locations dynamically.
             </p>
@@ -2483,9 +2483,9 @@ const handleNewsletterSubmit = async (e: React.FormEvent) => {
       <section className="space-y-4 sm:space-y-5 md:space-y-6 min-w-0">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight font-display flex items-start sm:items-center gap-2 leading-tight">
+            <h3 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight font-display flex items-start sm:items-center gap-2 leading-tight">
               <Building2 className="h-6 w-6 text-emerald-600" /> International Conference Cities
-            </h2>
+            </h3>
             <p className="text-slate-500 text-xs sm:text-sm mt-1 leading-5 sm:leading-6">
               Browse conferences by city. Click any city to view all conferences held in that location.
             </p>
@@ -2560,9 +2560,9 @@ const handleNewsletterSubmit = async (e: React.FormEvent) => {
       <section className="space-y-4 sm:space-y-5 md:space-y-6 min-w-0">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight font-display flex items-start sm:items-center gap-2 leading-tight">
+            <h3 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight font-display flex items-start sm:items-center gap-2 leading-tight">
               <BookOpen className="h-6 w-6 text-indigo-600" /> International Conference Topics
-            </h2>
+            </h3>
             <p className="text-slate-500 text-xs sm:text-sm mt-1 leading-5 sm:leading-6">
               Explore diverse topics and research fields available in event filter categories.
             </p>
@@ -2636,9 +2636,9 @@ const handleNewsletterSubmit = async (e: React.FormEvent) => {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div className="space-y-1">
             <span className="text-xs font-bold uppercase tracking-wider text-blue-600 block">Verified Institutions</span>
-            <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-slate-900 font-display flex items-center gap-2 leading-tight">
+            <h3 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-slate-900 font-display flex items-center gap-2 leading-tight">
               <Users className="h-6 w-6 text-blue-600" /> Trusted Organizers
-            </h2>
+            </h3>
             <p className="text-slate-500 text-sm max-w-xl">
               Browse verified academic institutions, scientific societies, and professional boards hosting events globally. Click any card to view their complete profile.
             </p>
@@ -3278,9 +3278,9 @@ Currently showing {conferenceResultCount} upcoming{" "}
               <Sparkles className="h-3.5 w-3.5" />
               <span>Community Reviews</span>
             </div>
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold font-display text-slate-900 tracking-tight">
+            <h3 className="text-2xl sm:text-3xl md:text-4xl font-extrabold font-display text-slate-900 tracking-tight">
               What Our Community Says
-            </h2>
+            </h3>
             <p className="text-slate-500 text-xs sm:text-sm max-w-xl leading-relaxed">
               Real feedback shared by researchers, academics, organizers, and conference attendees from around the world.
             </p>
