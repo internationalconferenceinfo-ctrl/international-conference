@@ -23,6 +23,7 @@ function sitemapSlugify(text: string): string {
   return String(text)
     .toLowerCase()
     .trim()
+    .replace(/&/g, " and ")
     .replace(/[^\w\s-]/g, "")
     .replace(/[\s_-]+/g, "-")
     .replace(/^-+|-+$/g, "");
@@ -1236,12 +1237,15 @@ async function findServerCategoryBySlug(
     ? sitemapSlugify(aliasCategory)
     : normalizedSlug;
 
+  const categorySearchSlug =
+    searchSlug.replace(/-and-/g, "-");
+
   const { data, error } = await supabaseServerClient
     .from("categories")
     .select("name,status")
     .ilike(
       "name",
-      buildServerSlugSearchPattern(searchSlug)
+      buildServerSlugSearchPattern(categorySearchSlug)
     )
     .limit(50);
 
