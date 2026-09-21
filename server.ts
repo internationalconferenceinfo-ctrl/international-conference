@@ -1759,7 +1759,8 @@ async function syncCompletedConferencesStatusServer(): Promise<{ updatedCount: n
         const { data: rows, error } =
           await supabaseServerClient
             .from("conferences")
-            .select("*")
+            .select("id,start_date,end_date,time_zone,country,city,live_status")
+            .or("live_status.is.null,live_status.neq.Completed")
             .range(
               conferenceFrom,
               conferenceFrom +
@@ -1810,15 +1811,38 @@ async function syncCompletedConferencesStatusServer(): Promise<{ updatedCount: n
         }
       }
 
+    const expiredConferenceIds = allConferences
+      .filter(
+        (conf) =>
+          isConferenceExpired(conf) &&
+          conf.live_status !== "Completed" &&
+          conf.liveStatus !== "Completed"
+      )
+      .map((conf) => String(conf.id));
+
     let updatedCount = 0;
-    for (const conf of allConferences) {
-      if (isConferenceExpired(conf) && conf.live_status !== "Completed" && conf.liveStatus !== "Completed") {
-        await supabaseServerClient
-          .from("conferences")
-          .update({ live_status: "Completed" })
-          .eq("id", String(conf.id));
-        updatedCount++;
+    const STATUS_UPDATE_BATCH_SIZE = 100;
+
+    for (
+      let index = 0;
+      index < expiredConferenceIds.length;
+      index += STATUS_UPDATE_BATCH_SIZE
+    ) {
+      const batchIds = expiredConferenceIds.slice(
+        index,
+        index + STATUS_UPDATE_BATCH_SIZE
+      );
+
+      const { error } = await supabaseServerClient
+        .from("conferences")
+        .update({ live_status: "Completed" })
+        .in("id", batchIds);
+
+      if (error) {
+        throw error;
       }
+
+      updatedCount += batchIds.length;
     }
 
     return { updatedCount };
