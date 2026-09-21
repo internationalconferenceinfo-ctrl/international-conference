@@ -187,7 +187,7 @@ async function buildUrls(
   }
 
   for (const [path, conferenceCount] of seoPathCounts) {
-    if (conferenceCount >= 2) {
+    if (conferenceCount >= 1) {
       add(...path.split("/"));
     }
   }
