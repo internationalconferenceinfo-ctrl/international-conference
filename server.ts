@@ -320,7 +320,7 @@ if (
   segments.length === 2 &&
   segments[0] === "conference"
 ) {
-  const conferenceSlug = segments[1];
+  const conferenceSlug = segments[1].toLowerCase();
 
 const {
   data: conferenceRows,
@@ -330,7 +330,7 @@ const {
   .select(
     "title,description,category,country,city,slug,status,is_deactivated"
   )
-  .ilike("slug", conferenceSlug)
+  .eq("slug", conferenceSlug)
   .limit(1);
 
   if (!error && Array.isArray(conferenceRows)) {
@@ -410,7 +410,7 @@ if (
   segments.length === 2 &&
   segments[0] === "organizers"
 ) {
-  const organizerSlug = segments[1];
+  const organizerSlug = segments[1].toLowerCase();
 
 const {
   data: organizerRows,
@@ -420,7 +420,7 @@ const {
   .select(
     "slug,name,about_organization,country,city,is_suspended"
   )
-  .ilike("slug", organizerSlug)
+  .eq("slug", organizerSlug)
   .limit(1);
 
 
@@ -1338,7 +1338,7 @@ async function serverConferenceExistsBySlugOrId(
     await supabaseServerClient
       .from("conferences")
       .select("id,slug,status,is_deactivated")
-      .ilike("slug", target)
+      .eq("slug", target.toLowerCase())
       .limit(1);
 
   if (
@@ -1378,7 +1378,7 @@ async function getServerCanonicalConferenceSlug(
     await supabaseServerClient
       .from("conferences")
       .select("id,slug,status,is_deactivated")
-      .ilike("slug", target)
+      .eq("slug", target.toLowerCase())
       .limit(1);
 
   const slugMatch =
@@ -1423,7 +1423,7 @@ async function serverOrganizerExistsBySlugOrId(
     await supabaseServerClient
       .from("organizers")
       .select("id,slug,name,is_suspended")
-      .ilike("slug", target)
+      .eq("slug", target.toLowerCase())
       .limit(1);
 
   if (
