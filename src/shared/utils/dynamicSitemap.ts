@@ -81,7 +81,7 @@ async function buildUrls(
       fetchAll(
         supabase,
         "conferences_public",
-        "slug,country,city,category"
+        "slug,country,city,category,live_status"
       ),
       fetchAll(
         supabase,
@@ -153,42 +153,42 @@ async function buildUrls(
     }
   }
 
-  for (const conference of conferences) {
-    const country =
-      slugify(conference.country);
+  const activeConferences = conferences.filter(
+    (conference) =>
+      String(conference.live_status || "")
+        .trim()
+        .toLowerCase() !== "completed"
+  );
 
-    const city =
-      slugify(conference.city);
+  const seoPathCounts = new Map<string, number>();
 
-    const topic =
-      slugify(conference.category);
+  for (const conference of activeConferences) {
+    const country = slugify(conference.country);
+    const city = slugify(conference.city);
+    const topic = slugify(conference.category);
+    const conferencePaths = new Set<string>();
 
-    if (country) add(country);
-    if (city) add(city);
-    if (topic) add(topic);
+    const countPath = (...segments: string[]) => {
+      const path = segments.filter(Boolean).join("/");
+      if (path) conferencePaths.add(path);
+    };
 
-    if (country && city) {
-      add(country, city);
+    if (country) countPath(country);
+    if (city) countPath(city);
+    if (topic) countPath(topic);
+    if (country && city) countPath(country, city);
+    if (country && topic) countPath(country, topic);
+    if (city && topic) countPath(topic, city);
+    if (country && city && topic) countPath(country, city, topic);
+
+    for (const path of conferencePaths) {
+      seoPathCounts.set(path, (seoPathCounts.get(path) || 0) + 1);
     }
+  }
 
-    if (country && topic) {
-      add(country, topic);
-    }
-
-if (city && topic) {
-  add(topic, city);
-}
-
-    if (
-      country &&
-      city &&
-      topic
-    ) {
-      add(
-        country,
-        city,
-        topic
-      );
+  for (const [path, conferenceCount] of seoPathCounts) {
+    if (conferenceCount >= 2) {
+      add(...path.split("/"));
     }
   }
 
