@@ -185,6 +185,65 @@ function injectSocialSeoMetadata(
   );
 }
 
+function injectStructuredSeoMetadata(
+  html: string,
+  metadata: SeoMetadata,
+  pathname: string
+): string {
+  const cleanPath =
+    "/" +
+    String(pathname || "/")
+      .split("?")[0]
+      .replace(/^\/+|\/+$/g, "");
+
+  if (cleanPath === "/") {
+    return html;
+  }
+
+  const canonicalUrl =
+    "https://www.internationalconference.info" + cleanPath;
+
+  const pattern =
+    /<!-- Homepage & Organization Structured Data -->\s*<script type="application\/ld\+json">\s*([\s\S]*?)\s*<\/script>/i;
+
+  const match = html.match(pattern);
+
+  if (!match) {
+    return html;
+  }
+
+  try {
+    const data = JSON.parse(match[1]);
+    const graph = Array.isArray(data?.["@graph"])
+      ? data["@graph"]
+      : null;
+
+    if (!graph || !graph[0]) {
+      return html;
+    }
+
+    graph[0]["@type"] = "WebPage";
+    graph[0].name = metadata.title;
+    graph[0].headline = metadata.title;
+    graph[0].url = canonicalUrl;
+    graph[0].description = metadata.description;
+    graph[0].keywords = metadata.keywords;
+
+    const safeJson = JSON.stringify(data, null, 2)
+      .replace(/</g, "\\u003c");
+
+    return html.replace(
+      pattern,
+      `<!-- Page & Organization Structured Data -->
+    <script type="application/ld+json">
+${safeJson}
+    </script>`
+    );
+  } catch {
+    return html;
+  }
+}
+
 async function getSeoMetadataForPath(
   pathname: string
 ): Promise<SeoMetadata | null> {
@@ -4949,6 +5008,12 @@ if (seoMetadata) {
   html = injectSeoMetadata(html, seoMetadata);
 
   html = injectSocialSeoMetadata(
+    html,
+    seoMetadata,
+    req.path
+  );
+
+  html = injectStructuredSeoMetadata(
     html,
     seoMetadata,
     req.path
