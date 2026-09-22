@@ -74,6 +74,7 @@ import {
   ensureOrganizerSlugs,
   getOrganizerSlug,
 } from "./shared/utils/slugUtils";
+import { seoSlugify, getSeoCountrySlug, getSeoCategorySlug } from "./shared/utils/seoSlugUtils";
 
 export {
   slugify,
@@ -1112,7 +1113,7 @@ const matchCategory = (cleanPath: string): string | null => {
   // All normal topics resolve automatically from their category name.
   const directMatch = availableCategories.find(
     (category) =>
-      slugify(category) === normalizedPath ||
+      seoSlugify(category) === normalizedPath ||
       category.trim().toLowerCase() === normalizedPath
   );
 
@@ -1131,7 +1132,7 @@ const matchCategory = (cleanPath: string): string | null => {
     return "artificial-intelligence";
   }
 
-  return slugify(category);
+  return getSeoCategorySlug(category);
 };
 
   // SEO country aliases used by public URLs and the manual sitemap.
@@ -1151,7 +1152,7 @@ const getCountrySlug = (country: string): string => {
     ([, countryName]) => countryName === normalizedCountry
   );
 
-  return aliasEntry ? aliasEntry[0] : slugify(country);
+  return getSeoCountrySlug(country);
 };
 
   // Match country or city from URL pathname
@@ -1755,7 +1756,7 @@ void resolveInitialDirectoryRoute();
       } else if (hasCountry && hasCat) {
         newPath = `/${getCountrySlug(selectedCountry)}/${getCategorySlug(selectedCategory)}`;
       } else if (hasCat && hasCity) {
-        newPath = `/${slugify(selectedCategory)}/${slugify(selectedCity)}`;
+        newPath = `/${getSeoCategorySlug(selectedCategory)}/${slugify(selectedCity)}`;
       } else if (hasCountry) {
         newPath = `/${getCountrySlug(selectedCountry)}`;
       } else if (hasCity) {

@@ -26,6 +26,7 @@ import {
   getConferenceStartTimestamp
 } from "../shared/utils/expirationUtils";
 import { slugify, getConferenceSlug } from "../shared/utils/slugUtils";
+import { seoSlugify, getSeoCountrySlug, getSeoCategorySlug } from "../shared/utils/seoSlugUtils";
 import { OFFICIAL_CONTACT_INFO, OFFICIAL_SOCIAL_LINKS, ContactInfo, SocialLinks } from "../constants/contactConfig";
 import { aboutUsContent } from "../content/aboutUs";
 import { privacyPolicyContent } from "../content/privacyPolicy";
@@ -2486,11 +2487,15 @@ const handleNewsletterSubmit = async (e: React.FormEvent) => {
         ) : (
           <div className="grid grid-cols-1 min-[420px]:grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2.5 sm:gap-3.5 max-h-[520px] overflow-y-auto pr-1">
             {filteredCountriesList.map((country, cIdx) => (
-              <motion.button
+              <motion.a
                 key={`${country}-${cIdx}`}
                 whileHover={{ scale: 1.03, y: -2 }}
                 whileTap={{ scale: 0.98 }}
-                onClick={() => handleCountryClick(country)}
+                href={`/${getSeoCountrySlug(country)}`}
+                onClick={(event) => {
+                  event.preventDefault();
+                  handleCountryClick(country);
+                }}
                 className={`p-3 sm:p-3.5 min-h-[72px] rounded-xl sm:rounded-2xl border text-left flex items-center gap-2.5 transition-all cursor-pointer shadow-xs ${
                   selectedCity === "All" && selectedCountry === country
                     ? "bg-blue-600 border-blue-600 text-white"
@@ -2504,7 +2509,7 @@ const handleNewsletterSubmit = async (e: React.FormEvent) => {
                     {approvedConferences.filter((c) => c.country === country).length} Events
                   </p>
                 </div>
-              </motion.button>
+              </motion.a>
             ))}
           </div>
         )}
@@ -2551,11 +2556,15 @@ const handleNewsletterSubmit = async (e: React.FormEvent) => {
               const isSelected = selectedCity === item.cityName && (selectedCountry === "All" || selectedCountry === item.countryName);
 
               return (
-                <motion.button
+                <motion.a
                   key={`${item.cityName}-${item.countryName}-${cIdx}`}
                   whileHover={{ scale: 1.03, y: -2 }}
                   whileTap={{ scale: 0.98 }}
-                  onClick={() => handleCityClick(item.cityName, item.countryName)}
+                  href={`/${getSeoCountrySlug(item.countryName)}/${seoSlugify(item.cityName)}`}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    handleCityClick(item.cityName, item.countryName);
+                  }}
                   className={`p-3 sm:p-3.5 min-h-[86px] rounded-xl sm:rounded-2xl border text-left flex items-start gap-2.5 transition-all cursor-pointer shadow-xs ${
                     isSelected
                       ? "bg-emerald-600 border-emerald-600 text-white"
@@ -2580,7 +2589,7 @@ const handleNewsletterSubmit = async (e: React.FormEvent) => {
                       {count === 1 ? "1 Conference" : `${count} Conferences`}
                     </p>
                   </div>
-                </motion.button>
+                </motion.a>
               );
             })}
           </div>
@@ -2632,11 +2641,15 @@ const handleNewsletterSubmit = async (e: React.FormEvent) => {
               ).length;
 
               return (
-                <motion.button
+                <motion.a
                   key={`${topic}-${tIdx}`}
                   whileHover={{ scale: 1.02, y: -2 }}
                   whileTap={{ scale: 0.98 }}
-                  onClick={() => handleTopicClick(topic)}
+                  href={`/${getSeoCategorySlug(mappedCat)}`}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    handleTopicClick(topic);
+                  }}
                   className={`p-3 sm:p-3.5 min-h-[82px] rounded-xl sm:rounded-2xl border text-left flex items-start gap-2 sm:gap-2.5 transition-all cursor-pointer shadow-xs ${
                     isSelected
                       ? "bg-indigo-600 border-indigo-600 text-white"
@@ -2652,7 +2665,7 @@ const handleNewsletterSubmit = async (e: React.FormEvent) => {
                       {matchingCount} {matchingCount === 1 ? "Conference" : "Conferences"}
                     </p>
                   </div>
-                </motion.button>
+                </motion.a>
               );
             })}
           </div>

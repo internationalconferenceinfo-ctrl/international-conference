@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { seoSlugify, getSeoCountrySlug, getSeoCategorySlug } from "./seoSlugUtils";
 
 const BASE_URL =
   "https://www.internationalconference.info";
@@ -14,15 +15,7 @@ let sitemapCache:
     }
   | null = null;
 
-const slugify = (value = "") =>
-  String(value)
-    .trim()
-    .toLowerCase()
-    .replace(/&/g, " and ")
-    .replace(/[^\w\s-]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "");
+
 
 const xmlEscape = (value: string) =>
   String(value)
@@ -163,9 +156,9 @@ async function buildUrls(
   const seoPathCounts = new Map<string, number>();
 
   for (const conference of activeConferences) {
-    const country = slugify(conference.country);
-    const city = slugify(conference.city);
-    const topic = slugify(conference.category);
+    const country = getSeoCountrySlug(conference.country);
+    const city = seoSlugify(conference.city);
+    const topic = getSeoCategorySlug(conference.category);
     const conferencePaths = new Set<string>();
 
     const countPath = (...segments: string[]) => {
