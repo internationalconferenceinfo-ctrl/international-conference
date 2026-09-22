@@ -120,6 +120,7 @@ CREATE TABLE IF NOT EXISTS public.conferences (
     is_verified BOOLEAN DEFAULT false,
     organizer_id TEXT REFERENCES public.organizers(id) ON DELETE CASCADE ON UPDATE CASCADE,
     organizer_email TEXT,
+    contact_email TEXT,
     organizer_name TEXT,
     organizer_phone TEXT,
     organizer_website TEXT,

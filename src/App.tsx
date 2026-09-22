@@ -5357,7 +5357,7 @@ const handleEditCategory = async (
       </div>
 
       {/* Contact */}
-      {(selectedConference.contactEmail || org?.email) && (
+      {selectedConference.contactEmail && (
         <div>
           <p className="text-[11px] text-purple-700 font-bold uppercase mb-1 flex items-center gap-1">
             <Mail className="h-3.5 w-3.5" />
@@ -5365,10 +5365,10 @@ const handleEditCategory = async (
           </p>
 
           <a
-            href={`mailto:${selectedConference.contactEmail || org?.email}`}
+            href={`mailto:${selectedConference.contactEmail}`}
             className="font-semibold text-sm text-slate-800 hover:text-purple-700 hover:underline break-all"
           >
-            {selectedConference.contactEmail || org?.email}
+            {selectedConference.contactEmail}
           </a>
         </div>
       )}
