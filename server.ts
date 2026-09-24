@@ -2729,6 +2729,43 @@ app.post("/api/admin/db/upsert", requireAdminSession, async (req, res) => {
   if (!rows.length || rows.length > 500 || rows.some((row) => !row || typeof row !== "object" || Array.isArray(row))) {
     return res.status(400).json({ success: false, error: "Invalid records payload" });
   }
+  if (
+  table === "conferences" &&
+  rows.length === 1 &&
+  typeof rows[0]?.id === "string" &&
+  typeof rows[0]?.is_featured === "boolean" &&
+  Object.keys(rows[0]).every((key) =>
+    ["id", "is_featured"].includes(key)
+  )
+) {
+  const { data, error } =
+    await supabaseServerClient
+      .from("conferences")
+      .update({
+        is_featured: rows[0].is_featured
+      })
+      .eq("id", rows[0].id)
+      .select("id,is_featured");
+
+  if (error) {
+    return res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+
+  if (!data?.length) {
+    return res.status(404).json({
+      success: false,
+      error: "Conference not found."
+    });
+  }
+
+  return res.json({
+    success: true,
+    data
+  });
+}
   const { data, error } = await supabaseServerClient.from(table).upsert(rows).select();
   if (error) return res.status(500).json({ success: false, error: error.message });
   return res.json({ success: true, data: data || [] });

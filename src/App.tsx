@@ -3680,10 +3680,29 @@ export default function App() {
       isFeatured: nextFeatured
     };
 
-    const saved = await saveRecordToSupabase(
-      "conferences",
-      toggledConf
+    const response = await adminFetch(
+      "/api/admin/db/upsert",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          table: "conferences",
+          records: {
+            id: conf.id,
+            is_featured: nextFeatured
+          }
+        })
+      }
     );
+
+    const saved = await response
+      .json()
+      .catch(() => ({}));
+
+    saved.success =
+      response.ok && Boolean(saved.success);
 
     if (!saved.success) {
       return {
