@@ -6,3 +6,4 @@ Disallow: /organizer-portal
 Disallow: /api/
 
 Sitemap: https://www.internationalconference.info/sitemaps.xml
+Sitemap: https://www.internationalconference.info/sitemaps/sitemap-1.xml
