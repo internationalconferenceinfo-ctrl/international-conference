@@ -1828,12 +1828,12 @@ void resolveInitialDirectoryRoute();
           //subrat bro
           
         case "HOME":
-        title = `International Conferences ${currentYear} | Upcoming International Conferences worldwide`;
+        title = `International Conferences ${currentYear} | List of International Conferences`;
 
         description =
-          "Find the latest international conferences covering diverse subjects and industries worldwide. Join global professionals and experts to exchange insights, discover emerging trends, build connections, and participate in valuable academic and professional conferences.";
+          "Find List of International Conferences worldwide. Explore academic, business, scientific, and professional Conferences, connect with experts, and expand your global network.";
 
-        keywords = `upcoming international conferences ${currentYear}, international conferences worldwide ${currentYear}, international conferences by country, international conferences by city, international conferences by topic, best international conferences, academic international conferences, international conferences for researchers, international conferences for students, international conferences for professionals, international conferences and seminars, international conferences and events, global international conferences and events, upcoming academic international conferences worldwide, international research conferences worldwide`;
+        keywords = `upcoming international conferences ${currentYear}, List of international conferences ${currentYear}, international conferences ${currentYear}, international conferences by city, international conferences by topic, Upcoming international conferences, academic international conferences, international conferences for researchers, international conferences for students, international conferences for professionals, international conferences and seminars, international conferences and events, global international conferences and events, upcoming academic international conferences worldwide, international research conferences worldwide`;
 
         break;
         case "ORGANIZERS":
