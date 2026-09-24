@@ -92,8 +92,8 @@ function sanitizeForTable(table: string, data: any[]): any[] {
       status: item.status || "Pending Review",
       rejection_reason: item.rejectionReason || item.rejection_reason || null,
       organizer_id: item.organizerId || item.organizer_id || "",
-organizer_email: item.contactEmail || item.organizer_email || "",
-contact_email: item.contactEmail || item.contact_email || "",
+      organizer_email: item.contactEmail || item.organizer_email || "",
+      contact_email: item.contactEmail || item.contact_email || "",
       organizer_name: item.organizerName || item.organizer_name || "",
       organizer_phone: item.organizerPhone || item.organizer_phone || "",
       organizer_website: item.organizerWebsite || item.organizer_website || "",
@@ -160,72 +160,72 @@ contact_email: item.contactEmail || item.contact_email || "",
   }
 
   if (table === "banners") {
-  return data.map((item: any) => {
-    const isActive =
-      item.status === "Inactive" ||
-      item.status === "Deactivated" ||
-      item.active === false
-        ? false
-        : true;
+    return data.map((item: any) => {
+      const isActive =
+        item.status === "Inactive" ||
+          item.status === "Deactivated" ||
+          item.active === false
+          ? false
+          : true;
 
-    const imageUrl =
-      item.imageUrl ||
-      item.image_url ||
-      item.image ||
-      "";
+      const imageUrl =
+        item.imageUrl ||
+        item.image_url ||
+        item.image ||
+        "";
 
-    const linkUrl =
-      item.linkUrl ||
-      item.link_url ||
-      item.link ||
-      "";
+      const linkUrl =
+        item.linkUrl ||
+        item.link_url ||
+        item.link ||
+        "";
 
-    const place =
-      typeof item.place === "number"
-        ? item.place
-        : typeof item.order === "number"
-          ? item.order
-          : 1;
+      const place =
+        typeof item.place === "number"
+          ? item.place
+          : typeof item.order === "number"
+            ? item.order
+            : 1;
 
-    return {
-      id: String(item.id),
+      return {
+        id: String(item.id),
 
-      title: String(item.title || "")
-        .trim()
-        .slice(0, 50),
+        title: String(item.title || "")
+          .trim()
+          .slice(0, 50),
 
-      description: String(
-        item.description ||
-        item.content ||
-        ""
-      )
-        .trim()
-        .slice(0, 150),
+        description: String(
+          item.description ||
+          item.content ||
+          ""
+        )
+          .trim()
+          .slice(0, 150),
 
-      image_url: imageUrl,
+        image_url: imageUrl,
 
-      link_url: linkUrl,
+        link_url: linkUrl,
 
-      active: isActive,
+        active: isActive,
 
-      status: isActive
-        ? "Active"
-        : "Inactive",
+        status: isActive
+          ? "Active"
+          : "Inactive",
 
-      place,
+        place,
 
-      created_at:
-        item.createdAt ||
-        item.created_at ||
-        new Date().toISOString(),
+        created_at:
+          item.createdAt ||
+          item.created_at ||
+          new Date().toISOString(),
 
-      updated_at:
-        item.updatedAt ||
-        item.updated_at ||
-        new Date().toISOString()
-    };
-  });
-}
+        updated_at:
+          item.updatedAt ||
+          item.updated_at ||
+          new Date().toISOString()
+      };
+    });
+  }
 
   if (table === "banner_contents") {
     return data.map((item: any) => ({
@@ -324,9 +324,9 @@ contact_email: item.contactEmail || item.contact_email || "",
     return data.map((item: any) => {
       let createdAtIso = new Date().toISOString();
       if (item.created_at) {
-        try { createdAtIso = new Date(item.created_at).toISOString(); } catch(e) {}
+        try { createdAtIso = new Date(item.created_at).toISOString(); } catch (e) { }
       } else if (item.submittedAt) {
-        try { createdAtIso = new Date(item.submittedAt).toISOString(); } catch(e) {}
+        try { createdAtIso = new Date(item.submittedAt).toISOString(); } catch (e) { }
       }
       return {
         id: String(item.id || `mp-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`),
@@ -347,9 +347,9 @@ contact_email: item.contactEmail || item.contact_email || "",
     return data.map((item: any) => {
       let createdAtIso = new Date().toISOString();
       if (item.created_at) {
-        try { createdAtIso = new Date(item.created_at).toISOString(); } catch(e) {}
+        try { createdAtIso = new Date(item.created_at).toISOString(); } catch (e) { }
       } else if (item.submittedAt) {
-        try { createdAtIso = new Date(item.submittedAt).toISOString(); } catch(e) {}
+        try { createdAtIso = new Date(item.submittedAt).toISOString(); } catch (e) { }
       }
       return {
         id: String(item.id || `assoc-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`),
@@ -468,7 +468,7 @@ function normalizeFromTable(table: string, data: any): any {
       history: Array.isArray(row.history)
         ? row.history
         : typeof row.history === "string"
-        ? (() => {
+          ? (() => {
             try {
               const parsed = JSON.parse(row.history);
               return Array.isArray(parsed) ? parsed : [];
@@ -476,18 +476,16 @@ function normalizeFromTable(table: string, data: any): any {
               return [];
             }
           })()
-        : []
+          : []
     }));
   }
 
   if (table === "organizers" || table === "organizers_public") {
     return data.map((row: any) => {
       const orgName = row.name || row.organizationName || row.organization_name || "";
-      const isComplete = Boolean(
-        row.is_profile_complete ||
-        row.isProfileComplete ||
-        (orgName && orgName.trim().length > 0)
-      );
+      const isComplete =
+        row.is_profile_complete === true ||
+        row.isProfileComplete === true;
       return {
         id: String(row.id),
         authUserId: row.auth_user_id || row.authUserId || undefined,
@@ -601,48 +599,48 @@ function normalizeFromTable(table: string, data: any): any {
   }
 
   if (table === "cities") {
-  return data
-    .map((item: any) => {
-      if (typeof item === "object" && item !== null) {
+    return data
+      .map((item: any) => {
+        if (typeof item === "object" && item !== null) {
+          return {
+            name: String(
+              item.name || item.id || ""
+            )
+              .trim()
+              .toUpperCase(),
+
+            country: String(
+              item.country || ""
+            )
+              .trim()
+              .toUpperCase(),
+
+            timeZone: String(
+              item.time_zone ||
+              item.timeZone ||
+              ""
+            ).trim()
+          };
+        }
+
         return {
-          name: String(
-            item.name || item.id || ""
-          )
+          name: String(item || "")
             .trim()
             .toUpperCase(),
-
-          country: String(
-            item.country || ""
-          )
-            .trim()
-            .toUpperCase(),
-
-          timeZone: String(
-            item.time_zone ||
-            item.timeZone ||
-            ""
-          ).trim()
+          country: "",
+          timeZone: ""
         };
-      }
-
-      return {
-        name: String(item || "")
-          .trim()
-          .toUpperCase(),
-        country: "",
-        timeZone: ""
-      };
-    })
-    .filter((c: any) => Boolean(c.name));
-}
+      })
+      .filter((c: any) => Boolean(c.name));
+  }
 
   if (table === "media_partners") {
     return data.map((item: any) => {
       let createdAtIso = new Date().toISOString();
       if (item.created_at) {
-        try { createdAtIso = new Date(item.created_at).toISOString(); } catch(e) {}
+        try { createdAtIso = new Date(item.created_at).toISOString(); } catch (e) { }
       } else if (item.submittedAt) {
-        try { createdAtIso = new Date(item.submittedAt).toISOString(); } catch(e) {}
+        try { createdAtIso = new Date(item.submittedAt).toISOString(); } catch (e) { }
       }
       return {
         id: String(item.id || `mp-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`),
@@ -663,9 +661,9 @@ function normalizeFromTable(table: string, data: any): any {
     return data.map((item: any) => {
       let createdAtIso = new Date().toISOString();
       if (item.created_at) {
-        try { createdAtIso = new Date(item.created_at).toISOString(); } catch(e) {}
+        try { createdAtIso = new Date(item.created_at).toISOString(); } catch (e) { }
       } else if (item.submittedAt) {
-        try { createdAtIso = new Date(item.submittedAt).toISOString(); } catch(e) {}
+        try { createdAtIso = new Date(item.submittedAt).toISOString(); } catch (e) { }
       }
       return {
         id: String(item.id || `assoc-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`),
@@ -909,341 +907,341 @@ export async function saveToSupabase(
   // Primary source of truth: Upsert directly into dedicated relational table
   try {
     if (Array.isArray(data)) {
-  if (data.length > 0) {
-    const sanitized = sanitizeForTable(
-      snakeTable,
-      data
-    );
-
-    // Save large arrays in smaller batches.
-    // This is especially important for cities imported from Excel.
-    const BATCH_SIZE = 200;
-
-    success = true;
-
-    for (
-      let start = 0;
-      start < sanitized.length;
-      start += BATCH_SIZE
-    ) {
-      const batch = sanitized.slice(
-        start,
-        start + BATCH_SIZE
-      );
-
-      let batchSuccess = false;
-
-      // First try secured Admin API for this batch
-      const adminWrite =
-        await tryAdminServerUpsert(
+      if (data.length > 0) {
+        const sanitized = sanitizeForTable(
           snakeTable,
-          batch
+          data
         );
 
-      if (adminWrite.handled) {
-        if (!adminWrite.success) {
-          console.error(
-            `[Database Batch Save Error] Table ${snakeTable}, rows ${start + 1}-${Math.min(
-              start + batch.length,
-              sanitized.length
-            )}:`,
-            adminWrite.error
+        // Save large arrays in smaller batches.
+        // This is especially important for cities imported from Excel.
+        const BATCH_SIZE = 200;
+
+        success = true;
+
+        for (
+          let start = 0;
+          start < sanitized.length;
+          start += BATCH_SIZE
+        ) {
+          const batch = sanitized.slice(
+            start,
+            start + BATCH_SIZE
           );
 
-          success = false;
-          break;
-        }
+          let batchSuccess = false;
 
-        batchSuccess = true;
-      } else {
-        // Fallback directly to Supabase
-        let currentPayload = [...batch];
-        let attempts = 0;
+          // First try secured Admin API for this batch
+          const adminWrite =
+            await tryAdminServerUpsert(
+              snakeTable,
+              batch
+            );
 
-        while (attempts < 10) {
-          attempts++;
+          if (adminWrite.handled) {
+            if (!adminWrite.success) {
+              console.error(
+                `[Database Batch Save Error] Table ${snakeTable}, rows ${start + 1}-${Math.min(
+                  start + batch.length,
+                  sanitized.length
+                )}:`,
+                adminWrite.error
+              );
 
-          const res = await client
-            .from(snakeTable)
-            .upsert(currentPayload);
+              success = false;
+              break;
+            }
 
-          if (!res.error) {
             batchSuccess = true;
+          } else {
+            // Fallback directly to Supabase
+            let currentPayload = [...batch];
+            let attempts = 0;
+
+            while (attempts < 10) {
+              attempts++;
+
+              const res = await client
+                .from(snakeTable)
+                .upsert(currentPayload);
+
+              if (!res.error) {
+                batchSuccess = true;
+                break;
+              }
+
+              console.warn(
+                `[Supabase Batch Save Notice] Table ${snakeTable} batch ${start + 1}-${Math.min(
+                  start + batch.length,
+                  sanitized.length
+                )}, attempt ${attempts}:`,
+                res.error
+              );
+
+              const match =
+                res.error.message?.match(
+                  /Could not find the '([^']+)' column/i
+                );
+
+              if (match && match[1]) {
+                const badCol = match[1];
+
+                currentPayload =
+                  currentPayload.map(
+                    (item: any) => {
+                      const cleaned = {
+                        ...item
+                      };
+
+                      delete cleaned[
+                        badCol
+                      ];
+
+                      return cleaned;
+                    }
+                  );
+
+                continue;
+              }
+
+              break;
+            }
+          }
+
+          if (!batchSuccess) {
+            success = false;
             break;
           }
 
-          console.warn(
-            `[Supabase Batch Save Notice] Table ${snakeTable} batch ${start + 1}-${Math.min(
+          console.log(
+            `[Database Batch Saved] ${snakeTable}: ${Math.min(
               start + batch.length,
               sanitized.length
-            )}, attempt ${attempts}:`,
-            res.error
+            )}/${sanitized.length}`
           );
 
-          const match =
-            res.error.message?.match(
-              /Could not find the '([^']+)' column/i
+          // Report real completed database batch progress
+          if (onProgress) {
+            onProgress(
+              Math.min(start + batch.length, sanitized.length),
+              sanitized.length
             );
-
-          if (match && match[1]) {
-            const badCol = match[1];
-
-            currentPayload =
-              currentPayload.map(
-                (item: any) => {
-                  const cleaned = {
-                    ...item
-                  };
-
-                  delete cleaned[
-                    badCol
-                  ];
-
-                  return cleaned;
-                }
-              );
-
-            continue;
           }
-
-          break;
         }
-      }
-
-      if (!batchSuccess) {
-        success = false;
-        break;
-      }
-
-      console.log(
-        `[Database Batch Saved] ${snakeTable}: ${Math.min(
-          start + batch.length,
-          sanitized.length
-        )}/${sanitized.length}`
-      );
-
-      // Report real completed database batch progress
-      if (onProgress) {
-        onProgress(
-          Math.min(start + batch.length, sanitized.length),
-          sanitized.length
-        );
+      } else {
+        success = true;
       }
     }
-  } else {
-    success = true;
-  }
-}
     else if (typeof data === "object" && data !== null) {
-  if (snakeTable === "contact_info") {
-  const payload = {
-    id: data.id || "primary",
-    email: data.email || "",
-    phone: data.phone || "",
-    address: data.address || "",
-    website: data.website || "",
-    updated_at:
-      data.updated_at ||
-      new Date().toISOString()
-  };
+      if (snakeTable === "contact_info") {
+        const payload = {
+          id: data.id || "primary",
+          email: data.email || "",
+          phone: data.phone || "",
+          address: data.address || "",
+          website: data.website || "",
+          updated_at:
+            data.updated_at ||
+            new Date().toISOString()
+        };
 
-  const adminWrite =
-    await tryAdminServerUpsert(
-      "contact_info",
-      payload
-    );
+        const adminWrite =
+          await tryAdminServerUpsert(
+            "contact_info",
+            payload
+          );
 
-  if (adminWrite.handled) {
-    if (adminWrite.success) {
-      success = true;
-    } else {
-      console.error(
-        "[Contact Info Admin Save Error]:",
-        adminWrite.error
-      );
-    }
-  } else {
-    const res = await client
-      .from("contact_info")
-      .upsert(payload);
+        if (adminWrite.handled) {
+          if (adminWrite.success) {
+            success = true;
+          } else {
+            console.error(
+              "[Contact Info Admin Save Error]:",
+              adminWrite.error
+            );
+          }
+        } else {
+          const res = await client
+            .from("contact_info")
+            .upsert(payload);
 
-    if (res.error) {
-      console.error(
-        "[Contact Info Supabase Save Error]:",
-        res.error
-      );
-    } else {
-      success = true;
-    }
-  }
-}
-
-else if (snakeTable === "social_links") {
-  const payload = {
-    id: data.id || "primary",
-    facebook: data.facebook || "",
-    instagram: data.instagram || "",
-    linkedin: data.linkedin || "",
-    twitter: data.twitter || "",
-    youtube: data.youtube || "",
-    other: data.other || "",
-    updated_at:
-      data.updated_at ||
-      new Date().toISOString()
-  };
-
-  const adminWrite =
-    await tryAdminServerUpsert(
-      "social_links",
-      payload
-    );
-
-  if (adminWrite.handled) {
-    if (adminWrite.success) {
-      success = true;
-    } else {
-      console.error(
-        "[Social Links Admin Save Error]:",
-        adminWrite.error
-      );
-    }
-  } else {
-    const res = await client
-      .from("social_links")
-      .upsert(payload);
-
-    if (res.error) {
-      console.error(
-        "[Social Links Supabase Save Error]:",
-        res.error
-      );
-    } else {
-      success = true;
-    }
-  }
-}
-
-  else if (snakeTable === "privacy_policy") {
-  const payload = {
-    id: data.id || "primary",
-    title: data.title || "Privacy Policy",
-    content: data.content || "",
-    updated_at: data.updated_at || new Date().toISOString()
-  };
-
-  const adminWrite = await tryAdminServerUpsert(
-    "privacy_policy",
-    payload
-  );
-
-  if (adminWrite.handled) {
-    if (adminWrite.success) {
-      success = true;
-    } else {
-      console.error(
-        "[Privacy Policy Admin Save Error]:",
-        adminWrite.error
-      );
-    }
-  } else {
-    const res = await client
-      .from("privacy_policy")
-      .upsert(payload);
-
-    if (res.error) {
-      console.error(
-        "[Privacy Policy Supabase Save Error]:",
-        res.error
-      );
-    } else {
-      success = true;
-    }
-  }
-}
-
-else if (snakeTable === "terms_of_service") {
-  const payload = {
-    id: data.id || "primary",
-    title: data.title || "Terms of Service",
-    content: data.content || "",
-    updated_at: data.updated_at || new Date().toISOString()
-  };
-
-  const adminWrite = await tryAdminServerUpsert(
-    "terms_of_service",
-    payload
-  );
-
-  if (adminWrite.handled) {
-    if (adminWrite.success) {
-      success = true;
-    } else {
-      console.error(
-        "[Terms of Service Admin Save Error]:",
-        adminWrite.error
-      );
-    }
-  } else {
-    const res = await client
-      .from("terms_of_service")
-      .upsert(payload);
-
-    if (res.error) {
-      console.error(
-        "[Terms of Service Supabase Save Error]:",
-        res.error
-      );
-    } else {
-      success = true;
-    }
-  }
-}
-
-  else if (snakeTable === "about_us") {
-    const payload = {
-      id: data.id || "primary",
-      mission_badge: data.mission_badge || "",
-      title: data.title || "",
-      paragraph1: data.paragraph1 || "",
-      paragraph2: data.paragraph2 || "",
-      stat1_value: data.stat1_value || "",
-      stat1_label: data.stat1_label || "",
-      stat2_value: data.stat2_value || "",
-      stat2_label: data.stat2_label || "",
-      image_url: data.image_url || "",
-      updated_at: data.updated_at || new Date().toISOString()
-    };
-
-    const adminWrite = await tryAdminServerUpsert(
-      "about_us",
-      payload
-    );
-
-    if (adminWrite.handled) {
-      if (adminWrite.success) {
-        success = true;
-      } else {
-        console.error(
-          "[About Us Admin Save Error]:",
-          adminWrite.error
-        );
-      }
-    } else {
-      const res = await client
-        .from("about_us")
-        .upsert(payload);
-
-      if (res.error) {
-        console.error(
-          "[About Us Supabase Save Error]:",
-          res.error
-        );
-      } else {
-        success = true;
-      }
+          if (res.error) {
+            console.error(
+              "[Contact Info Supabase Save Error]:",
+              res.error
+            );
+          } else {
+            success = true;
+          }
         }
-  }
-}
+      }
+
+      else if (snakeTable === "social_links") {
+        const payload = {
+          id: data.id || "primary",
+          facebook: data.facebook || "",
+          instagram: data.instagram || "",
+          linkedin: data.linkedin || "",
+          twitter: data.twitter || "",
+          youtube: data.youtube || "",
+          other: data.other || "",
+          updated_at:
+            data.updated_at ||
+            new Date().toISOString()
+        };
+
+        const adminWrite =
+          await tryAdminServerUpsert(
+            "social_links",
+            payload
+          );
+
+        if (adminWrite.handled) {
+          if (adminWrite.success) {
+            success = true;
+          } else {
+            console.error(
+              "[Social Links Admin Save Error]:",
+              adminWrite.error
+            );
+          }
+        } else {
+          const res = await client
+            .from("social_links")
+            .upsert(payload);
+
+          if (res.error) {
+            console.error(
+              "[Social Links Supabase Save Error]:",
+              res.error
+            );
+          } else {
+            success = true;
+          }
+        }
+      }
+
+      else if (snakeTable === "privacy_policy") {
+        const payload = {
+          id: data.id || "primary",
+          title: data.title || "Privacy Policy",
+          content: data.content || "",
+          updated_at: data.updated_at || new Date().toISOString()
+        };
+
+        const adminWrite = await tryAdminServerUpsert(
+          "privacy_policy",
+          payload
+        );
+
+        if (adminWrite.handled) {
+          if (adminWrite.success) {
+            success = true;
+          } else {
+            console.error(
+              "[Privacy Policy Admin Save Error]:",
+              adminWrite.error
+            );
+          }
+        } else {
+          const res = await client
+            .from("privacy_policy")
+            .upsert(payload);
+
+          if (res.error) {
+            console.error(
+              "[Privacy Policy Supabase Save Error]:",
+              res.error
+            );
+          } else {
+            success = true;
+          }
+        }
+      }
+
+      else if (snakeTable === "terms_of_service") {
+        const payload = {
+          id: data.id || "primary",
+          title: data.title || "Terms of Service",
+          content: data.content || "",
+          updated_at: data.updated_at || new Date().toISOString()
+        };
+
+        const adminWrite = await tryAdminServerUpsert(
+          "terms_of_service",
+          payload
+        );
+
+        if (adminWrite.handled) {
+          if (adminWrite.success) {
+            success = true;
+          } else {
+            console.error(
+              "[Terms of Service Admin Save Error]:",
+              adminWrite.error
+            );
+          }
+        } else {
+          const res = await client
+            .from("terms_of_service")
+            .upsert(payload);
+
+          if (res.error) {
+            console.error(
+              "[Terms of Service Supabase Save Error]:",
+              res.error
+            );
+          } else {
+            success = true;
+          }
+        }
+      }
+
+      else if (snakeTable === "about_us") {
+        const payload = {
+          id: data.id || "primary",
+          mission_badge: data.mission_badge || "",
+          title: data.title || "",
+          paragraph1: data.paragraph1 || "",
+          paragraph2: data.paragraph2 || "",
+          stat1_value: data.stat1_value || "",
+          stat1_label: data.stat1_label || "",
+          stat2_value: data.stat2_value || "",
+          stat2_label: data.stat2_label || "",
+          image_url: data.image_url || "",
+          updated_at: data.updated_at || new Date().toISOString()
+        };
+
+        const adminWrite = await tryAdminServerUpsert(
+          "about_us",
+          payload
+        );
+
+        if (adminWrite.handled) {
+          if (adminWrite.success) {
+            success = true;
+          } else {
+            console.error(
+              "[About Us Admin Save Error]:",
+              adminWrite.error
+            );
+          }
+        } else {
+          const res = await client
+            .from("about_us")
+            .upsert(payload);
+
+          if (res.error) {
+            console.error(
+              "[About Us Supabase Save Error]:",
+              res.error
+            );
+          } else {
+            success = true;
+          }
+        }
+      }
+    }
   } catch (err) {
     console.error("[Supabase Table Sync Error]:", err);
   }
@@ -1411,88 +1409,88 @@ export async function fetchFromSupabase<T = any>(key: string, forceRefresh: bool
     }
 
     try {
-  const PAGE_SIZE = 1000;
-  const allRows: any[] = [];
-  let from = 0;
-  let totalRows: number | null = null;
+      const PAGE_SIZE = 1000;
+      const allRows: any[] = [];
+      let from = 0;
+      let totalRows: number | null = null;
 
-  while (true) {
-    const {
-      data: pageData,
-      error,
-      count
-    } = await client
-      .from(snakeTable)
-      .select("*", {
-        count: "exact"
-      })
-      .range(
-        from,
-        from + PAGE_SIZE - 1
-      );
+      while (true) {
+        const {
+          data: pageData,
+          error,
+          count
+        } = await client
+          .from(snakeTable)
+          .select("*", {
+            count: "exact"
+          })
+          .range(
+            from,
+            from + PAGE_SIZE - 1
+          );
 
-    if (error) {
+        if (error) {
+          console.warn(
+            `[Supabase Relational Fetch Notice] Table ${snakeTable}:`,
+            error.message
+          );
+          return null;
+        }
+
+        const rows = Array.isArray(pageData)
+          ? pageData
+          : [];
+
+        if (
+          totalRows === null &&
+          typeof count === "number"
+        ) {
+          totalRows = count;
+        }
+
+        allRows.push(...rows);
+
+        if (rows.length === 0) {
+          break;
+        }
+
+        from += rows.length;
+
+        if (
+          totalRows !== null &&
+          allRows.length >= totalRows
+        ) {
+          break;
+        }
+
+        if (
+          totalRows === null &&
+          rows.length < PAGE_SIZE
+        ) {
+          break;
+        }
+      }
+
+      const normalized =
+        normalizeFromTable(
+          snakeTable,
+          allRows
+        ) as unknown as T;
+
+      queryCache.set(key, {
+        data: normalized,
+        timestamp: Date.now()
+      });
+
+      return normalized;
+    } catch (err) {
       console.warn(
-        `[Supabase Relational Fetch Notice] Table ${snakeTable}:`,
-        error.message
+        "[Supabase Fetch Error]:",
+        err
       );
-      return null;
+    } finally {
+      inflightRequests.delete(key);
     }
-
-    const rows = Array.isArray(pageData)
-      ? pageData
-      : [];
-
-    if (
-      totalRows === null &&
-      typeof count === "number"
-    ) {
-      totalRows = count;
-    }
-
-    allRows.push(...rows);
-
-    if (rows.length === 0) {
-      break;
-    }
-
-    from += rows.length;
-
-    if (
-      totalRows !== null &&
-      allRows.length >= totalRows
-    ) {
-      break;
-    }
-
-    if (
-      totalRows === null &&
-      rows.length < PAGE_SIZE
-    ) {
-      break;
-    }
-  }
-
-  const normalized =
-    normalizeFromTable(
-      snakeTable,
-      allRows
-    ) as unknown as T;
-
-  queryCache.set(key, {
-    data: normalized,
-    timestamp: Date.now()
-  });
-
-  return normalized;
-} catch (err) {
-  console.warn(
-    "[Supabase Fetch Error]:",
-    err
-  );
-} finally {
-  inflightRequests.delete(key);
-}
 
     return null;
   })();
@@ -1795,9 +1793,9 @@ export async function fetchPaginatedConferencesFromSupabase(params: {
     const from = (Math.max(1, page) - 1) * limit;
     const to = from + limit - 1;
 
-let query = client
-  .from("conferences_public")
-  .select("*", { count: "exact" });
+    let query = client
+      .from("conferences_public")
+      .select("*", { count: "exact" });
 
     if (onlyApproved) {
       query = query.or("status.eq.Approved,status.eq.Verified");
@@ -1817,6 +1815,11 @@ let query = client
 
     if (liveStatus && liveStatus !== "All") {
       query = query.eq("live_status", liveStatus);
+    } else {
+      query = query.in("live_status", [
+        "Upcoming",
+        "Ongoing"
+      ]);
     }
 
     if (searchTerm && searchTerm.trim()) {
@@ -1848,10 +1851,10 @@ let query = client
       return null;
     }
 
-const normalized = normalizeFromTable(
-  "conferences_public",
-  data || []
-);
+    const normalized = normalizeFromTable(
+      "conferences_public",
+      data || []
+    );
     return {
       data: normalized,
       total: count !== null && count !== undefined ? count : (normalized.length || 0)
@@ -1950,7 +1953,7 @@ const realtimeTimers = new Map<string, any>();
  */
 export function subscribeToSupabase(key: string, callback: (newData: any) => void): () => void {
   const client = getSupabaseClient();
-  if (!client) return () => {};
+  if (!client) return () => { };
 
   const snakeTable = getSnakeTableName(key);
   const channelName = `rt:${snakeTable}:${Math.random().toString(36).substring(7)}`;
@@ -1989,7 +1992,7 @@ export function subscribeToSupabase(key: string, callback: (newData: any) => voi
 export async function signUpWithSupabase(email: string, password: string, metadata?: Record<string, any>) {
   const client = getSupabaseClient();
   if (!client) throw new Error("Supabase is not configured.");
-  
+
   // Public signup can ONLY create Organizer accounts
   const sanitizedMetadata = {
     ...(metadata || {}),
@@ -2034,7 +2037,7 @@ export async function getCurrentSupabaseUser(): Promise<SupabaseAuthUser | null>
 
 export function onSupabaseAuthStateChange(callback: (user: SupabaseAuthUser | null) => void): () => void {
   const client = getSupabaseClient();
-  if (!client) return () => {};
+  if (!client) return () => { };
   const { data: { subscription } } = client.auth.onAuthStateChange((_event, session) => {
     callback(session?.user || null);
   });
@@ -2139,7 +2142,7 @@ export async function uploadBannerImageToSupabase(
       console.warn(
         "[Admin Banner Signed Upload Failed]:",
         signResult?.error ||
-          `HTTP ${signResponse.status}`
+        `HTTP ${signResponse.status}`
       );
 
       return null;

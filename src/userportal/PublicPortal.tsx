@@ -2,16 +2,16 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   saveToSupabase,
-fetchFromSupabase,
-fetchPaginatedConferencesFromSupabase,
-fetchCitiesByCountryFromSupabase,
+  fetchFromSupabase,
+  fetchPaginatedConferencesFromSupabase,
+  fetchCitiesByCountryFromSupabase,
   subscribeToSupabase,
   saveRecordToSupabase
 } from "../database/supabase";
 import { safeSetLocalStorage } from "../shared/utils/storageUtils";
-import { 
-  Search, MapPin, Calendar, Clock, Globe, ShieldCheck, 
-  ExternalLink, ArrowRight, BookOpen, Layers, Award, 
+import {
+  Search, MapPin, Calendar, Clock, Globe, ShieldCheck,
+  ExternalLink, ArrowRight, BookOpen, Layers, Award,
   Users, FileText, CheckCircle2, ChevronRight, ChevronLeft,
   SlidersHorizontal, Sparkles, TrendingUp, Star,
   Zap, Briefcase, GraduationCap, Building2, Microscope,
@@ -144,8 +144,8 @@ export default function PublicPortal({
   inactiveCountries = [],
   inactiveCities = [],
   inactiveTopics = [],
-onAddNotification,
-footerOnly = false,
+  onAddNotification,
+  footerOnly = false,
 }: PublicPortalProps) {
   const tab = currentTab || "HOME";
   const [searchTerm, setSearchTerm] = useState("");
@@ -154,7 +154,7 @@ footerOnly = false,
   const slashCountryLabel = rawSlashQuery
     ? rawSlashQuery.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ")
     : "";
-  
+
   const [selectedCategoryLocal, setSelectedCategoryLocal] = useState<string>("All");
   const [selectedCountryLocal, setSelectedCountryLocal] = useState<string>("All");
   const [selectedCityLocal, setSelectedCityLocal] = useState<string>("All");
@@ -168,148 +168,148 @@ footerOnly = false,
   const [footerSocialMedia, setFooterSocialMedia] = useState<SocialLinks>({ ...OFFICIAL_SOCIAL_LINKS });
 
   const [dynamicAboutUs, setDynamicAboutUs] = useState({
-  missionBadge: aboutUsContent.missionBadge,
-  title: aboutUsContent.title,
-  paragraph1: aboutUsContent.paragraph1,
-  paragraph2: aboutUsContent.paragraph2,
-  stat1Value: aboutUsContent.stat1Value,
-  stat1Label: aboutUsContent.stat1Label,
-  stat2Value: aboutUsContent.stat2Value,
-  stat2Label: aboutUsContent.stat2Label,
-  imageUrl: aboutUsContent.imageUrl,
-});
+    missionBadge: aboutUsContent.missionBadge,
+    title: aboutUsContent.title,
+    paragraph1: aboutUsContent.paragraph1,
+    paragraph2: aboutUsContent.paragraph2,
+    stat1Value: aboutUsContent.stat1Value,
+    stat1Label: aboutUsContent.stat1Label,
+    stat2Value: aboutUsContent.stat2Value,
+    stat2Label: aboutUsContent.stat2Label,
+    imageUrl: aboutUsContent.imageUrl,
+  });
 
-// Dynamic Privacy Policy from Supabase
-const [dynamicPrivacyPolicy, setDynamicPrivacyPolicy] = useState({
-  title: privacyPolicyContent.title,
-  content: [
-    privacyPolicyContent.intro,
-    ...privacyPolicyContent.sections.flatMap((section) => [
-      section.title,
-      section.content
-    ])
-  ].join("\n\n"),
-  updated_at: ""
-});
+  // Dynamic Privacy Policy from Supabase
+  const [dynamicPrivacyPolicy, setDynamicPrivacyPolicy] = useState({
+    title: privacyPolicyContent.title,
+    content: [
+      privacyPolicyContent.intro,
+      ...privacyPolicyContent.sections.flatMap((section) => [
+        section.title,
+        section.content
+      ])
+    ].join("\n\n"),
+    updated_at: ""
+  });
 
-// Dynamic Terms of Service from Supabase
-const [dynamicTermsOfService, setDynamicTermsOfService] = useState({
-  title: termsOfServiceContent.title,
-  content: [
-    termsOfServiceContent.intro,
-    ...termsOfServiceContent.sections.flatMap((section) => [
-      section.title,
-      section.content
-    ])
-  ].join("\n\n"),
-  updated_at: ""
-});
+  // Dynamic Terms of Service from Supabase
+  const [dynamicTermsOfService, setDynamicTermsOfService] = useState({
+    title: termsOfServiceContent.title,
+    content: [
+      termsOfServiceContent.intro,
+      ...termsOfServiceContent.sections.flatMap((section) => [
+        section.title,
+        section.content
+      ])
+    ].join("\n\n"),
+    updated_at: ""
+  });
 
-const [homeMainDescription, setHomeMainDescription] = useState("");
+  const [homeMainDescription, setHomeMainDescription] = useState("");
 
-const [conferenceDescriptions, setConferenceDescriptions] = useState({
-  default_description:
-    "Discover verified, peer-reviewed, and high-impact academic conferences, research symposiums, and professional summits from around the world.",
+  const [conferenceDescriptions, setConferenceDescriptions] = useState({
+    default_description:
+      "Discover verified, peer-reviewed, and high-impact academic conferences, research symposiums, and professional summits from around the world.",
 
-  topic_description:
-    "Discover verified conferences focusing on {TOPIC}.",
+    topic_description:
+      "Discover verified conferences focusing on {TOPIC}.",
 
-  country_description:
-    "Explore trusted international conferences taking place in {COUNTRY}.",
+    country_description:
+      "Explore trusted international conferences taking place in {COUNTRY}.",
 
-  city_description:
-    "Find upcoming academic conferences in {CITY}, {COUNTRY}.",
+    city_description:
+      "Find upcoming academic conferences in {CITY}, {COUNTRY}.",
 
-  topic_country_description:
-  "Discover verified {TOPIC} conferences taking place in {COUNTRY}.",  
+    topic_country_description:
+      "Discover verified {TOPIC} conferences taking place in {COUNTRY}.",
 
-  combined_description:
-    "Discover verified {TOPIC} conferences taking place in {CITY}, {COUNTRY}."
-});
+    combined_description:
+      "Discover verified {TOPIC} conferences taking place in {CITY}, {COUNTRY}."
+  });
 
-// Load Privacy Policy from Supabase
-useEffect(() => {
-  const loadPrivacyPolicy = async () => {
-    try {
-      const data = await fetchFromSupabase<any[]>(
-        "privacy_policy",
-        true
-      );
+  // Load Privacy Policy from Supabase
+  useEffect(() => {
+    const loadPrivacyPolicy = async () => {
+      try {
+        const data = await fetchFromSupabase<any[]>(
+          "privacy_policy",
+          true
+        );
 
-      if (!data || !Array.isArray(data) || data.length === 0) {
-        return;
+        if (!data || !Array.isArray(data) || data.length === 0) {
+          return;
+        }
+
+        const row =
+          data.find((item) => item.id === "primary") || data[0];
+
+        if (!row) return;
+
+        setDynamicPrivacyPolicy({
+          title: row.title || privacyPolicyContent.title,
+          content:
+            row.content ||
+            [
+              privacyPolicyContent.intro,
+              ...privacyPolicyContent.sections.flatMap((section) => [
+                section.title,
+                section.content
+              ])
+            ].join("\n\n"),
+          updated_at: row.updated_at || ""
+        });
+      } catch (error) {
+        console.error(
+          "Failed to load Privacy Policy:",
+          error
+        );
       }
+    };
 
-      const row =
-        data.find((item) => item.id === "primary") || data[0];
+    loadPrivacyPolicy();
+  }, []);
 
-      if (!row) return;
+  // Load Terms of Service from Supabase
+  useEffect(() => {
+    const loadTermsOfService = async () => {
+      try {
+        const data = await fetchFromSupabase<any[]>(
+          "terms_of_service",
+          true
+        );
 
-      setDynamicPrivacyPolicy({
-        title: row.title || privacyPolicyContent.title,
-        content:
-          row.content ||
-          [
-            privacyPolicyContent.intro,
-            ...privacyPolicyContent.sections.flatMap((section) => [
-              section.title,
-              section.content
-            ])
-          ].join("\n\n"),
-        updated_at: row.updated_at || ""
-      });
-    } catch (error) {
-      console.error(
-        "Failed to load Privacy Policy:",
-        error
-      );
-    }
-  };
+        if (!data || !Array.isArray(data) || data.length === 0) {
+          return;
+        }
 
-  loadPrivacyPolicy();
-}, []);
+        const row =
+          data.find((item) => item.id === "primary") || data[0];
 
-// Load Terms of Service from Supabase
-useEffect(() => {
-  const loadTermsOfService = async () => {
-    try {
-      const data = await fetchFromSupabase<any[]>(
-        "terms_of_service",
-        true
-      );
+        if (!row) return;
 
-      if (!data || !Array.isArray(data) || data.length === 0) {
-        return;
+        setDynamicTermsOfService({
+          title: row.title || termsOfServiceContent.title,
+          content:
+            row.content ||
+            [
+              termsOfServiceContent.intro,
+              ...termsOfServiceContent.sections.flatMap((section) => [
+                section.title,
+                section.content
+              ])
+            ].join("\n\n"),
+          updated_at: row.updated_at || ""
+        });
+      } catch (error) {
+        console.error(
+          "Failed to load Terms of Service:",
+          error
+        );
       }
+    };
 
-      const row =
-        data.find((item) => item.id === "primary") || data[0];
-
-      if (!row) return;
-
-      setDynamicTermsOfService({
-        title: row.title || termsOfServiceContent.title,
-        content:
-          row.content ||
-          [
-            termsOfServiceContent.intro,
-            ...termsOfServiceContent.sections.flatMap((section) => [
-              section.title,
-              section.content
-            ])
-          ].join("\n\n"),
-        updated_at: row.updated_at || ""
-      });
-    } catch (error) {
-      console.error(
-        "Failed to load Terms of Service:",
-        error
-      );
-    }
-  };
-
-  loadTermsOfService();
-}, []);
+    loadTermsOfService();
+  }, []);
 
   useEffect(() => {
     const refreshPublicContact = () => {
@@ -341,7 +341,7 @@ useEffect(() => {
       channel?.close();
     };
   }, []);
-   useEffect(() => {
+  useEffect(() => {
     const loadAboutUs = async () => {
       try {
         const data = await fetchFromSupabase<any[]>(
@@ -379,87 +379,87 @@ useEffect(() => {
   }, []);
 
   useEffect(() => {
-  const loadHomeDescription = async () => {
-    try {
-      const data = await fetchFromSupabase<any[]>(
-        "home_description",
-        true
-      );
+    const loadHomeDescription = async () => {
+      try {
+        const data = await fetchFromSupabase<any[]>(
+          "home_description",
+          true
+        );
 
-      if (!data || !Array.isArray(data) || data.length === 0) {
-        return;
+        if (!data || !Array.isArray(data) || data.length === 0) {
+          return;
+        }
+
+        const row =
+          data.find((item) => item.id === "primary") || data[0];
+
+        if (!row) return;
+
+        setHomeMainDescription(row.description || "");
+      } catch (error) {
+        console.error(
+          "Failed to load Home Main Description:",
+          error
+        );
       }
+    };
 
-      const row =
-        data.find((item) => item.id === "primary") || data[0];
+    loadHomeDescription();
+  }, []);
 
-      if (!row) return;
+  useEffect(() => {
+    const loadConferenceDescriptions = async () => {
+      try {
+        const data = await fetchFromSupabase<any[]>(
+          "conference_descriptions",
+          true
+        );
 
-      setHomeMainDescription(row.description || "");
-    } catch (error) {
-      console.error(
-        "Failed to load Home Main Description:",
-        error
-      );
-    }
-  };
+        if (!data || !Array.isArray(data) || data.length === 0) {
+          return;
+        }
 
-  loadHomeDescription();
-}, []);
+        const row =
+          data.find((item) => item.id === "primary") || data[0];
 
-useEffect(() => {
-  const loadConferenceDescriptions = async () => {
-    try {
-      const data = await fetchFromSupabase<any[]>(
-        "conference_descriptions",
-        true
-      );
+        if (!row) return;
 
-      if (!data || !Array.isArray(data) || data.length === 0) {
-        return;
+        setConferenceDescriptions({
+          default_description:
+            row.default_description ||
+            "Discover verified, peer-reviewed, and high-impact academic conferences, research symposiums, and professional summits from around the world.",
+
+          topic_description:
+            row.topic_description ||
+            "Discover verified conferences focusing on {TOPIC}.",
+
+          country_description:
+            row.country_description ||
+            "Explore trusted international conferences taking place in {COUNTRY}.",
+
+          city_description:
+            row.city_description ||
+            "Find upcoming academic conferences in {CITY}, {COUNTRY}.",
+
+          topic_country_description:
+            row.topic_country_description ||
+            "Discover verified {TOPIC} conferences taking place in {COUNTRY}.",
+
+          combined_description:
+            row.combined_description ||
+            "Discover verified {TOPIC} conferences taking place in {CITY}, {COUNTRY}."
+        });
+
+      } catch (error) {
+        console.error(
+          "Failed to load Conference Descriptions:",
+          error
+        );
       }
+    };
 
-      const row =
-        data.find((item) => item.id === "primary") || data[0];
-
-      if (!row) return;
-
-    setConferenceDescriptions({
-  default_description:
-    row.default_description ||
-    "Discover verified, peer-reviewed, and high-impact academic conferences, research symposiums, and professional summits from around the world.",
-
-  topic_description:
-    row.topic_description ||
-    "Discover verified conferences focusing on {TOPIC}.",
-
-  country_description:
-    row.country_description ||
-    "Explore trusted international conferences taking place in {COUNTRY}.",
-
-  city_description:
-    row.city_description ||
-    "Find upcoming academic conferences in {CITY}, {COUNTRY}.",
-  
-  topic_country_description:
-  row.topic_country_description ||
-  "Discover verified {TOPIC} conferences taking place in {COUNTRY}.",
-
-  combined_description:
-    row.combined_description ||
-    "Discover verified {TOPIC} conferences taking place in {CITY}, {COUNTRY}."
-});
-
-    } catch (error) {
-      console.error(
-        "Failed to load Conference Descriptions:",
-        error
-      );
-    }
-  };
-
-  loadConferenceDescriptions();
-}, []);
+    loadConferenceDescriptions();
+  }, []);
 
   const selectedCategory = selectedCategoryProp !== undefined ? selectedCategoryProp : selectedCategoryLocal;
   const selectedCountry = selectedCountryProp !== undefined ? selectedCountryProp : selectedCountryLocal;
@@ -481,39 +481,39 @@ useEffect(() => {
   };
 
   useEffect(() => {
-  const loadCitiesForSelectedCountry = async () => {
-    if (!selectedCountry || selectedCountry === "All") {
-      setSelectedCountryCities([]);
-      return;
-    }
+    const loadCitiesForSelectedCountry = async () => {
+      if (!selectedCountry || selectedCountry === "All") {
+        setSelectedCountryCities([]);
+        return;
+      }
 
-    try {
-      const rows = await fetchCitiesByCountryFromSupabase(
-        selectedCountry.trim().toUpperCase()
-      );
+      try {
+        const rows = await fetchCitiesByCountryFromSupabase(
+          selectedCountry.trim().toUpperCase()
+        );
 
-      setSelectedCountryCities(
-        Array.isArray(rows)
-          ? rows.map((city) => ({
+        setSelectedCountryCities(
+          Array.isArray(rows)
+            ? rows.map((city) => ({
               name: String(city.name || "").trim().toUpperCase(),
               country: String(city.country || selectedCountry)
                 .trim()
                 .toUpperCase()
             }))
-          : []
-      );
-    } catch (error) {
-      console.error(
-        `Failed to load cities for ${selectedCountry}:`,
-        error
-      );
+            : []
+        );
+      } catch (error) {
+        console.error(
+          `Failed to load cities for ${selectedCountry}:`,
+          error
+        );
 
-      setSelectedCountryCities([]);
-    }
-  };
+        setSelectedCountryCities([]);
+      }
+    };
 
-  void loadCitiesForSelectedCountry();
-}, [selectedCountry]);
+    void loadCitiesForSelectedCountry();
+  }, [selectedCountry]);
 
   useEffect(() => {
     if (selectedCategoryProp !== undefined) {
@@ -537,13 +537,13 @@ useEffect(() => {
   const [sortBy, setSortBy] = useState<"Upcoming" | "Newest" | "Latest">("Upcoming");
   const [currentPage, setCurrentPage] = useState(1);
   const [serverConferenceRows, setServerConferenceRows] =
-  useState<Conference[]>([]);
+    useState<Conference[]>([]);
 
-const [serverConferenceTotal, setServerConferenceTotal] =
-  useState(0);
+  const [serverConferenceTotal, setServerConferenceTotal] =
+    useState(0);
 
-const [serverConferenceLoaded, setServerConferenceLoaded] =
-  useState(false);
+  const [serverConferenceLoaded, setServerConferenceLoaded] =
+    useState(false);
   const [mediaPartnerPage, setMediaPartnerPage] = useState(1);
   const [associatesPage, setAssociatesPage] = useState(1);
   const [feedbackPage, setFeedbackPage] = useState(1);
@@ -575,7 +575,7 @@ const [serverConferenceLoaded, setServerConferenceLoaded] =
   // Newsletter & Contact Form States
   const [newsletterEmail, setNewsletterEmail] = useState("");
   const [newsletterSubscribed, setNewsletterSubscribed] = useState(false);
-  
+
   // Footer User Feedback Form States
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
   const [userFeedbackName, setUserFeedbackName] = useState("");
@@ -609,76 +609,76 @@ const [serverConferenceLoaded, setServerConferenceLoaded] =
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
 
   const handleUserFeedbackSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  if (
-    !userFeedbackName.trim() ||
-    !userFeedbackText.trim() ||
-    isSubmittingFeedback
-  ) {
-    return;
-  }
+    if (
+      !userFeedbackName.trim() ||
+      !userFeedbackText.trim() ||
+      isSubmittingFeedback
+    ) {
+      return;
+    }
 
-  setIsSubmittingFeedback(true);
+    setIsSubmittingFeedback(true);
 
-  try {
-    const response = await fetch("/api/public/feedback", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        name: userFeedbackName.trim(),
-        country: userFeedbackLocation.trim() || "Global",
-        image: userFeedbackImage.trim(),
-        text: userFeedbackText.trim(),
-        rating: userFeedbackRating || 5
-      })
-    });
+    try {
+      const response = await fetch("/api/public/feedback", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          name: userFeedbackName.trim(),
+          country: userFeedbackLocation.trim() || "Global",
+          image: userFeedbackImage.trim(),
+          text: userFeedbackText.trim(),
+          rating: userFeedbackRating || 5
+        })
+      });
 
-    const result = await response.json();
+      const result = await response.json();
 
-    if (!response.ok || !result?.success) {
-      throw new Error(
-        result?.error || "Unable to submit feedback."
+      if (!response.ok || !result?.success) {
+        throw new Error(
+          result?.error || "Unable to submit feedback."
+        );
+      }
+
+      setUserFeedbackSubmitted(true);
+
+      setUserFeedbackName("");
+      setUserFeedbackLocation("");
+      setUserFeedbackImage("");
+      setUserFeedbackText("");
+      setUserFeedbackRating(5);
+      setIsFeedbackModalOpen(false);
+
+      if (typeof BroadcastChannel !== "undefined") {
+        try {
+          const bc = new BroadcastChannel("gch_realtime_sync");
+          bc.postMessage({
+            type: "DATA_UPDATED",
+            timestamp: Date.now()
+          });
+          bc.close();
+        } catch (e) { }
+      }
+
+      setTimeout(() => {
+        setUserFeedbackSubmitted(false);
+      }, 3500);
+
+    } catch (err: any) {
+      console.error("Error submitting feedback:", err);
+
+      alert(
+        err?.message ||
+        "Unable to submit feedback. Please try again."
       );
+    } finally {
+      setIsSubmittingFeedback(false);
     }
-
-    setUserFeedbackSubmitted(true);
-
-    setUserFeedbackName("");
-    setUserFeedbackLocation("");
-    setUserFeedbackImage("");
-    setUserFeedbackText("");
-    setUserFeedbackRating(5);
-    setIsFeedbackModalOpen(false);
-
-    if (typeof BroadcastChannel !== "undefined") {
-      try {
-        const bc = new BroadcastChannel("gch_realtime_sync");
-        bc.postMessage({
-          type: "DATA_UPDATED",
-          timestamp: Date.now()
-        });
-        bc.close();
-      } catch (e) {}
-    }
-
-    setTimeout(() => {
-      setUserFeedbackSubmitted(false);
-    }, 3500);
-
-  } catch (err: any) {
-    console.error("Error submitting feedback:", err);
-
-    alert(
-      err?.message ||
-      "Unable to submit feedback. Please try again."
-    );
-  } finally {
-    setIsSubmittingFeedback(false);
-  }
-};
+  };
 
   // Collaboration / Partner Application States
   const [collabLogo, setCollabLogo] = useState("");
@@ -695,116 +695,116 @@ const [serverConferenceLoaded, setServerConferenceLoaded] =
 
   // Handle Logo Upload with Auto Compression
   const handleLogoUpload = async (
-  e: React.ChangeEvent<HTMLInputElement>
-) => {
-  const file = e.target.files?.[0];
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = e.target.files?.[0];
 
-  if (file) {
-    try {
-      setIsLogoCompressing(true);
+    if (file) {
+      try {
+        setIsLogoCompressing(true);
 
-      const dataUrl =
-        await compressImageToTargetSize(
-          file,
-          50
+        const dataUrl =
+          await compressImageToTargetSize(
+            file,
+            50
+          );
+
+        setCollabLogo(dataUrl);
+      } catch (err: any) {
+        console.error(
+          "Failed to process logo:",
+          err
         );
-
-      setCollabLogo(dataUrl);
-    } catch (err: any) {
-      console.error(
-        "Failed to process logo:",
-        err
-      );
-    } finally {
-      setIsLogoCompressing(false);
+      } finally {
+        setIsLogoCompressing(false);
+      }
     }
-  }
-};
+  };
 
   // Handle Collaboration Submission (saves to Supabase and awaits Admin verification)
- const handleCollabSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
+  const handleCollabSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-  if (
-    !collabName.trim() ||
-    !collabUrl.trim() ||
-    !collabDescription.trim()
-  ) {
-    alert(
-      "Please fill in all required fields (Company Name, Website, and Description)."
-    );
-    return;
-  }
+    if (
+      !collabName.trim() ||
+      !collabUrl.trim() ||
+      !collabDescription.trim()
+    ) {
+      alert(
+        "Please fill in all required fields (Company Name, Website, and Description)."
+      );
+      return;
+    }
 
-  if (collabDescription.trim().length > 150) {
-    alert(
-      "Description exceeds the 150-character maximum limit. Please shorten your description."
-    );
-    return;
-  }
+    if (collabDescription.trim().length > 150) {
+      alert(
+        "Description exceeds the 150-character maximum limit. Please shorten your description."
+      );
+      return;
+    }
 
-  let formattedUrl = collabUrl.trim();
+    let formattedUrl = collabUrl.trim();
 
-  if (formattedUrl && !/^https?:\/\//i.test(formattedUrl)) {
-    formattedUrl = `https://${formattedUrl}`;
-  }
+    if (formattedUrl && !/^https?:\/\//i.test(formattedUrl)) {
+      formattedUrl = `https://${formattedUrl}`;
+    }
 
-  try {
-    const response = await fetch("/api/collaboration/submit", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        name: collabName.trim(),
-        website: formattedUrl,
-        description: collabDescription.trim(),
-        category: collabCategory,
-        logo: collabLogo,
-        email: ""
-      })
-    });
+    try {
+      const response = await fetch("/api/collaboration/submit", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          name: collabName.trim(),
+          website: formattedUrl,
+          description: collabDescription.trim(),
+          category: collabCategory,
+          logo: collabLogo,
+          email: ""
+        })
+      });
 
-    const result = await response.json();
+      const result = await response.json();
 
-    if (!response.ok || !result?.success) {
-      throw new Error(
-        result?.error || "Unable to submit collaboration application."
+      if (!response.ok || !result?.success) {
+        throw new Error(
+          result?.error || "Unable to submit collaboration application."
+        );
+      }
+
+      setCollabSubmitted(true);
+
+      setCollabName("");
+      setCollabUrl("");
+      setCollabDescription("");
+      setCollabLogo("");
+
+      if (typeof BroadcastChannel !== "undefined") {
+        try {
+          const bc = new BroadcastChannel("gch_realtime_sync");
+
+          bc.postMessage({
+            type: "DATA_UPDATED",
+            timestamp: Date.now()
+          });
+
+          bc.close();
+        } catch (e) { }
+      }
+
+    } catch (err: any) {
+      console.error(
+        "Error submitting collaboration application:",
+        err
+      );
+
+      alert(
+        err?.message ||
+        "Unable to submit your application. Please try again."
       );
     }
-
-    setCollabSubmitted(true);
-
-    setCollabName("");
-    setCollabUrl("");
-    setCollabDescription("");
-    setCollabLogo("");
-
-    if (typeof BroadcastChannel !== "undefined") {
-      try {
-        const bc = new BroadcastChannel("gch_realtime_sync");
-
-        bc.postMessage({
-          type: "DATA_UPDATED",
-          timestamp: Date.now()
-        });
-
-        bc.close();
-      } catch (e) {}
-    }
-
-  } catch (err: any) {
-    console.error(
-      "Error submitting collaboration application:",
-      err
-    );
-
-    alert(
-      err?.message ||
-      "Unable to submit your application. Please try again."
-    );
-  }
-};
+  };
   // Real-time sync for dynamic partners and associates
   useEffect(() => {
     const fetchPartnersAndAssociates = () => {
@@ -832,7 +832,7 @@ const [serverConferenceLoaded, setServerConferenceLoaded] =
             fetchPartnersAndAssociates();
           }
         };
-      } catch (e) {}
+      } catch (e) { }
     }
 
     const unsubMP = subscribeToSupabase("media_partners", (val) => {
@@ -859,54 +859,54 @@ const [serverConferenceLoaded, setServerConferenceLoaded] =
   }, []);
 
   // Media Partners list - newest submission first
-const approvedMediaPartnersList = useMemo(() => {
-  return [...dynamicMediaPartners]
-    .filter((m) => Boolean(m.isVerified))
-    .sort((a, b) => {
-      const timeA = a.submittedAt
-        ? new Date(a.submittedAt).getTime()
-        : 0;
+  const approvedMediaPartnersList = useMemo(() => {
+    return [...dynamicMediaPartners]
+      .filter((m) => Boolean(m.isVerified))
+      .sort((a, b) => {
+        const timeA = a.submittedAt
+          ? new Date(a.submittedAt).getTime()
+          : 0;
 
-      const timeB = b.submittedAt
-        ? new Date(b.submittedAt).getTime()
-        : 0;
+        const timeB = b.submittedAt
+          ? new Date(b.submittedAt).getTime()
+          : 0;
 
-      if (timeA !== timeB) {
-        return timeB - timeA;
-      }
+        if (timeA !== timeB) {
+          return timeB - timeA;
+        }
 
-      return String(b.id || "").localeCompare(
-        String(a.id || "")
-      );
-    })
-    .map((m) => ({
-      id: m.id,
-      name: m.name,
-      role: m.title || m.type || "Media Partner",
-      badgeColor: "bg-blue-50 text-blue-600 border-blue-100",
-      borderHover: "hover:border-blue-300",
-      initials:
-        m.name
-          .split(" ")
-          .map((w: string) => w[0])
-          .join("")
-          .toUpperCase()
-          .slice(0, 4) || "MP",
-      logo:
-        m.logo ||
-        "https://images.unsplash.com/photo-1541829070764-84a7d30dd3f3?auto=format&fit=crop&w=120&h=120&q=80",
-      description:
-        m.description ||
-        "Official media distribution and scientific publishing partner.",
-      website: m.website
-    }));
-}, [dynamicMediaPartners]);
+        return String(b.id || "").localeCompare(
+          String(a.id || "")
+        );
+      })
+      .map((m) => ({
+        id: m.id,
+        name: m.name,
+        role: m.title || m.type || "Media Partner",
+        badgeColor: "bg-blue-50 text-blue-600 border-blue-100",
+        borderHover: "hover:border-blue-300",
+        initials:
+          m.name
+            .split(" ")
+            .map((w: string) => w[0])
+            .join("")
+            .toUpperCase()
+            .slice(0, 4) || "MP",
+        logo:
+          m.logo ||
+          "https://images.unsplash.com/photo-1541829070764-84a7d30dd3f3?auto=format&fit=crop&w=120&h=120&q=80",
+        description:
+          m.description ||
+          "Official media distribution and scientific publishing partner.",
+        website: m.website
+      }));
+  }, [dynamicMediaPartners]);
 
- // Associates list - newest submission first
+  // Associates list - newest submission first
   const approvedAssociatesList = useMemo(() => {
-  return [...dynamicAssociates]
-    .filter((a) => Boolean(a.isVerified))
-    .sort((a, b) => {
+    return [...dynamicAssociates]
+      .filter((a) => Boolean(a.isVerified))
+      .sort((a, b) => {
         const timeA = a.submittedAt
           ? new Date(a.submittedAt).getTime()
           : 0;
@@ -992,92 +992,92 @@ const approvedMediaPartnersList = useMemo(() => {
   }, [activeCountriesList]);
 
   // Cities dropdown list (Includes active admin-added cities and approved conference cities for selected country)
-     const citiesDropdown = useMemo(() => {
-  if (selectedCountry === "All" || !selectedCountry) {
-    return ["All Cities (Select Country First)"];
-  }
+  const citiesDropdown = useMemo(() => {
+    if (selectedCountry === "All" || !selectedCountry) {
+      return ["All Cities (Select Country First)"];
+    }
 
-  const selectedCountryNormalized = selectedCountry
-    .trim()
-    .toUpperCase();
+    const selectedCountryNormalized = selectedCountry
+      .trim()
+      .toUpperCase();
 
-  // Cities loaded directly from Supabase for the selected country
-  const supabaseCities = selectedCountryCities
-    .filter(
-      (city) =>
-        city.country.trim().toUpperCase() ===
-        selectedCountryNormalized
-    )
-    .map((city) => city.name.trim())
-    .filter(Boolean);
+    // Cities loaded directly from Supabase for the selected country
+    const supabaseCities = selectedCountryCities
+      .filter(
+        (city) =>
+          city.country.trim().toUpperCase() ===
+          selectedCountryNormalized
+      )
+      .map((city) => city.name.trim())
+      .filter(Boolean);
 
-  // Keep cities already used by approved conferences as a fallback
-  const conferenceCities = approvedConferences
-    .filter(
-      (conference) =>
-        String(conference.country || "")
-          .trim()
-          .toUpperCase() === selectedCountryNormalized
-    )
-    .map((conference) => String(conference.city || "").trim())
-    .filter(Boolean);
+    // Keep cities already used by approved conferences as a fallback
+    const conferenceCities = approvedConferences
+      .filter(
+        (conference) =>
+          String(conference.country || "")
+            .trim()
+            .toUpperCase() === selectedCountryNormalized
+      )
+      .map((conference) => String(conference.city || "").trim())
+      .filter(Boolean);
 
-  const combined = new Set<string>([
-    ...supabaseCities,
-    ...conferenceCities
+    const combined = new Set<string>([
+      ...supabaseCities,
+      ...conferenceCities
+    ]);
+
+    return [
+      "All",
+      ...Array.from(combined).sort((a, b) =>
+        a.localeCompare(b)
+      )
+    ];
+  }, [
+    selectedCountry,
+    selectedCountryCities,
+    approvedConferences
   ]);
 
-  return [
-    "All",
-    ...Array.from(combined).sort((a, b) =>
-      a.localeCompare(b)
-    )
-  ];
-}, [
-  selectedCountry,
-  selectedCountryCities,
-  approvedConferences
-]);
-
   // Countries shown on Home only when at least 1 approved/live conference exists
-      const allFilterCountries = useMemo(() => {
-        const countrySet = new Set<string>();
+  const allFilterCountries = useMemo(() => {
+    const countrySet = new Set<string>();
 
-        approvedConferences.forEach((conf) => {
-          const country = String(conf.country || "").trim();
-          if (!country) return;
+    approvedConferences.forEach((conf) => {
+      const country = String(conf.country || "").trim();
+      if (!country) return;
 
-          const isInactive = inactiveCountries.some(
-            (item) => String(item || "").trim().toLowerCase() === country.toLowerCase()
-          );
+      const isInactive = inactiveCountries.some(
+        (item) => String(item || "").trim().toLowerCase() === country.toLowerCase()
+      );
 
-          if (!isInactive) {
-            countrySet.add(country);
-          }
-        });
+      if (!isInactive) {
+        countrySet.add(country);
+      }
+    });
 
-        return Array.from(countrySet).sort((a, b) => {
-        const aCount = approvedConferences.filter(
-          (conf) =>
-            String(conf.country || "").trim().toLowerCase() ===
-            a.trim().toLowerCase()
-        ).length;
+    return Array.from(countrySet).sort((a, b) => {
+      const aCount = approvedConferences.filter(
+        (conf) =>
+          String(conf.country || "").trim().toLowerCase() ===
+          a.trim().toLowerCase()
+      ).length;
 
-        const bCount = approvedConferences.filter(
-          (conf) =>
-            String(conf.country || "").trim().toLowerCase() ===
-            b.trim().toLowerCase()
-        ).length;
+      const bCount = approvedConferences.filter(
+        (conf) =>
+          String(conf.country || "").trim().toLowerCase() ===
+          b.trim().toLowerCase()
+      ).length;
 
-        // Highest conference count first
-        if (aCount !== bCount) {
-          return bCount - aCount;
-        }
+      // Highest conference count first
+      if (aCount !== bCount) {
+        return bCount - aCount;
+      }
 
-        // Same count → alphabetical
-        return a.localeCompare(b);
-      });
-      }, [approvedConferences, inactiveCountries]);
+      // Same count → alphabetical
+      return a.localeCompare(b);
+    });
+  }, [approvedConferences, inactiveCountries]);
 
   // Search states for country, city, and topic cards
   const [countrySearchQuery, setCountrySearchQuery] = useState("");
@@ -1092,71 +1092,71 @@ const approvedMediaPartnersList = useMemo(() => {
   }, [allFilterCountries, countrySearchQuery]);
 
   // Cities shown on Home only when at least 1 approved/live conference exists
-const allFilterCities = useMemo(() => {
-  const cityMap = new Map<
-    string,
-    { cityName: string; countryName: string }
-  >();
+  const allFilterCities = useMemo(() => {
+    const cityMap = new Map<
+      string,
+      { cityName: string; countryName: string }
+    >();
 
-  for (const conf of approvedConferences) {
-    const cityName = String(conf.city || "").trim();
-    const countryName = String(conf.country || "").trim();
+    for (const conf of approvedConferences) {
+      const cityName = String(conf.city || "").trim();
+      const countryName = String(conf.country || "").trim();
 
-    if (!cityName || !countryName) continue;
+      if (!cityName || !countryName) continue;
 
-    const cityInactive = inactiveCities.some(
-      (item) =>
-        String(item || "").trim().toLowerCase() ===
-        `${countryName}:::${cityName}`.toLowerCase()
-    );
+      const cityInactive = inactiveCities.some(
+        (item) =>
+          String(item || "").trim().toLowerCase() ===
+          `${countryName}:::${cityName}`.toLowerCase()
+      );
 
-    const countryInactive = inactiveCountries.some(
-      (item) =>
-        String(item || "").trim().toLowerCase() ===
-        countryName.toLowerCase()
-    );
+      const countryInactive = inactiveCountries.some(
+        (item) =>
+          String(item || "").trim().toLowerCase() ===
+          countryName.toLowerCase()
+      );
 
-    if (cityInactive || countryInactive) continue;
+      if (cityInactive || countryInactive) continue;
 
-    const key = `${cityName.toLowerCase()}|||${countryName.toLowerCase()}`;
+      const key = `${cityName.toLowerCase()}|||${countryName.toLowerCase()}`;
 
-    if (!cityMap.has(key)) {
-      cityMap.set(key, {
-        cityName,
-        countryName,
-      });
+      if (!cityMap.has(key)) {
+        cityMap.set(key, {
+          cityName,
+          countryName,
+        });
+      }
     }
-  }
 
-  return Array.from(cityMap.values()).sort((a, b) => {
-  const aCount = approvedConferences.filter(
-    (conf) =>
-      String(conf.city || "").trim().toLowerCase() ===
-        a.cityName.trim().toLowerCase() &&
-      String(conf.country || "").trim().toLowerCase() ===
-        a.countryName.trim().toLowerCase()
-  ).length;
+    return Array.from(cityMap.values()).sort((a, b) => {
+      const aCount = approvedConferences.filter(
+        (conf) =>
+          String(conf.city || "").trim().toLowerCase() ===
+          a.cityName.trim().toLowerCase() &&
+          String(conf.country || "").trim().toLowerCase() ===
+          a.countryName.trim().toLowerCase()
+      ).length;
 
-  const bCount = approvedConferences.filter(
-    (conf) =>
-      String(conf.city || "").trim().toLowerCase() ===
-        b.cityName.trim().toLowerCase() &&
-      String(conf.country || "").trim().toLowerCase() ===
-        b.countryName.trim().toLowerCase()
-  ).length;
+      const bCount = approvedConferences.filter(
+        (conf) =>
+          String(conf.city || "").trim().toLowerCase() ===
+          b.cityName.trim().toLowerCase() &&
+          String(conf.country || "").trim().toLowerCase() ===
+          b.countryName.trim().toLowerCase()
+      ).length;
 
-  // Highest conference count first
-  if (aCount !== bCount) {
-    return bCount - aCount;
-  }
+      // Highest conference count first
+      if (aCount !== bCount) {
+        return bCount - aCount;
+      }
 
-  // Same count → city name, then country name
-  return (
-    a.cityName.localeCompare(b.cityName) ||
-    a.countryName.localeCompare(b.countryName)
-  );
-});
-}, [approvedConferences, inactiveCities, inactiveCountries]);
+      // Same count → city name, then country name
+      return (
+        a.cityName.localeCompare(b.cityName) ||
+        a.countryName.localeCompare(b.countryName)
+      );
+    });
+  }, [approvedConferences, inactiveCities, inactiveCountries]);
 
   // Filtered cities list based on citySearchQuery
   const filteredCitiesList = useMemo(() => {
@@ -1201,55 +1201,55 @@ const allFilterCities = useMemo(() => {
     "Environmental Science & Sustainability": "Environmental Science",
   };
   useEffect(() => {
-  if (tab !== "EVENTS") return;
+    if (tab !== "EVENTS") return;
 
-  let cancelled = false;
+    let cancelled = false;
 
-  setServerConferenceLoaded(false);
+    setServerConferenceLoaded(false);
 
-  void fetchPaginatedConferencesFromSupabase({
-    page: currentPage,
-    pageSize: 48,
-    searchTerm,
-    category:
-      selectedCategory === "All"
-        ? "All"
-        : reverseTopicsMapping[selectedCategory] ||
+    void fetchPaginatedConferencesFromSupabase({
+      page: currentPage,
+      pageSize: 48,
+      searchTerm,
+      category:
+        selectedCategory === "All"
+          ? "All"
+          : reverseTopicsMapping[selectedCategory] ||
           selectedCategory,
-    country: selectedCountry,
-    city: selectedCity,
-    liveStatus: selectedLiveStatus,
+      country: selectedCountry,
+      city: selectedCity,
+      liveStatus: selectedLiveStatus,
+      sortBy,
+      onlyApproved: true,
+    }).then((result) => {
+      if (cancelled) return;
+
+      if (result) {
+        setServerConferenceRows(
+          result.data as Conference[]
+        );
+        setServerConferenceTotal(result.total);
+      } else {
+        setServerConferenceRows([]);
+        setServerConferenceTotal(0);
+      }
+
+      setServerConferenceLoaded(true);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    currentPage,
+    searchTerm,
+    selectedCategory,
+    selectedCountry,
+    selectedCity,
+    selectedLiveStatus,
     sortBy,
-    onlyApproved: true,
-  }).then((result) => {
-    if (cancelled) return;
-
-    if (result) {
-      setServerConferenceRows(
-        result.data as Conference[]
-      );
-      setServerConferenceTotal(result.total);
-    } else {
-      setServerConferenceRows([]);
-      setServerConferenceTotal(0);
-    }
-
-    setServerConferenceLoaded(true);
-  });
-
-  return () => {
-    cancelled = true;
-  };
-}, [
-  currentPage,
-  searchTerm,
-  selectedCategory,
-  selectedCountry,
-  selectedCity,
-  selectedLiveStatus,
-  sortBy,
-  tab,
-]);
+    tab,
+  ]);
 
   // Active categories list filtering out deactivated topics
   const activeCategories = useMemo(() => {
@@ -1259,63 +1259,63 @@ const allFilterCities = useMemo(() => {
   }, [categories, inactiveTopics]);
 
   // Topics shown on Home only when at least 1 approved/live conference exists
-const allFilterCategories = useMemo(() => {
-  const topicSet = new Set<string>();
+  const allFilterCategories = useMemo(() => {
+    const topicSet = new Set<string>();
 
-  approvedConferences.forEach((conf) => {
-    if (!conf.category) return;
+    approvedConferences.forEach((conf) => {
+      if (!conf.category) return;
 
-    const topicName = topicsMapping[conf.category] || conf.category;
+      const topicName = topicsMapping[conf.category] || conf.category;
 
-    const isInactive = inactiveTopics.some((item) => {
-      const inactiveValue = String(item || "").trim();
+      const isInactive = inactiveTopics.some((item) => {
+        const inactiveValue = String(item || "").trim();
 
-      return (
-        inactiveValue === conf.category ||
-        inactiveValue === topicName ||
-        categories.some(
-          (cat) =>
-            cat.id === inactiveValue &&
-            (cat.name === conf.category || cat.name === topicName)
-        )
-      );
+        return (
+          inactiveValue === conf.category ||
+          inactiveValue === topicName ||
+          categories.some(
+            (cat) =>
+              cat.id === inactiveValue &&
+              (cat.name === conf.category || cat.name === topicName)
+          )
+        );
+      });
+
+      if (!isInactive) {
+        topicSet.add(topicName);
+      }
     });
 
-    if (!isInactive) {
-      topicSet.add(topicName);
-    }
-  });
+    return Array.from(topicSet)
+      .filter(Boolean)
+      .sort((a, b) => {
+        const aCount = approvedConferences.filter((conf) => {
+          const topicName = topicsMapping[conf.category] || conf.category;
 
-  return Array.from(topicSet)
-  .filter(Boolean)
-  .sort((a, b) => {
-    const aCount = approvedConferences.filter((conf) => {
-      const topicName = topicsMapping[conf.category] || conf.category;
+          return (
+            String(topicName || "").trim().toLowerCase() ===
+            a.trim().toLowerCase()
+          );
+        }).length;
 
-      return (
-        String(topicName || "").trim().toLowerCase() ===
-        a.trim().toLowerCase()
-      );
-    }).length;
+        const bCount = approvedConferences.filter((conf) => {
+          const topicName = topicsMapping[conf.category] || conf.category;
 
-    const bCount = approvedConferences.filter((conf) => {
-      const topicName = topicsMapping[conf.category] || conf.category;
+          return (
+            String(topicName || "").trim().toLowerCase() ===
+            b.trim().toLowerCase()
+          );
+        }).length;
 
-      return (
-        String(topicName || "").trim().toLowerCase() ===
-        b.trim().toLowerCase()
-      );
-    }).length;
+        // Highest conference count first
+        if (aCount !== bCount) {
+          return bCount - aCount;
+        }
 
-    // Highest conference count first
-    if (aCount !== bCount) {
-      return bCount - aCount;
-    }
-
-    // Same count → alphabetical
-    return a.localeCompare(b);
-  });
-}, [approvedConferences, inactiveTopics, categories]);
+        // Same count → alphabetical
+        return a.localeCompare(b);
+      });
+  }, [approvedConferences, inactiveTopics, categories]);
 
   // Filtered topics list based on topicSearchQuery
   const filteredTopicsList = useMemo(() => {
@@ -1327,92 +1327,92 @@ const allFilterCategories = useMemo(() => {
   // Helper to determine Trusted Organizer status (Verified badge or >= 101 completed conferences)
   const getIsOrganizerTrusted = (org: OrganizerProfile) => {
     if (org.isSuspended) return false;
-    const completedCount = conferences.filter((c) => 
+    const completedCount = conferences.filter((c) =>
       (c.organizerId === org.id || (c.contactEmail && org.email && c.contactEmail.toLowerCase().trim() === org.email.toLowerCase().trim())) &&
       isConferenceCompleted(c)
     ).length;
     return Boolean(org.isVerified || completedCount >= 101);
   };
 
- // Home organizers: only organizers having at least 1 approved/live conference
-// Highest number of approved conferences appears first
-const trustedOrganizersList = useMemo(() => {
-  const getPublishedConferenceCount = (org: OrganizerProfile) => {
-    return approvedConferences.filter((conf) => {
-      const sameOrganizerId = conf.organizerId === org.id;
+  // Home organizers: only organizers having at least 1 approved/live conference
+  // Highest number of approved conferences appears first
+  const trustedOrganizersList = useMemo(() => {
+    const getPublishedConferenceCount = (org: OrganizerProfile) => {
+      return approvedConferences.filter((conf) => {
+        const sameOrganizerId = conf.organizerId === org.id;
 
-      const sameEmail =
-        Boolean(conf.contactEmail) &&
-        Boolean(org.email) &&
-        conf.contactEmail!.trim().toLowerCase() ===
+        const sameEmail =
+          Boolean(conf.contactEmail) &&
+          Boolean(org.email) &&
+          conf.contactEmail!.trim().toLowerCase() ===
           org.email!.trim().toLowerCase();
 
-      return sameOrganizerId || sameEmail;
-    }).length;
-  };
+        return sameOrganizerId || sameEmail;
+      }).length;
+    };
 
-  return organizers
-    .filter((org) => {
-      if (org.isSuspended) return false;
+    return organizers
+      .filter((org) => {
+        if (org.isSuspended) return false;
 
-      // Only Admin-verified organizers can appear publicly
-      if (!org.isVerified) return false;
+        // Only Admin-verified organizers can appear publicly
+        if (!org.isVerified) return false;
 
-      // Home Trusted Organizers should only show organizers
-      // that currently have at least one approved/live conference
-      return getPublishedConferenceCount(org) > 0;
-    })
+        // Home Trusted Organizers should only show organizers
+        // that currently have at least one approved/live conference
+        return getPublishedConferenceCount(org) > 0;
+      })
 
-    .sort((a, b) => {
-      const aCount = getPublishedConferenceCount(a);
-      const bCount = getPublishedConferenceCount(b);
+      .sort((a, b) => {
+        const aCount = getPublishedConferenceCount(a);
+        const bCount = getPublishedConferenceCount(b);
 
-      // Highest conference count first
-      if (aCount !== bCount) {
-        return bCount - aCount;
-      }
+        // Highest conference count first
+        if (aCount !== bCount) {
+          return bCount - aCount;
+        }
 
-      // If both have the same count, sort alphabetically
-      return String(a.organizationName || "").localeCompare(
-        String(b.organizationName || "")
-      );
-    });
-}, [organizers, approvedConferences]);
+        // If both have the same count, sort alphabetically
+        return String(a.organizationName || "").localeCompare(
+          String(b.organizationName || "")
+        );
+      });
+  }, [organizers, approvedConferences]);
 
-    // All active organizers - for full Organizers page
-    // Sort by highest number of approved conferences first
-    const allPublicOrganizersList = useMemo(() => {
-      const getPublishedConferenceCount = (org: OrganizerProfile) => {
-        return approvedConferences.filter((conf) => {
-          const sameOrganizerId = conf.organizerId === org.id;
+  // All active organizers - for full Organizers page
+  // Sort by highest number of approved conferences first
+  const allPublicOrganizersList = useMemo(() => {
+    const getPublishedConferenceCount = (org: OrganizerProfile) => {
+      return approvedConferences.filter((conf) => {
+        const sameOrganizerId = conf.organizerId === org.id;
 
-          const sameEmail =
-            Boolean(conf.contactEmail) &&
-            Boolean(org.email) &&
-            conf.contactEmail!.trim().toLowerCase() ===
-              org.email!.trim().toLowerCase();
+        const sameEmail =
+          Boolean(conf.contactEmail) &&
+          Boolean(org.email) &&
+          conf.contactEmail!.trim().toLowerCase() ===
+          org.email!.trim().toLowerCase();
 
-          return sameOrganizerId || sameEmail;
-        }).length;
-      };
+        return sameOrganizerId || sameEmail;
+      }).length;
+    };
 
-      return organizers
-        .filter((org) => !org.isSuspended && org.isVerified)
-        .sort((a, b) => {
-          const aCount = getPublishedConferenceCount(a);
-          const bCount = getPublishedConferenceCount(b);
+    return organizers
+      .filter((org) => !org.isSuspended && org.isVerified)
+      .sort((a, b) => {
+        const aCount = getPublishedConferenceCount(a);
+        const bCount = getPublishedConferenceCount(b);
 
-          // Highest number of conferences first
-          if (aCount !== bCount) {
-            return bCount - aCount;
-          }
+        // Highest number of conferences first
+        if (aCount !== bCount) {
+          return bCount - aCount;
+        }
 
-          // If conference counts are equal, sort alphabetically
-          return String(a.organizationName || "").localeCompare(
-            String(b.organizationName || "")
-          );
-        });
-    }, [organizers, approvedConferences]);
+        // If conference counts are equal, sort alphabetically
+        return String(a.organizationName || "").localeCompare(
+          String(b.organizationName || "")
+        );
+      });
+  }, [organizers, approvedConferences]);
 
   const organizersScrollRef = useRef<HTMLDivElement>(null);
 
@@ -1475,30 +1475,30 @@ const trustedOrganizersList = useMemo(() => {
 
     const now = new Date();
 
-// Keep a conference visible through 11:59:59 PM on its End Date
-// in the conference's own IANA timezone.
-const activeList = list.filter(
-  (c) => !isConferenceCompleted(c, now)
-);
-
-if (selectedLiveStatus === LiveStatus.Upcoming) {
-  const upcomingList = activeList.filter((c) => {
-    const startMs = getConferenceStartTimestamp(c);
-
-    return (
-      startMs !== null &&
-      startMs > now.getTime()
+    // Keep a conference visible through 11:59:59 PM on its End Date
+    // in the conference's own IANA timezone.
+    const activeList = list.filter(
+      (c) => !isConferenceCompleted(c, now)
     );
-  });
 
-  upcomingList.sort(
-    (a, b) =>
-      (getConferenceStartTimestamp(a) ?? 0) -
-      (getConferenceStartTimestamp(b) ?? 0)
-  );
+    if (selectedLiveStatus === LiveStatus.Upcoming) {
+      const upcomingList = activeList.filter((c) => {
+        const startMs = getConferenceStartTimestamp(c);
 
-  return upcomingList;
-}
+        return (
+          startMs !== null &&
+          startMs > now.getTime()
+        );
+      });
+
+      upcomingList.sort(
+        (a, b) =>
+          (getConferenceStartTimestamp(a) ?? 0) -
+          (getConferenceStartTimestamp(b) ?? 0)
+      );
+
+      return upcomingList;
+    }
 
     if (sortBy === "Upcoming") {
       activeList.sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
@@ -1515,37 +1515,37 @@ if (selectedLiveStatus === LiveStatus.Upcoming) {
     return activeList;
   }, [approvedConferences, searchTerm, selectedCategory, selectedCountry, selectedCity, selectedLiveStatus, sortBy]);
 
-const pageSize = 48;
+  const pageSize = 48;
 
-const useServerConferencePage =
-  tab === "EVENTS" && serverConferenceLoaded;
+  const useServerConferencePage =
+    tab === "EVENTS" && serverConferenceLoaded;
 
-const conferenceResultCount =
-  useServerConferencePage
-    ? serverConferenceTotal
-    : filteredConferences.length;
+  const conferenceResultCount =
+    useServerConferencePage
+      ? serverConferenceTotal
+      : filteredConferences.length;
 
-const totalPages =
-  Math.ceil(conferenceResultCount / pageSize) || 1;
+  const totalPages =
+    Math.ceil(conferenceResultCount / pageSize) || 1;
 
-const paginatedConferences = useMemo(() => {
-  if (useServerConferencePage) {
-    return serverConferenceRows;
-  }
+  const paginatedConferences = useMemo(() => {
+    if (useServerConferencePage) {
+      return serverConferenceRows;
+    }
 
-  const start = (currentPage - 1) * pageSize;
+    const start = (currentPage - 1) * pageSize;
 
-  return filteredConferences.slice(
-    start,
-    start + pageSize
-  );
-}, [
-  filteredConferences,
-  currentPage,
-  pageSize,
-  serverConferenceRows,
-  useServerConferencePage,
-]);
+    return filteredConferences.slice(
+      start,
+      start + pageSize
+    );
+  }, [
+    filteredConferences,
+    currentPage,
+    pageSize,
+    serverConferenceRows,
+    useServerConferencePage,
+  ]);
 
   // Dynamic calculation for right sidebar cards to match left main content height exactly without overflowing
   const visibleAssociates = useMemo(() => {
@@ -1559,28 +1559,28 @@ const paginatedConferences = useMemo(() => {
 
   // Top Featured Section
   const featuredConferences = useMemo(() => {
-  return approvedConferences
-    .filter((c) => c.isFeatured)
-    .slice(0, 8);
-}, [approvedConferences]);
+    return approvedConferences
+      .filter((c) => c.isFeatured)
+      .slice(0, 8);
+  }, [approvedConferences]);
 
   const formatDisplayText = (text: string) => {
-  if (!text) return "";
+    if (!text) return "";
 
-  const smallWords = ["and", "or", "of", "in", "on", "for", "the", "to"];
+    const smallWords = ["and", "or", "of", "in", "on", "for", "the", "to"];
 
-  return text
-    .toLowerCase()
-    .split(/\s+/)
-    .map((word, index) => {
-      if (index !== 0 && smallWords.includes(word)) {
-        return word;
-      }
+    return text
+      .toLowerCase()
+      .split(/\s+/)
+      .map((word, index) => {
+        if (index !== 0 && smallWords.includes(word)) {
+          return word;
+        }
 
-      return word.charAt(0).toUpperCase() + word.slice(1);
-    })
-    .join(" ");
-};
+        return word.charAt(0).toUpperCase() + word.slice(1);
+      })
+      .join(" ");
+  };
 
   // Selected keyword for dynamic display
   const selectedKeyword = useMemo(() => {
@@ -1593,35 +1593,35 @@ const paginatedConferences = useMemo(() => {
 
   // Dynamic page heading with required H1 formats
   const pageHeadingTitle = useMemo(() => {
-  const hasCategory = selectedCategory !== "All";
-  const hasCity = selectedCity !== "All";
-  const hasCountry = selectedCountry !== "All";
+    const hasCategory = selectedCategory !== "All";
+    const hasCity = selectedCity !== "All";
+    const hasCountry = selectedCountry !== "All";
 
-  const displayCategory = formatDisplayText(selectedCategory);
-  const displayCity = formatDisplayText(selectedCity);
-  const displayCountry = formatDisplayText(selectedCountry);
+    const displayCategory = formatDisplayText(selectedCategory);
+    const displayCity = formatDisplayText(selectedCity);
+    const displayCountry = formatDisplayText(selectedCountry);
 
-  if (hasCategory && hasCity && hasCountry) {
-    return `${displayCategory} Conferences in ${displayCity}, ${displayCountry}`;
-  }
-  if (hasCategory && hasCity) {
-    return `${displayCategory} Conferences in ${displayCity}`;
-  }
-  if (hasCategory && hasCountry) {
-    return `${displayCategory} Conferences in ${displayCountry}`;
-  }
-  if (hasCategory) {
-    return `${displayCategory} Conferences`;
-  }
-  if (hasCity && hasCountry) {
-    return `International Conferences in ${displayCity}, ${displayCountry}`;
-  }
-  if (hasCity) {
-    return `International Conferences in ${displayCity}`;
-  }
-  if (hasCountry) {
-    return `International Conferences in ${displayCountry}`;
-  }
+    if (hasCategory && hasCity && hasCountry) {
+      return `${displayCategory} Conferences in ${displayCity}, ${displayCountry}`;
+    }
+    if (hasCategory && hasCity) {
+      return `${displayCategory} Conferences in ${displayCity}`;
+    }
+    if (hasCategory && hasCountry) {
+      return `${displayCategory} Conferences in ${displayCountry}`;
+    }
+    if (hasCategory) {
+      return `${displayCategory} Conferences`;
+    }
+    if (hasCity && hasCountry) {
+      return `International Conferences in ${displayCity}, ${displayCountry}`;
+    }
+    if (hasCity) {
+      return `International Conferences in ${displayCity}`;
+    }
+    if (hasCountry) {
+      return `International Conferences in ${displayCountry}`;
+    }
     if (searchTerm !== "") {
       if (searchTerm.startsWith("/")) {
         const country = searchTerm.slice(1).trim();
@@ -1659,71 +1659,71 @@ const paginatedConferences = useMemo(() => {
     selectedCountry
   ]);
 
- // Dynamic filter description from Admin-controlled templates
-const filterDescription = useMemo(() => {
-  const hasCategory = selectedCategory !== "All";
-  const hasCity = selectedCity !== "All";
-  const hasCountry = selectedCountry !== "All";
+  // Dynamic filter description from Admin-controlled templates
+  const filterDescription = useMemo(() => {
+    const hasCategory = selectedCategory !== "All";
+    const hasCity = selectedCity !== "All";
+    const hasCountry = selectedCountry !== "All";
 
-  const replacePlaceholders = (template: string) => {
-    return template
-          .replace(/\{TOPIC\}/g, hasCategory ? formatDisplayText(selectedCategory) : "")
-    .replace(/\{CITY\}/g, hasCity ? formatDisplayText(selectedCity) : "")
-    .replace(/\{COUNTRY\}/g, hasCountry ? formatDisplayText(selectedCountry) : "")
-      .replace(/\s+,/g, ",")
-      .replace(/,\s*,/g, ",")
-      .replace(/\s{2,}/g, " ")
-      .trim();
-  };
+    const replacePlaceholders = (template: string) => {
+      return template
+        .replace(/\{TOPIC\}/g, hasCategory ? formatDisplayText(selectedCategory) : "")
+        .replace(/\{CITY\}/g, hasCity ? formatDisplayText(selectedCity) : "")
+        .replace(/\{COUNTRY\}/g, hasCountry ? formatDisplayText(selectedCountry) : "")
+        .replace(/\s+,/g, ",")
+        .replace(/,\s*,/g, ",")
+        .replace(/\s{2,}/g, " ")
+        .trim();
+    };
 
-  // Topic + City + Country
-  if (hasCategory && hasCity && hasCountry) {
+    // Topic + City + Country
+    if (hasCategory && hasCity && hasCountry) {
+      return replacePlaceholders(
+        conferenceDescriptions.combined_description
+      );
+    }
+
+    // Topic + Country
+    if (hasCategory && hasCountry) {
+      return replacePlaceholders(
+        conferenceDescriptions.topic_country_description
+      );
+    }
+
+    // City selected
+    if (hasCity) {
+      return replacePlaceholders(
+        conferenceDescriptions.city_description
+      );
+    }
+
+    // Country selected
+    if (hasCountry) {
+      return replacePlaceholders(
+        conferenceDescriptions.country_description
+      );
+    }
+
+    // Topic selected
+    if (hasCategory) {
+      return replacePlaceholders(
+        conferenceDescriptions.topic_description
+      );
+    }
+
+    // No filter selected - keep existing default behavior
     return replacePlaceholders(
-      conferenceDescriptions.combined_description
+      conferenceDescriptions.default_description
     );
-  }
-
-// Topic + Country
-if (hasCategory && hasCountry) {
-  return replacePlaceholders(
-    conferenceDescriptions.topic_country_description
-  );
-}
-
-  // City selected
-  if (hasCity) {
-    return replacePlaceholders(
-      conferenceDescriptions.city_description
-    );
-  }
-
-  // Country selected
-  if (hasCountry) {
-    return replacePlaceholders(
-      conferenceDescriptions.country_description
-    );
-  }
-
-  // Topic selected
-  if (hasCategory) {
-    return replacePlaceholders(
-      conferenceDescriptions.topic_description
-    );
-  }
-
-  // No filter selected - keep existing default behavior
-  return replacePlaceholders(
-  conferenceDescriptions.default_description
-);
 
 
-}, [
-  selectedCategory,
-  selectedCity,
-  selectedCountry,
-  selectedKeyword,
-  conferenceDescriptions
-]);
+  }, [
+    selectedCategory,
+    selectedCity,
+    selectedCountry,
+    selectedKeyword,
+    conferenceDescriptions
+  ]);
 
   // Check if events have mens or not
   const hasMensEvents = useMemo(() => {
@@ -1733,29 +1733,29 @@ if (hasCategory && hasCountry) {
     });
   }, [filteredConferences]);
 
-      const activeBannersList = useMemo(() => {
-      if (!banners || banners.length === 0) {
-        return [];
+  const activeBannersList = useMemo(() => {
+    if (!banners || banners.length === 0) {
+      return [];
+    }
+
+    const seen = new Set<string>();
+    const unique: Banner[] = [];
+
+    for (const item of banners) {
+      if (item && item.id && !seen.has(item.id)) {
+        seen.add(item.id);
+        unique.push(item);
       }
+    }
 
-      const seen = new Set<string>();
-      const unique: Banner[] = [];
-
-      for (const item of banners) {
-        if (item && item.id && !seen.has(item.id)) {
-          seen.add(item.id);
-          unique.push(item);
-        }
-      }
-
-      return unique
-        .sort(
-          (a, b) =>
-            (Number(a.place ?? a.order) || 999) -
-            (Number(b.place ?? b.order) || 999)
-        )
-        .slice(0, 5);
-    }, [banners]);
+    return unique
+      .sort(
+        (a, b) =>
+          (Number(a.place ?? a.order) || 999) -
+          (Number(b.place ?? b.order) || 999)
+      )
+      .slice(0, 5);
+  }, [banners]);
 
   // Filter ONLY Approved banner content entries
   const approvedBannerContents = useMemo(() => {
@@ -1809,8 +1809,8 @@ if (hasCategory && hasCountry) {
   const approvedFeedbacksList = useMemo(() => {
     const list: UserFeedback[] = userFeedbacks || [];
     const activeOnly = list.filter(
-  (f) => Boolean(f) && Boolean(f.isVerified)
-  );
+      (f) => Boolean(f) && Boolean(f.isVerified)
+    );
     const seen = new Set<string>();
     const unique: UserFeedback[] = [];
     for (const item of activeOnly) {
@@ -1959,13 +1959,13 @@ if (hasCategory && hasCountry) {
   const dynamicStats = useMemo(() => {
     const verifiedCount = approvedConferences.length;
     const liveCount = approvedConferences.filter((c) => c.liveStatus === LiveStatus.Ongoing).length;
-    
+
     const uniqueCountriesSet = new Set([
       ...approvedConferences.map((c) => c.country).filter(Boolean),
       ...adminCountries.filter(Boolean)
     ]);
     const countriesCount = uniqueCountriesSet.size;
-    
+
     const activeOrganizers = organizers.filter((o) => !o.isSuspended);
     const organizersCount = activeOrganizers.length;
 
@@ -2021,784 +2021,776 @@ if (hasCategory && hasCountry) {
     return icons[topic] || BookOpen;
   };
 
-const handleNewsletterSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
+  const handleNewsletterSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-  const email = newsletterEmail.trim();
+    const email = newsletterEmail.trim();
 
-  if (!email) return;
+    if (!email) return;
 
-  setNewsletterError("");
+    setNewsletterError("");
 
-  try {
-    const response = await fetch("/api/public/newsletter", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        email
-      })
-    });
+    try {
+      const response = await fetch("/api/public/newsletter", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          email
+        })
+      });
 
-    const result = await response.json();
+      const result = await response.json();
 
-    if (!response.ok || !result?.success) {
-      throw new Error(
-        result?.error ||
+      if (!response.ok || !result?.success) {
+        throw new Error(
+          result?.error ||
+          "Subscription failed. Please try again."
+        );
+      }
+
+      if (
+        onUpdateSubscriberEmails &&
+        result?.record
+      ) {
+        onUpdateSubscriberEmails([
+          result.record
+        ]);
+      }
+
+      setNewsletterSubscribed(true);
+      setNewsletterEmail("");
+
+      setTimeout(() => {
+        setNewsletterSubscribed(false);
+      }, 5000);
+
+    } catch (err: any) {
+      setNewsletterError(
+        err?.message ||
         "Subscription failed. Please try again."
       );
     }
-
-   if (
-      onUpdateSubscriberEmails &&
-      result?.record
-    ) {
-      onUpdateSubscriberEmails([
-        result.record
-      ]);
-    }
-
-    setNewsletterSubscribed(true);
-    setNewsletterEmail("");
-
-    setTimeout(() => {
-      setNewsletterSubscribed(false);
-    }, 5000);
-
-  } catch (err: any) {
-    setNewsletterError(
-      err?.message ||
-      "Subscription failed. Please try again."
-    );
-  }
-}; 
+  };
 
   return (
     <div
-  className={`space-y-10 sm:space-y-12 md:space-y-16 lg:space-y-20 w-full min-w-0 ${
-    footerOnly ? "[&>*:not(footer)]:hidden" : ""
-  }`}
->
-      
+      className={`space-y-10 sm:space-y-12 md:space-y-16 lg:space-y-20 w-full min-w-0 ${footerOnly ? "[&>*:not(footer)]:hidden" : ""
+        }`}
+    >
+
       {tab === "HOME" && (
         <>
           {/* Hero Carousel Banner Section */}
-        <section
-        id="home"
-        className="relative w-full min-w-0 rounded-xl sm:rounded-2xl md:rounded-3xl overflow-hidden shadow-2xl min-h-[430px] sm:min-h-[440px] md:min-h-[480px] lg:min-h-[520px] flex items-center bg-slate-900"
-      >
-        {/* Carousel Slide Images */}
-        <div className="absolute inset-0 z-0">
-          <AnimatePresence mode="wait">
-            {activeBannersList && activeBannersList.length > 0 ? (
-              <motion.div
-                key={activeBannersList[currentSlide % activeBannersList.length]?.id || `slide-${currentSlide}`}
-                initial={{ opacity: 0, scale: 1.05 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 1 }}
-                className="absolute inset-0 w-full h-full"
-              >
-                <img
-                  src={activeBannersList[currentSlide % activeBannersList.length]?.image || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=800&q=80"}
-                  alt={activeBannersList[currentSlide % activeBannersList.length]?.title || "Conference Banner"}
-                  className="w-full h-full object-cover object-center"
-                  referrerPolicy="no-referrer"
-                />
-              </motion.div>
-            ) : (
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-700 to-indigo-900" />
-            )}
-          </AnimatePresence>
-          <div className="absolute inset-0 bg-gradient-to-r from-slate-950/70 via-slate-900/35 to-transparent" />
-        </div>
+          <section
+            id="home"
+            className="relative w-full min-w-0 rounded-xl sm:rounded-2xl md:rounded-3xl overflow-hidden shadow-2xl min-h-[430px] sm:min-h-[440px] md:min-h-[480px] lg:min-h-[520px] flex items-center bg-slate-900"
+          >
+            {/* Carousel Slide Images */}
+            <div className="absolute inset-0 z-0">
+              <AnimatePresence mode="wait">
+                {activeBannersList && activeBannersList.length > 0 ? (
+                  <motion.div
+                    key={activeBannersList[currentSlide % activeBannersList.length]?.id || `slide-${currentSlide}`}
+                    initial={{ opacity: 0, scale: 1.05 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 1 }}
+                    className="absolute inset-0 w-full h-full"
+                  >
+                    <img
+                      src={activeBannersList[currentSlide % activeBannersList.length]?.image || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=800&q=80"}
+                      alt={activeBannersList[currentSlide % activeBannersList.length]?.title || "Conference Banner"}
+                      className="w-full h-full object-cover object-center"
+                      referrerPolicy="no-referrer"
+                    />
+                  </motion.div>
+                ) : (
+                  <div className="absolute inset-0 bg-gradient-to-br from-blue-700 to-indigo-900" />
+                )}
+              </AnimatePresence>
+              <div className="absolute inset-0 bg-gradient-to-r from-slate-950/70 via-slate-900/35 to-transparent" />
+            </div>
 
-          {/* Hero Overlay Content */}
-        <div className="relative z-10 w-full min-w-0 px-4 py-10 sm:px-6 sm:py-12 md:px-10 md:py-14 lg:px-12 text-white flex flex-col items-center justify-center text-center gap-4 sm:gap-5">
-          <div className="space-y-2">
-            <h1 className="text-[1.75rem] leading-[1.15] sm:text-4xl md:text-5xl lg:text-6xl font-extrabold font-display tracking-tight max-w-5xl mx-auto line-clamp-3 sm:line-clamp-2 break-words">
-              {currentBannerContent?.title ? (
-                currentBannerContent.title
-              ) : (
-                <>Discover <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">International</span> Conferences</>
-              )}
-            </h1>
-            <p className="text-slate-100 text-sm leading-6 sm:text-base sm:leading-7 md:text-lg lg:text-xl max-w-3xl mx-auto font-medium line-clamp-3 sm:line-clamp-2 px-1">
-              {currentBannerContent?.description ? (
-                currentBannerContent.description
-              ) : (
-                "Find and connect with academic, professional, and technology conferences worldwide. All listings are verified for index and quality."
-              )}
-            </p>
-          </div>
+            {/* Hero Overlay Content */}
+            <div className="relative z-10 w-full min-w-0 px-4 py-10 sm:px-6 sm:py-12 md:px-10 md:py-14 lg:px-12 text-white flex flex-col items-center justify-center text-center gap-4 sm:gap-5">
+              <div className="space-y-2">
+                <h1 className="text-[1.75rem] leading-[1.15] sm:text-4xl md:text-5xl lg:text-6xl font-extrabold font-display tracking-tight max-w-5xl mx-auto line-clamp-3 sm:line-clamp-2 break-words">
+                  {currentBannerContent?.title ? (
+                    currentBannerContent.title
+                  ) : (
+                    <>Discover <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">International</span> Conferences</>
+                  )}
+                </h1>
+                <p className="text-slate-100 text-sm leading-6 sm:text-base sm:leading-7 md:text-lg lg:text-xl max-w-3xl mx-auto font-medium line-clamp-3 sm:line-clamp-2 px-1">
+                  {currentBannerContent?.description ? (
+                    currentBannerContent.description
+                  ) : (
+                    "Find and connect with academic, professional, and technology conferences worldwide. All listings are verified for index and quality."
+                  )}
+                </p>
+              </div>
 
-          {/* Quick Action Buttons */}
-          <div className="w-full sm:w-auto flex flex-col min-[420px]:flex-row sm:flex-row justify-center items-stretch sm:items-center gap-2.5 sm:gap-3">
-            <button
-              onClick={() => {
-                if (onTabChange) {
-                  onTabChange("EVENTS");
-                }
-                setTimeout(() => {
-                  const target = document.getElementById("all-conferences");
-                  if (target) target.scrollIntoView({ behavior: "smooth" });
-                }, 50);
-              }}
-              className="w-full sm:w-auto min-h-11 px-4 sm:px-6 py-2.5 sm:py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all border border-blue-500 hover:border-blue-600 shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 cursor-pointer text-xs sm:text-sm md:text-base"
-            >
-              Explore Conferences <ArrowRight className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => {
-                if (onLoginClick) onLoginClick();
-              }}
-              className="w-full sm:w-auto min-h-11 px-4 sm:px-6 py-2.5 sm:py-3 bg-white/10 hover:bg-white/20 text-white font-bold rounded-xl transition-all border border-white/30 hover:border-white/55 flex items-center justify-center gap-2 text-xs sm:text-sm md:text-base cursor-pointer"
-            >
-              Submit a Conference
-            </button>
-          </div>
-
-          {/* Search Box on Hero */}
-          <div className="w-full max-w-2xl min-w-0 mx-auto bg-slate-900/60 backdrop-blur-md rounded-xl sm:rounded-2xl p-2 sm:p-2.5 border border-white/10 shadow-lg mt-1 sm:mt-2">
-            <div className="flex flex-col sm:flex-row gap-2">
-              <div className="w-full sm:flex-1 min-w-0 min-h-11 flex items-center px-3 gap-2.5 bg-white/5 rounded-xl border border-white/5">
-                <Search className="h-4 w-4 text-blue-300 shrink-0" />
-                <input
-                  type="text"
-                  placeholder="Search conferences, or try /INDIA for country spotlight..."
-                  value={searchTerm}
-                  onChange={(e) => {
-                    setSearchTerm(e.target.value);
-                    if (onTabChange && currentTab !== "EVENTS") {
+              {/* Quick Action Buttons */}
+              <div className="w-full sm:w-auto flex flex-col min-[420px]:flex-row sm:flex-row justify-center items-stretch sm:items-center gap-2.5 sm:gap-3">
+                <button
+                  onClick={() => {
+                    if (onTabChange) {
                       onTabChange("EVENTS");
                     }
+                    setTimeout(() => {
+                      const target = document.getElementById("all-conferences");
+                      if (target) target.scrollIntoView({ behavior: "smooth" });
+                    }, 50);
                   }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
+                  className="w-full sm:w-auto min-h-11 px-4 sm:px-6 py-2.5 sm:py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all border border-blue-500 hover:border-blue-600 shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 cursor-pointer text-xs sm:text-sm md:text-base"
+                >
+                  Explore Conferences <ArrowRight className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => {
+                    if (onLoginClick) onLoginClick();
+                  }}
+                  className="w-full sm:w-auto min-h-11 px-4 sm:px-6 py-2.5 sm:py-3 bg-white/10 hover:bg-white/20 text-white font-bold rounded-xl transition-all border border-white/30 hover:border-white/55 flex items-center justify-center gap-2 text-xs sm:text-sm md:text-base cursor-pointer"
+                >
+                  Submit a Conference
+                </button>
+              </div>
+
+              {/* Search Box on Hero */}
+              <div className="w-full max-w-2xl min-w-0 mx-auto bg-slate-900/60 backdrop-blur-md rounded-xl sm:rounded-2xl p-2 sm:p-2.5 border border-white/10 shadow-lg mt-1 sm:mt-2">
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <div className="w-full sm:flex-1 min-w-0 min-h-11 flex items-center px-3 gap-2.5 bg-white/5 rounded-xl border border-white/5">
+                    <Search className="h-4 w-4 text-blue-300 shrink-0" />
+                    <input
+                      type="text"
+                      placeholder="Search conferences, or try /INDIA for country spotlight..."
+                      value={searchTerm}
+                      onChange={(e) => {
+                        setSearchTerm(e.target.value);
+                        if (onTabChange && currentTab !== "EVENTS") {
+                          onTabChange("EVENTS");
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          if (onTabChange) onTabChange("EVENTS");
+                          setTimeout(() => {
+                            const target = document.getElementById("all-conferences");
+                            if (target) target.scrollIntoView({ behavior: "smooth" });
+                          }, 50);
+                        }
+                      }}
+                      className="w-full bg-transparent border-none py-2 text-white placeholder:text-slate-400 focus:outline-none focus:ring-0 text-xs sm:text-sm"
+                    />
+                  </div>
+                  <button
+                    onClick={() => {
                       if (onTabChange) onTabChange("EVENTS");
+                      setIsFilterOpen(true);
                       setTimeout(() => {
                         const target = document.getElementById("all-conferences");
                         if (target) target.scrollIntoView({ behavior: "smooth" });
                       }, 50);
-                    }
-                  }}
-                  className="w-full bg-transparent border-none py-2 text-white placeholder:text-slate-400 focus:outline-none focus:ring-0 text-xs sm:text-sm"
-                />
+                    }}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-xl text-white font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md hover:shadow-lg"
+                  >
+                    <SlidersHorizontal className="h-4 w-4" /> Filters
+                  </button>
+                </div>
               </div>
-              <button
-                onClick={() => {
-                  if (onTabChange) onTabChange("EVENTS");
-                  setIsFilterOpen(true);
-                  setTimeout(() => {
-                    const target = document.getElementById("all-conferences");
-                    if (target) target.scrollIntoView({ behavior: "smooth" });
-                  }, 50);
-                }}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-xl text-white font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md hover:shadow-lg"
-              >
-                <SlidersHorizontal className="h-4 w-4" /> Filters
-              </button>
             </div>
-          </div>
-        </div>
 
-        {/* Slide Indicators */}
-        {activeBannersList && activeBannersList.length > 1 && (
-          <div className="absolute bottom-3 right-4 sm:bottom-5 sm:right-6 flex gap-2 z-10">
-            {activeBannersList.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setCurrentSlide(i)}
-                className={`w-3 h-3 rounded-full transition-all cursor-pointer ${
-                  (currentSlide % activeBannersList.length) === i ? "bg-blue-500 w-6" : "bg-white/40 hover:bg-white/60"
-                }`}
-              />
-            ))}
-          </div>
-        )}
-      </section>
+            {/* Slide Indicators */}
+            {activeBannersList && activeBannersList.length > 1 && (
+              <div className="absolute bottom-3 right-4 sm:bottom-5 sm:right-6 flex gap-2 z-10">
+                {activeBannersList.map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setCurrentSlide(i)}
+                    className={`w-3 h-3 rounded-full transition-all cursor-pointer ${(currentSlide % activeBannersList.length) === i ? "bg-blue-500 w-6" : "bg-white/40 hover:bg-white/60"
+                      }`}
+                  />
+                ))}
+              </div>
+            )}
+          </section>
 
-      {/* Statistics Section */}
-      <section className="relative z-10 mt-0 sm:-mt-4 md:-mt-6 lg:-mt-10">
-        <div className="grid grid-cols-1 min-[400px]:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-5">
-          <div className="bg-white border border-slate-150 hover:border-blue-300 rounded-2xl p-3.5 sm:p-6 shadow-sm hover:shadow-md transition-all duration-300 flex items-center gap-2.5 sm:gap-4">
-            <div className="p-2.5 sm:p-3.5 bg-blue-50 text-blue-600 rounded-xl shrink-0">
-              <Award className="h-5 w-5 sm:h-6 sm:w-6" />
-            </div>
-            <div className="min-w-0">
-              <div className="text-xl sm:text-3xl font-extrabold text-slate-900">{dynamicStats.verified}</div>
-              <div className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider font-sans leading-tight">Verified Conferences</div>
-            </div>
-          </div>
-
-          <div className="bg-white border border-slate-150 hover:border-emerald-300 rounded-2xl p-3.5 sm:p-6 shadow-sm hover:shadow-md transition-all duration-300 flex items-center gap-2.5 sm:gap-4">
-            <div className="p-2.5 sm:p-3.5 bg-emerald-50 text-emerald-600 rounded-xl shrink-0">
-              <Clock className="h-5 w-5 sm:h-6 sm:w-6" />
-            </div>
-            <div className="min-w-0">
-              <div className="text-xl sm:text-3xl font-extrabold text-slate-900">{dynamicStats.live}</div>
-              <div className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider font-sans leading-tight">Live Conferences</div>
-            </div>
-          </div>
-
-          <div className="bg-white border border-slate-150 hover:border-indigo-300 rounded-2xl p-3.5 sm:p-6 shadow-sm hover:shadow-md transition-all duration-300 flex items-center gap-2.5 sm:gap-4">
-            <div className="p-2.5 sm:p-3.5 bg-indigo-50 text-indigo-600 rounded-xl shrink-0">
-              <Globe className="h-5 w-5 sm:h-6 sm:w-6" />
-            </div>
-            <div className="min-w-0">
-              <div className="text-xl sm:text-3xl font-extrabold text-slate-900">{dynamicStats.countries}</div>
-              <div className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider font-sans leading-tight">Countries Available</div>
-            </div>
-          </div>
-
-          <div className="bg-white border border-slate-150 hover:border-purple-300 rounded-2xl p-3.5 sm:p-6 shadow-sm hover:shadow-md transition-all duration-300 flex items-center gap-2.5 sm:gap-4">
-            <div className="p-2.5 sm:p-3.5 bg-purple-50 text-purple-600 rounded-xl shrink-0">
-              <Users className="h-5 w-5 sm:h-6 sm:w-6" />
-            </div>
-            <div className="min-w-0">
-              <div className="text-xl sm:text-3xl font-extrabold text-slate-900">{dynamicStats.organizers}</div>
-              <div className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider font-sans leading-tight">Trusted Organizers</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Admin Controlled Home Main Description */}
-      {homeMainDescription && (
-        <section className="w-full space-y-4">
-          <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-slate-900 font-display">
-            Upcoming International Conferences 2026
-          </h2>
-
-          <div className="bg-white border border-slate-200 rounded-2xl px-5 py-5 sm:px-7 sm:py-6 shadow-sm">
-            <p className="text-sm sm:text-base text-slate-600 leading-7 text-justify">
-              {homeMainDescription}
-            </p>
-          </div>
-        </section>
-      )}
-
-{/* Featured Conferences */}
-{featuredConferences.length > 0 && (
-  <section className="space-y-4 sm:space-y-5 md:space-y-6 min-w-0">
-
-    {/* Heading */}
-    <div>
-      <div className="flex items-center gap-2 mb-1">
-        <Star className="h-6 w-6 text-amber-500 fill-amber-500" />
-
-        <h3 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight font-display">
-          Featured Conferences
-        </h3>
-      </div>
-
-      <p className="text-slate-500 text-xs sm:text-sm">
-        Discover International Conferences, Connect with Experts, and Expand Your Knowledge and Innovation
-      </p>
-    </div>
-
-    {/* Featured Conference Grid */}
-    <div className="grid grid-cols-1 min-[520px]:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-5 lg:gap-6">
-
-      {featuredConferences.map(
-        (conf, confIdx) => {
-          const org = organizers.find(
-            (o) =>
-              o.id === conf.organizerId
-          );
-
-          const orgName =
-            org?.organizationName ||
-            conf.organizerName ||
-            "Verified Organizer";
-
-          const confSlug =
-            getConferenceSlug(
-              conf,
-              conferences
-            );
-
-          const confUrl =
-            `/conference/${confSlug}`;
-
-          return (
-            <motion.div
-              key={
-                conf.id
-                  ? `featured-${conf.id}-${confIdx}`
-                  : `featured-conf-${confIdx}`
-              }
-              initial={{
-                opacity: 0,
-                y: 15
-              }}
-              animate={{
-                opacity: 1,
-                y: 0
-              }}
-              whileHover={{
-                y: -4
-              }}
-              onClick={() => {
-                window.open(
-                  confUrl,
-                  "_blank"
-                );
-              }}
-              className="group bg-white border border-slate-200 rounded-xl sm:rounded-2xl overflow-hidden flex flex-col h-full min-w-0 relative transition-all duration-300 hover:border-blue-500 shadow-sm hover:shadow-lg cursor-pointer"
-            >
-
-              {/* Featured Badge */}
-              <div className="absolute top-3 right-3 z-10">
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-500 text-white rounded-full text-[9px] sm:text-[10px] font-bold shadow-md">
-                  <Star className="h-3 w-3 fill-white" />
-                  Featured
-                </span>
+          {/* Statistics Section */}
+          <section className="relative z-10 mt-0 sm:-mt-4 md:-mt-6 lg:-mt-10">
+            <div className="grid grid-cols-1 min-[400px]:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-5">
+              <div className="bg-white border border-slate-150 hover:border-blue-300 rounded-2xl p-3.5 sm:p-6 shadow-sm hover:shadow-md transition-all duration-300 flex items-center gap-2.5 sm:gap-4">
+                <div className="p-2.5 sm:p-3.5 bg-blue-50 text-blue-600 rounded-xl shrink-0">
+                  <Award className="h-5 w-5 sm:h-6 sm:w-6" />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xl sm:text-3xl font-extrabold text-slate-900">{dynamicStats.verified}</div>
+                  <div className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider font-sans leading-tight">Verified Conferences</div>
+                </div>
               </div>
 
-              {/* Conference Image */}
-              <div className="w-full aspect-[16/9] bg-slate-100 overflow-hidden">
-                <img
-                  src={getCleanImageSrc(
-                    conf.bannerImage,
-                    "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=800&q=80"
-                  )}
-                  alt={conf.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  loading="lazy"
-                  referrerPolicy="no-referrer"
-                />
+              <div className="bg-white border border-slate-150 hover:border-emerald-300 rounded-2xl p-3.5 sm:p-6 shadow-sm hover:shadow-md transition-all duration-300 flex items-center gap-2.5 sm:gap-4">
+                <div className="p-2.5 sm:p-3.5 bg-emerald-50 text-emerald-600 rounded-xl shrink-0">
+                  <Clock className="h-5 w-5 sm:h-6 sm:w-6" />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xl sm:text-3xl font-extrabold text-slate-900">{dynamicStats.live}</div>
+                  <div className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider font-sans leading-tight">Live Conferences</div>
+                </div>
               </div>
 
-              {/* Card Content */}
-              <div className="p-3.5 sm:p-4 flex-1 flex flex-col justify-between gap-3">
+              <div className="bg-white border border-slate-150 hover:border-indigo-300 rounded-2xl p-3.5 sm:p-6 shadow-sm hover:shadow-md transition-all duration-300 flex items-center gap-2.5 sm:gap-4">
+                <div className="p-2.5 sm:p-3.5 bg-indigo-50 text-indigo-600 rounded-xl shrink-0">
+                  <Globe className="h-5 w-5 sm:h-6 sm:w-6" />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xl sm:text-3xl font-extrabold text-slate-900">{dynamicStats.countries}</div>
+                  <div className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider font-sans leading-tight">Countries Available</div>
+                </div>
+              </div>
 
-                <div className="space-y-2.5">
+              <div className="bg-white border border-slate-150 hover:border-purple-300 rounded-2xl p-3.5 sm:p-6 shadow-sm hover:shadow-md transition-all duration-300 flex items-center gap-2.5 sm:gap-4">
+                <div className="p-2.5 sm:p-3.5 bg-purple-50 text-purple-600 rounded-xl shrink-0">
+                  <Users className="h-5 w-5 sm:h-6 sm:w-6" />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xl sm:text-3xl font-extrabold text-slate-900">{dynamicStats.organizers}</div>
+                  <div className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider font-sans leading-tight">Trusted Organizers</div>
+                </div>
+              </div>
+            </div>
+          </section>
 
-                  {/* Category */}
-                  <span className="inline-block text-[9px] sm:text-[10px] font-extrabold bg-indigo-50 text-indigo-700 border border-indigo-200 px-2.5 py-0.5 rounded-lg tracking-wider uppercase">
-                    {conf.category}
-                  </span>
+          {/* Admin Controlled Home Main Description */}
+          {homeMainDescription && (
+            <section className="w-full space-y-4">
+              <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-slate-900 font-display">
+                Upcoming International Conferences 2026
+              </h2>
 
-                  {/* Conference Title */}
-                  <h3 className="font-extrabold text-slate-900 group-hover:text-blue-600 transition-colors text-xs sm:text-sm leading-snug break-words font-display line-clamp-3">
-                    {conf.title}
+              <div className="bg-white border border-slate-200 rounded-2xl px-5 py-5 sm:px-7 sm:py-6 shadow-sm">
+                <p className="text-sm sm:text-base text-slate-600 leading-7 text-justify">
+                  {homeMainDescription}
+                </p>
+              </div>
+            </section>
+          )}
+
+          {/* Featured Conferences */}
+          {featuredConferences.length > 0 && (
+            <section className="space-y-4 sm:space-y-5 md:space-y-6 min-w-0">
+
+              {/* Heading */}
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <Star className="h-6 w-6 text-amber-500 fill-amber-500" />
+
+                  <h3 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight font-display">
+                    Featured Conferences
                   </h3>
-
-                  {/* Organizer */}
-                  <div className="flex items-start gap-1.5 text-slate-500 text-[10px] sm:text-[11px] font-medium">
-                    <Users className="h-3.5 w-3.5 text-blue-500 shrink-0 mt-0.5" />
-
-                    <span className="line-clamp-1">
-                      Hosted by{" "}
-                      <strong className="text-slate-800 font-semibold">
-                        {orgName}
-                      </strong>
-                    </span>
-                  </div>
-
                 </div>
 
-                {/* Date + Location */}
-                <div className="space-y-2 pt-3 border-t border-slate-100">
+                <p className="text-slate-500 text-xs sm:text-sm">
+                  Discover International Conferences, Connect with Experts, and Expand Your Knowledge and Innovation
+                </p>
+              </div>
 
-                  <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] text-blue-900 font-bold">
-                    <Calendar className="h-3.5 w-3.5 text-blue-600 shrink-0" />
+              {/* Featured Conference Grid */}
+              <div className="grid grid-cols-1 min-[520px]:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-5 lg:gap-6">
 
-                    <span className="truncate">
-                      {formatConferenceDate(
-                        conf.startDate
-                      )}
-                    </span>
-                  </div>
+                {featuredConferences.map(
+                  (conf, confIdx) => {
+                    const org = organizers.find(
+                      (o) =>
+                        o.id === conf.organizerId
+                    );
 
-                  <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] text-emerald-900 font-bold">
-                    <MapPin className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                    const orgName =
+                      org?.organizationName ||
+                      conf.organizerName ||
+                      "Verified Organizer";
 
-                    <span className="truncate">
-                      {conf.city},{" "}
-                      {conf.country}
-                    </span>
-                  </div>
+                    const confSlug =
+                      getConferenceSlug(
+                        conf,
+                        conferences
+                      );
 
-                  {/* View More */}
-                  <a
-                    href={confUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={(e) =>
-                      e.stopPropagation()
-                    }
-                    className="w-full mt-1 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-xl text-[11px] sm:text-xs transition-all shadow-xs hover:shadow-md flex items-center justify-center gap-1.5 cursor-pointer"
-                  >
-                    View More
+                    const confUrl =
+                      `/conference/${confSlug}`;
 
-                    <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                  </a>
+                    return (
+                      <motion.div
+                        key={
+                          conf.id
+                            ? `featured-${conf.id}-${confIdx}`
+                            : `featured-conf-${confIdx}`
+                        }
+                        initial={{
+                          opacity: 0,
+                          y: 15
+                        }}
+                        animate={{
+                          opacity: 1,
+                          y: 0
+                        }}
+                        whileHover={{
+                          y: -4
+                        }}
+                        onClick={() => {
+                          window.open(
+                            confUrl,
+                            "_blank"
+                          );
+                        }}
+                        className="group bg-white border border-slate-200 rounded-xl sm:rounded-2xl overflow-hidden flex flex-col h-full min-w-0 relative transition-all duration-300 hover:border-blue-500 shadow-sm hover:shadow-lg cursor-pointer"
+                      >
 
-                </div>
+                        {/* Featured Badge */}
+                        <div className="absolute top-3 right-3 z-10">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-500 text-white rounded-full text-[9px] sm:text-[10px] font-bold shadow-md">
+                            <Star className="h-3 w-3 fill-white" />
+                            Featured
+                          </span>
+                        </div>
+
+                        {/* Conference Image */}
+                        <div className="w-full aspect-[16/9] bg-slate-100 overflow-hidden">
+                          <img
+                            src={getCleanImageSrc(
+                              conf.bannerImage,
+                              "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=800&q=80"
+                            )}
+                            alt={conf.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                            loading="lazy"
+                            referrerPolicy="no-referrer"
+                          />
+                        </div>
+
+                        {/* Card Content */}
+                        <div className="p-3.5 sm:p-4 flex-1 flex flex-col justify-between gap-3">
+
+                          <div className="space-y-2.5">
+
+                            {/* Category */}
+                            <span className="inline-block text-[9px] sm:text-[10px] font-extrabold bg-indigo-50 text-indigo-700 border border-indigo-200 px-2.5 py-0.5 rounded-lg tracking-wider uppercase">
+                              {conf.category}
+                            </span>
+
+                            {/* Conference Title */}
+                            <h3 className="font-extrabold text-slate-900 group-hover:text-blue-600 transition-colors text-xs sm:text-sm leading-snug break-words font-display line-clamp-3">
+                              {conf.title}
+                            </h3>
+
+                            {/* Organizer */}
+                            <div className="flex items-start gap-1.5 text-slate-500 text-[10px] sm:text-[11px] font-medium">
+                              <Users className="h-3.5 w-3.5 text-blue-500 shrink-0 mt-0.5" />
+
+                              <span className="line-clamp-1">
+                                Hosted by{" "}
+                                <strong className="text-slate-800 font-semibold">
+                                  {orgName}
+                                </strong>
+                              </span>
+                            </div>
+
+                          </div>
+
+                          {/* Date + Location */}
+                          <div className="space-y-2 pt-3 border-t border-slate-100">
+
+                            <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] text-blue-900 font-bold">
+                              <Calendar className="h-3.5 w-3.5 text-blue-600 shrink-0" />
+
+                              <span className="truncate">
+                                {formatConferenceDate(
+                                  conf.startDate
+                                )}
+                              </span>
+                            </div>
+
+                            <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] text-emerald-900 font-bold">
+                              <MapPin className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+
+                              <span className="truncate">
+                                {conf.city},{" "}
+                                {conf.country}
+                              </span>
+                            </div>
+
+                            {/* View More */}
+                            <a
+                              href={confUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) =>
+                                e.stopPropagation()
+                              }
+                              className="w-full mt-1 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-xl text-[11px] sm:text-xs transition-all shadow-xs hover:shadow-md flex items-center justify-center gap-1.5 cursor-pointer"
+                            >
+                              View More
+
+                              <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                            </a>
+
+                          </div>
+
+                        </div>
+                      </motion.div>
+                    );
+                  }
+                )}
 
               </div>
-            </motion.div>
-          );
-        }
-      )}
+            </section>
+          )}
 
-    </div>
-  </section>
-)}
-
-      {/* International Conference Countries */}
-      <section className="space-y-4 sm:space-y-5 md:space-y-6 min-w-0">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h3 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight font-display flex items-start sm:items-center gap-2 leading-tight">
-              <Globe className="h-6 w-6 text-blue-600" /> International Conference Countries
-            </h3>
-            <p className="text-slate-500 text-sm mt-1">
-              Explore International Conferences Across Countries and Connect with your Global Community.
-            </p>
-          </div>
-          <div className="relative w-full sm:w-64 shrink-0">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <input
-              type="text"
-              value={countrySearchQuery}
-              onChange={(e) => setCountrySearchQuery(e.target.value)}
-              placeholder="Search Country..."
-              className="w-full pl-9 pr-8 py-2.5 text-xs border-2 border-slate-300 rounded-xl bg-white shadow-sm transition-all duration-300 hover:border-blue-400 hover:shadow-md focus:outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-500/15 focus:shadow-md"
-            />
-            {countrySearchQuery && (
-              <button
-                onClick={() => setCountrySearchQuery("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
-              >
-                ✕
-              </button>
-            )}
-          </div>
-        </div>
-
-        {filteredCountriesList.length === 0 ? (
-          <div className="p-8 text-center bg-slate-50 rounded-2xl text-slate-400 border border-dashed border-slate-200 text-xs font-medium">
-            No countries found matching "{countrySearchQuery}".
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 min-[420px]:grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2.5 sm:gap-3.5 max-h-[520px] overflow-y-auto pr-1">
-            {filteredCountriesList.map((country, cIdx) => (
-              <motion.a
-                key={`${country}-${cIdx}`}
-                whileHover={{ scale: 1.03, y: -2 }}
-                whileTap={{ scale: 0.98 }}
-                href={`/${getSeoCountrySlug(country)}`}
-                onClick={(event) => {
-                  event.preventDefault();
-                  handleCountryClick(country);
-                }}
-                className={`p-3 sm:p-3.5 min-h-[72px] rounded-xl sm:rounded-2xl border text-left flex items-center gap-2.5 transition-all cursor-pointer shadow-xs ${
-                  selectedCity === "All" && selectedCountry === country
-                    ? "bg-blue-600 border-blue-600 text-white"
-                    : "bg-white border-slate-150 text-slate-800 hover:border-blue-300"
-                }`}
-              >
-                <span className="text-2xl shrink-0">{getCountryEmoji(country)}</span>
-                <div className="truncate min-w-0">
-                  <p className="font-bold text-xs md:text-sm truncate">{country}</p>
-                  <p className={`text-[10px] ${selectedCity === "All" && selectedCountry === country ? "text-blue-100" : "text-slate-400"} font-medium`}>
-                    {approvedConferences.filter((c) => c.country === country).length} Events
-                  </p>
-                </div>
-              </motion.a>
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* International Conference Cities */}
-      <section className="space-y-4 sm:space-y-5 md:space-y-6 min-w-0">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h3 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight font-display flex items-start sm:items-center gap-2 leading-tight">
-              <Building2 className="h-6 w-6 text-emerald-600" /> International Conference Cities
-            </h3>
-            <p className="text-slate-500 text-xs sm:text-sm mt-1 leading-5 sm:leading-6">
-              Connect, Learn, and Collaborate in International Conference Cities that view all conferences held in that location.
-            </p>
-          </div>
-          <div className="relative w-full sm:w-64 md:w-72 shrink-0">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <input
-              type="text"
-              value={citySearchQuery}
-              onChange={(e) => setCitySearchQuery(e.target.value)}
-              placeholder="Search City..."
-              className="w-full pl-9 pr-8 py-2.5 text-xs border-2 border-slate-300 rounded-xl bg-white shadow-sm transition-all duration-300 hover:border-emerald-400 hover:shadow-md focus:outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-500/15 focus:shadow-md"/>
-            {citySearchQuery && (
-              <button
-                onClick={() => setCitySearchQuery("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
-              >
-                ✕
-              </button>
-            )}
-          </div>
-        </div>
-
-        {filteredCitiesList.length === 0 ? (
-          <div className="p-8 text-center bg-slate-50 rounded-2xl text-slate-400 border border-dashed border-slate-200 text-xs font-medium">
-            No cities found matching "{citySearchQuery}".
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 min-[420px]:grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2.5 sm:gap-3.5 max-h-[520px] overflow-y-auto pr-1">
-            {filteredCitiesList.map((item, cIdx) => {
-              const count = getCityConferenceCount(item.cityName, item.countryName);
-              const isSelected = selectedCity === item.cityName && (selectedCountry === "All" || selectedCountry === item.countryName);
-
-              return (
-                <motion.a
-                  key={`${item.cityName}-${item.countryName}-${cIdx}`}
-                  whileHover={{ scale: 1.03, y: -2 }}
-                  whileTap={{ scale: 0.98 }}
-                  href={`/${getSeoCountrySlug(item.countryName)}/${seoSlugify(item.cityName)}`}
-                  onClick={(event) => {
-                    event.preventDefault();
-                    handleCityClick(item.cityName, item.countryName);
-                  }}
-                  className={`p-3 sm:p-3.5 min-h-[86px] rounded-xl sm:rounded-2xl border text-left flex items-start gap-2.5 transition-all cursor-pointer shadow-xs ${
-                    isSelected
-                      ? "bg-emerald-600 border-emerald-600 text-white"
-                      : "bg-white border-slate-150 text-slate-800 hover:border-emerald-300"
-                  }`}
-                >
-                  <div className={`p-2 rounded-xl shrink-0 ${
-                    isSelected ? "bg-white/20 text-white" : "bg-emerald-50 text-emerald-600"
-                  }`}>
-                    <MapPin className="h-4 w-4" />
-                  </div>
-                  <div className="truncate min-w-0 flex-1">
-                    <p className="font-bold text-xs md:text-sm truncate leading-snug">{item.cityName}</p>
-                    <p className={`text-[11px] truncate font-medium ${
-                      isSelected ? "text-emerald-100" : "text-slate-500"
-                    }`}>
-                      {item.countryName}
-                    </p>
-                    <p className={`text-[10px] ${
-                      isSelected ? "text-emerald-100" : "text-slate-400"
-                    } font-medium mt-0.5`}>
-                      {count === 1 ? "1 Conference" : `${count} Conferences`}
-                    </p>
-                  </div>
-                </motion.a>
-              );
-            })}
-          </div>
-        )}
-      </section>
-
-      {/* International Conference Topics */}
-      <section className="space-y-4 sm:space-y-5 md:space-y-6 min-w-0">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h3 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight font-display flex items-start sm:items-center gap-2 leading-tight">
-              <BookOpen className="h-6 w-6 text-indigo-600" /> International Conference Topics
-            </h3>
-            <p className="text-slate-500 text-xs sm:text-sm mt-1 leading-5 sm:leading-6">
-              Find Verified Upcoming International Conferences that Match Your Research and Interests.
-            </p>
-          </div>
-          <div className="relative w-full sm:w-64 md:w-72 shrink-0">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <input
-              type="text"
-              value={topicSearchQuery}
-              onChange={(e) => setTopicSearchQuery(e.target.value)}
-              placeholder="Search Topic..."
-              className="w-full pl-9 pr-8 py-2.5 text-xs border-2 border-slate-300 rounded-xl bg-white shadow-sm transition-all duration-300 hover:border-indigo-400 hover:shadow-md focus:outline-none focus:border-indigo-600 focus:ring-4 focus:ring-indigo-500/15 focus:shadow-md"/>
-            {topicSearchQuery && (
-              <button
-                onClick={() => setTopicSearchQuery("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
-              >
-                ✕
-              </button>
-            )}
-          </div>
-        </div>
-
-        {filteredTopicsList.length === 0 ? (
-          <div className="p-8 text-center bg-slate-50 rounded-2xl text-slate-400 border border-dashed border-slate-200 text-xs font-medium">
-            No topics found.
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 min-[420px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2.5 sm:gap-3.5">
-            {filteredTopicsList.map((topic, tIdx) => {
-              const IconComponent = getTopicIcon(topic);
-              const mappedCat = topicsMapping[topic] || topic;
-              const isSelected = selectedCategory === topic || selectedCategory === mappedCat;
-              const matchingCount = approvedConferences.filter(
-                (c) => c.category === topic || c.category === mappedCat
-              ).length;
-
-              return (
-                <motion.a
-                  key={`${topic}-${tIdx}`}
-                  whileHover={{ scale: 1.02, y: -2 }}
-                  whileTap={{ scale: 0.98 }}
-                  href={`/${getSeoCategorySlug(mappedCat)}`}
-                  onClick={(event) => {
-                    event.preventDefault();
-                    handleTopicClick(topic);
-                  }}
-                  className={`p-3 sm:p-3.5 min-h-[82px] rounded-xl sm:rounded-2xl border text-left flex items-start gap-2 sm:gap-2.5 transition-all cursor-pointer shadow-xs ${
-                    isSelected
-                      ? "bg-indigo-600 border-indigo-600 text-white"
-                      : "bg-white border-slate-150 text-slate-800 hover:border-indigo-300"
-                  }`}
-                >
-                  <div className={`p-1.5 sm:p-2 rounded-xl shrink-0 ${isSelected ? "bg-white/20 text-white" : "bg-indigo-50 text-indigo-600"}`}>
-                    <IconComponent className="h-4 w-4 sm:h-4.5 sm:w-4.5" />
-                  </div>
-                  <div className="min-w-0 flex-1 space-y-0.5">
-                    <p className="font-bold text-xs sm:text-sm leading-snug break-words">{topic}</p>
-                    <p className={`text-[9px] sm:text-[10px] ${isSelected ? "text-indigo-100" : "text-slate-400"} font-medium`}>
-                      {matchingCount} {matchingCount === 1 ? "Conference" : "Conferences"}
-                    </p>
-                  </div>
-                </motion.a>
-              );
-            })}
-          </div>
-        )}
-      </section>
-
-      {/* Trusted Organizers */}
-      <section
-          id="organizers"
-          className="scroll-mt-24 bg-slate-50 border border-slate-100 rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 lg:p-12 shadow-sm space-y-5 sm:space-y-6 min-w-0"
-        >
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-          <div className="space-y-1">
-            <span className="text-xs font-bold uppercase tracking-wider text-blue-600 block">Verified Institutions</span>
-            <h3 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-slate-900 font-display flex items-center gap-2 leading-tight">
-              <Users className="h-6 w-6 text-blue-600" /> Trusted Organizers
-            </h3>
-            <p className="text-slate-500 text-sm max-w-xl">
-              Browse verified academic institutions, scientific societies, and professional boards hosting conferences Internationally. Click any card to view their complete profile with Upcoming Conferences.
-            </p>
-          </div>
-        </div>
-
-        {trustedOrganizersList.length === 0 ? (
-          <div className="p-8 text-center bg-white rounded-2xl text-slate-400 border border-dashed border-slate-200">
-            No organizers available at this moment.
-          </div>
-        ) : (
-          <div className="space-y-8">
-            <div className="grid grid-cols-1 min-[420px]:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
-              {trustedOrganizersList.slice(0, 8).map((org, oIdx) => {
-                const count = approvedConferences.filter((conf) => {
-                  const sameOrganizerId = conf.organizerId === org.id;
-
-                  const sameEmail =
-                    Boolean(conf.contactEmail) &&
-                    Boolean(org.email) &&
-                    conf.contactEmail!.trim().toLowerCase() ===
-                      org.email!.trim().toLowerCase();
-
-                  return sameOrganizerId || sameEmail;
-                }).length;
-                return (
-                  <motion.div
-                    key={org.id ? `${org.id}-${oIdx}` : `org-${oIdx}`}
-                    whileHover={{ y: -4, scale: 1.01 }}
-                    whileTap={{ scale: 0.99 }}
-                    onClick={() => onSelectOrganizer(org.id)}
-                    className="group bg-white border border-slate-200 hover:border-blue-300 rounded-xl sm:rounded-2xl p-4 sm:p-5 lg:p-6 text-center hover:shadow-md transition-all flex flex-col justify-between items-center gap-3 sm:gap-4 cursor-pointer relative h-full min-w-0"
+          {/* International Conference Countries */}
+          <section className="space-y-4 sm:space-y-5 md:space-y-6 min-w-0">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight font-display flex items-start sm:items-center gap-2 leading-tight">
+                  <Globe className="h-6 w-6 text-blue-600" /> International Conference Countries
+                </h3>
+                <p className="text-slate-500 text-sm mt-1">
+                  Explore International Conferences Across Countries and Connect with your Global Community.
+                </p>
+              </div>
+              <div className="relative w-full sm:w-64 shrink-0">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <input
+                  type="text"
+                  value={countrySearchQuery}
+                  onChange={(e) => setCountrySearchQuery(e.target.value)}
+                  placeholder="Search Country..."
+                  className="w-full pl-9 pr-8 py-2.5 text-xs border-2 border-slate-300 rounded-xl bg-white shadow-sm transition-all duration-300 hover:border-blue-400 hover:shadow-md focus:outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-500/15 focus:shadow-md"
+                />
+                {countrySearchQuery && (
+                  <button
+                    onClick={() => setCountrySearchQuery("")}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
                   >
-                    <div className="relative w-14 h-14 sm:w-20 sm:h-20 rounded-2xl overflow-hidden border border-slate-150 shadow-xs shrink-0 bg-slate-50 flex items-center justify-center">
-                      {(() => {
-                        const logoUrl = getCleanImageSrc(org.logo, "https://images.unsplash.com/photo-1560179707-f14e90ef3623?auto=format&fit=crop&w=300&q=80");
-                        return (
-                          <img
-                            src={logoUrl}
-                            alt={org.organizationName}
-                            className="h-full w-full object-contain"
-                            referrerPolicy="no-referrer"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1560179707-f14e90ef3623?auto=format&fit=crop&w=300&q=80";
-                            }}
-                          />
-                        );
-                      })()}
-                      {getIsOrganizerTrusted(org) && (
-                        <div className="absolute bottom-1 right-1 bg-blue-600 text-white p-0.5 sm:p-1 rounded-full border-2 border-white shadow-md" title="Trusted & Verified Organizer">
-                          <ShieldCheck className="h-2.5 w-2.5 sm:h-3.5 sm:w-3.5" />
-                        </div>
-                      )}
-                    </div>
+                    ✕
+                  </button>
+                )}
+              </div>
+            </div>
 
-                    <div className="space-y-1 text-center w-full">
-                      <div className="flex items-center justify-center gap-1 sm:gap-1.5">
-                        <h3 className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors text-xs sm:text-sm leading-snug break-words">
-                          {org.organizationName}
-                        </h3>
-                        {getIsOrganizerTrusted(org) && (
-                          <span className="text-blue-600 shrink-0" title="Trusted Badge">
-                            <ShieldCheck className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                          </span>
-                        )}
-                      </div>
-                      {org.city || org.country ? (
-                        <p className="text-[10px] sm:text-xs text-slate-400 flex items-center justify-center gap-0.5 sm:gap-1 font-medium">
-                          <MapPin className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-slate-300 shrink-0" />
-                          <span>{[org.city, org.country].filter(Boolean).join(", ")}</span>
-                        </p>
-                      ) : null}
-                      <p className="text-[9px] sm:text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 sm:px-3 sm:py-1 rounded-full w-fit mx-auto mt-1 sm:mt-2 border border-blue-100">
-                        {count} {count === 1 ? "Conference" : "Conferences"}
+            {filteredCountriesList.length === 0 ? (
+              <div className="p-8 text-center bg-slate-50 rounded-2xl text-slate-400 border border-dashed border-slate-200 text-xs font-medium">
+                No countries found matching "{countrySearchQuery}".
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 min-[420px]:grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2.5 sm:gap-3.5 max-h-[520px] overflow-y-auto pr-1">
+                {filteredCountriesList.map((country, cIdx) => (
+                  <motion.a
+                    key={`${country}-${cIdx}`}
+                    whileHover={{ scale: 1.03, y: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                    href={`/${getSeoCountrySlug(country)}`}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      handleCountryClick(country);
+                    }}
+                    className={`p-3 sm:p-3.5 min-h-[72px] rounded-xl sm:rounded-2xl border text-left flex items-center gap-2.5 transition-all cursor-pointer shadow-xs ${selectedCity === "All" && selectedCountry === country
+                        ? "bg-blue-600 border-blue-600 text-white"
+                        : "bg-white border-slate-150 text-slate-800 hover:border-blue-300"
+                      }`}
+                  >
+                    <span className="text-2xl shrink-0">{getCountryEmoji(country)}</span>
+                    <div className="truncate min-w-0">
+                      <p className="font-bold text-xs md:text-sm truncate">{country}</p>
+                      <p className={`text-[10px] ${selectedCity === "All" && selectedCountry === country ? "text-blue-100" : "text-slate-400"} font-medium`}>
+                        {approvedConferences.filter((c) => c.country === country).length} Events
                       </p>
                     </div>
+                  </motion.a>
+                ))}
+              </div>
+            )}
+          </section>
 
-                    <p className="text-[11px] sm:text-xs text-slate-500 leading-relaxed font-medium break-words">
-                      {(() => {
-                        const text = org.aboutOrganization || "Verified academic system hosting premium indexes and journal partnerships.";
-                        return text.length > 200 ? `${text.slice(0, 200)}...` : text;
-                      })()}
-                    </p>
+          {/* International Conference Cities */}
+          <section className="space-y-4 sm:space-y-5 md:space-y-6 min-w-0">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight font-display flex items-start sm:items-center gap-2 leading-tight">
+                  <Building2 className="h-6 w-6 text-emerald-600" /> International Conference Cities
+                </h3>
+                <p className="text-slate-500 text-xs sm:text-sm mt-1 leading-5 sm:leading-6">
+                  Connect, Learn, and Collaborate in International Conference Cities that view all conferences held in that location.
+                </p>
+              </div>
+              <div className="relative w-full sm:w-64 md:w-72 shrink-0">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <input
+                  type="text"
+                  value={citySearchQuery}
+                  onChange={(e) => setCitySearchQuery(e.target.value)}
+                  placeholder="Search City..."
+                  className="w-full pl-9 pr-8 py-2.5 text-xs border-2 border-slate-300 rounded-xl bg-white shadow-sm transition-all duration-300 hover:border-emerald-400 hover:shadow-md focus:outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-500/15 focus:shadow-md" />
+                {citySearchQuery && (
+                  <button
+                    onClick={() => setCitySearchQuery("")}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+            </div>
 
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onSelectOrganizer(org.id);
+            {filteredCitiesList.length === 0 ? (
+              <div className="p-8 text-center bg-slate-50 rounded-2xl text-slate-400 border border-dashed border-slate-200 text-xs font-medium">
+                No cities found matching "{citySearchQuery}".
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 min-[420px]:grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2.5 sm:gap-3.5 max-h-[520px] overflow-y-auto pr-1">
+                {filteredCitiesList.map((item, cIdx) => {
+                  const count = getCityConferenceCount(item.cityName, item.countryName);
+                  const isSelected = selectedCity === item.cityName && (selectedCountry === "All" || selectedCountry === item.countryName);
+
+                  return (
+                    <motion.a
+                      key={`${item.cityName}-${item.countryName}-${cIdx}`}
+                      whileHover={{ scale: 1.03, y: -2 }}
+                      whileTap={{ scale: 0.98 }}
+                      href={`/${getSeoCountrySlug(item.countryName)}/${seoSlugify(item.cityName)}`}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        handleCityClick(item.cityName, item.countryName);
                       }}
-                      className="w-full py-1.5 sm:py-2.5 bg-slate-50 group-hover:bg-blue-600 group-hover:text-white text-slate-700 font-bold rounded-xl text-[11px] sm:text-xs transition-all border border-slate-200 group-hover:border-blue-600 cursor-pointer flex items-center justify-center gap-1 sm:gap-1.5 mt-1 sm:mt-2"
+                      className={`p-3 sm:p-3.5 min-h-[86px] rounded-xl sm:rounded-2xl border text-left flex items-start gap-2.5 transition-all cursor-pointer shadow-xs ${isSelected
+                          ? "bg-emerald-600 border-emerald-600 text-white"
+                          : "bg-white border-slate-150 text-slate-800 hover:border-emerald-300"
+                        }`}
                     >
-                      <span>View Profile</span>
-                      <ChevronRight className="h-3.5 w-3.5" />
-                    </button>
-                  </motion.div>
-                );
-              })}
+                      <div className={`p-2 rounded-xl shrink-0 ${isSelected ? "bg-white/20 text-white" : "bg-emerald-50 text-emerald-600"
+                        }`}>
+                        <MapPin className="h-4 w-4" />
+                      </div>
+                      <div className="truncate min-w-0 flex-1">
+                        <p className="font-bold text-xs md:text-sm truncate leading-snug">{item.cityName}</p>
+                        <p className={`text-[11px] truncate font-medium ${isSelected ? "text-emerald-100" : "text-slate-500"
+                          }`}>
+                          {item.countryName}
+                        </p>
+                        <p className={`text-[10px] ${isSelected ? "text-emerald-100" : "text-slate-400"
+                          } font-medium mt-0.5`}>
+                          {count === 1 ? "1 Conference" : `${count} Conferences`}
+                        </p>
+                      </div>
+                    </motion.a>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+
+          {/* International Conference Topics */}
+          <section className="space-y-4 sm:space-y-5 md:space-y-6 min-w-0">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight font-display flex items-start sm:items-center gap-2 leading-tight">
+                  <BookOpen className="h-6 w-6 text-indigo-600" /> International Conference Topics
+                </h3>
+                <p className="text-slate-500 text-xs sm:text-sm mt-1 leading-5 sm:leading-6">
+                  Find Verified Upcoming International Conferences that Match Your Research and Interests.
+                </p>
+              </div>
+              <div className="relative w-full sm:w-64 md:w-72 shrink-0">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <input
+                  type="text"
+                  value={topicSearchQuery}
+                  onChange={(e) => setTopicSearchQuery(e.target.value)}
+                  placeholder="Search Topic..."
+                  className="w-full pl-9 pr-8 py-2.5 text-xs border-2 border-slate-300 rounded-xl bg-white shadow-sm transition-all duration-300 hover:border-indigo-400 hover:shadow-md focus:outline-none focus:border-indigo-600 focus:ring-4 focus:ring-indigo-500/15 focus:shadow-md" />
+                {topicSearchQuery && (
+                  <button
+                    onClick={() => setTopicSearchQuery("")}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
             </div>
 
-            <div className="flex justify-center pt-2">
-              <button
-                onClick={() => {
-                  if (onTabChange) {
-                    onTabChange("ORGANIZERS");
-                  }
-                  window.scrollTo({ top: 0, behavior: "smooth" });
-                }}
-                className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-xl transition-all shadow-md shadow-blue-600/15 flex items-center gap-2 cursor-pointer"
-              >
-                <span>View More Organizers</span>
-                <ArrowRight className="h-4 w-4" />
-              </button>
+            {filteredTopicsList.length === 0 ? (
+              <div className="p-8 text-center bg-slate-50 rounded-2xl text-slate-400 border border-dashed border-slate-200 text-xs font-medium">
+                No topics found.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 min-[420px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2.5 sm:gap-3.5">
+                {filteredTopicsList.map((topic, tIdx) => {
+                  const IconComponent = getTopicIcon(topic);
+                  const mappedCat = topicsMapping[topic] || topic;
+                  const isSelected = selectedCategory === topic || selectedCategory === mappedCat;
+                  const matchingCount = approvedConferences.filter(
+                    (c) => c.category === topic || c.category === mappedCat
+                  ).length;
+
+                  return (
+                    <motion.a
+                      key={`${topic}-${tIdx}`}
+                      whileHover={{ scale: 1.02, y: -2 }}
+                      whileTap={{ scale: 0.98 }}
+                      href={`/${getSeoCategorySlug(mappedCat)}`}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        handleTopicClick(topic);
+                      }}
+                      className={`p-3 sm:p-3.5 min-h-[82px] rounded-xl sm:rounded-2xl border text-left flex items-start gap-2 sm:gap-2.5 transition-all cursor-pointer shadow-xs ${isSelected
+                          ? "bg-indigo-600 border-indigo-600 text-white"
+                          : "bg-white border-slate-150 text-slate-800 hover:border-indigo-300"
+                        }`}
+                    >
+                      <div className={`p-1.5 sm:p-2 rounded-xl shrink-0 ${isSelected ? "bg-white/20 text-white" : "bg-indigo-50 text-indigo-600"}`}>
+                        <IconComponent className="h-4 w-4 sm:h-4.5 sm:w-4.5" />
+                      </div>
+                      <div className="min-w-0 flex-1 space-y-0.5">
+                        <p className="font-bold text-xs sm:text-sm leading-snug break-words">{topic}</p>
+                        <p className={`text-[9px] sm:text-[10px] ${isSelected ? "text-indigo-100" : "text-slate-400"} font-medium`}>
+                          {matchingCount} {matchingCount === 1 ? "Conference" : "Conferences"}
+                        </p>
+                      </div>
+                    </motion.a>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+
+          {/* Trusted Organizers */}
+          <section
+            id="organizers"
+            className="scroll-mt-24 bg-slate-50 border border-slate-100 rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 lg:p-12 shadow-sm space-y-5 sm:space-y-6 min-w-0"
+          >
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+              <div className="space-y-1">
+                <span className="text-xs font-bold uppercase tracking-wider text-blue-600 block">Verified Institutions</span>
+                <h3 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-slate-900 font-display flex items-center gap-2 leading-tight">
+                  <Users className="h-6 w-6 text-blue-600" /> Trusted Organizers
+                </h3>
+                <p className="text-slate-500 text-sm max-w-xl">
+                  Browse verified academic institutions, scientific societies, and professional boards hosting conferences Internationally. Click any card to view their complete profile with Upcoming Conferences.
+                </p>
+              </div>
             </div>
-          </div>
-        )}
-      </section>
+
+            {trustedOrganizersList.length === 0 ? (
+              <div className="p-8 text-center bg-white rounded-2xl text-slate-400 border border-dashed border-slate-200">
+                No organizers available at this moment.
+              </div>
+            ) : (
+              <div className="space-y-8">
+                <div className="grid grid-cols-1 min-[420px]:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
+                  {trustedOrganizersList.slice(0, 8).map((org, oIdx) => {
+                    const count = approvedConferences.filter((conf) => {
+                      const sameOrganizerId = conf.organizerId === org.id;
+
+                      const sameEmail =
+                        Boolean(conf.contactEmail) &&
+                        Boolean(org.email) &&
+                        conf.contactEmail!.trim().toLowerCase() ===
+                        org.email!.trim().toLowerCase();
+
+                      return sameOrganizerId || sameEmail;
+                    }).length;
+                    return (
+                      <motion.div
+                        key={org.id ? `${org.id}-${oIdx}` : `org-${oIdx}`}
+                        whileHover={{ y: -4, scale: 1.01 }}
+                        whileTap={{ scale: 0.99 }}
+                        onClick={() => onSelectOrganizer(org.id)}
+                        className="group bg-white border border-slate-200 hover:border-blue-300 rounded-xl sm:rounded-2xl p-4 sm:p-5 lg:p-6 text-center hover:shadow-md transition-all flex flex-col justify-between items-center gap-3 sm:gap-4 cursor-pointer relative h-full min-w-0"
+                      >
+                        <div className="relative w-14 h-14 sm:w-20 sm:h-20 rounded-2xl overflow-hidden border border-slate-150 shadow-xs shrink-0 bg-slate-50 flex items-center justify-center">
+                          {(() => {
+                            const logoUrl = getCleanImageSrc(org.logo, "https://images.unsplash.com/photo-1560179707-f14e90ef3623?auto=format&fit=crop&w=300&q=80");
+                            return (
+                              <img
+                                src={logoUrl}
+                                alt={org.organizationName}
+                                className="h-full w-full object-contain"
+                                referrerPolicy="no-referrer"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1560179707-f14e90ef3623?auto=format&fit=crop&w=300&q=80";
+                                }}
+                              />
+                            );
+                          })()}
+                          {getIsOrganizerTrusted(org) && (
+                            <div className="absolute bottom-1 right-1 bg-blue-600 text-white p-0.5 sm:p-1 rounded-full border-2 border-white shadow-md" title="Trusted & Verified Organizer">
+                              <ShieldCheck className="h-2.5 w-2.5 sm:h-3.5 sm:w-3.5" />
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="space-y-1 text-center w-full">
+                          <div className="flex items-center justify-center gap-1 sm:gap-1.5">
+                            <h3 className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors text-xs sm:text-sm leading-snug break-words">
+                              {org.organizationName}
+                            </h3>
+                            {getIsOrganizerTrusted(org) && (
+                              <span className="text-blue-600 shrink-0" title="Trusted Badge">
+                                <ShieldCheck className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                              </span>
+                            )}
+                          </div>
+                          {org.city || org.country ? (
+                            <p className="text-[10px] sm:text-xs text-slate-400 flex items-center justify-center gap-0.5 sm:gap-1 font-medium">
+                              <MapPin className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-slate-300 shrink-0" />
+                              <span>{[org.city, org.country].filter(Boolean).join(", ")}</span>
+                            </p>
+                          ) : null}
+                          <p className="text-[9px] sm:text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 sm:px-3 sm:py-1 rounded-full w-fit mx-auto mt-1 sm:mt-2 border border-blue-100">
+                            {count} {count === 1 ? "Conference" : "Conferences"}
+                          </p>
+                        </div>
+
+                        <p className="text-[11px] sm:text-xs text-slate-500 leading-relaxed font-medium break-words">
+                          {(() => {
+                            const text = org.aboutOrganization || "Verified academic system hosting premium indexes and journal partnerships.";
+                            return text.length > 200 ? `${text.slice(0, 200)}...` : text;
+                          })()}
+                        </p>
+
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onSelectOrganizer(org.id);
+                          }}
+                          className="w-full py-1.5 sm:py-2.5 bg-slate-50 group-hover:bg-blue-600 group-hover:text-white text-slate-700 font-bold rounded-xl text-[11px] sm:text-xs transition-all border border-slate-200 group-hover:border-blue-600 cursor-pointer flex items-center justify-center gap-1 sm:gap-1.5 mt-1 sm:mt-2"
+                        >
+                          <span>View Profile</span>
+                          <ChevronRight className="h-3.5 w-3.5" />
+                        </button>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+
+                <div className="flex justify-center pt-2">
+                  <button
+                    onClick={() => {
+                      if (onTabChange) {
+                        onTabChange("ORGANIZERS");
+                      }
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                    className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-xl transition-all shadow-md shadow-blue-600/15 flex items-center gap-2 cursor-pointer"
+                  >
+                    <span>View More Organizers</span>
+                    <ArrowRight className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </section>
         </>
       )}
 
@@ -2806,320 +2798,318 @@ const handleNewsletterSubmit = async (e: React.FormEvent) => {
       {tab === "EVENTS" && (
         /* All Conferences Section */
         <section id="all-conferences" className="scroll-mt-24 space-y-5 sm:space-y-6 md:space-y-8 min-w-0">
-        <div className="space-y-4 border-b border-slate-200 pb-6">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <span className="text-xs font-bold uppercase tracking-wider text-blue-600">Conference Directory</span>
-              <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight font-display mt-1 leading-tight break-words">
-                {pageHeadingTitle}
-              </h1>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              {/* Active Filter Badges */}
-              {selectedCategory !== "All" && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg text-xs font-semibold">
-                  Topic: {selectedCategory}
-                  <button onClick={() => setSelectedCategory("All")} className="hover:text-blue-900 font-bold ml-1 cursor-pointer">✕</button>
-                </span>
-              )}
-              {selectedCountry !== "All" && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-lg text-xs font-semibold">
-                  Country: {selectedCountry}
-                  <button onClick={() => setSelectedCountry("All")} className="hover:text-indigo-900 font-bold ml-1 cursor-pointer">✕</button>
-                </span>
-              )}
-              {selectedCity !== "All" && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-violet-50 text-violet-700 border border-violet-200 rounded-lg text-xs font-semibold">
-                  City: {selectedCity}
-                  <button onClick={() => setSelectedCity("All")} className="hover:text-violet-900 font-bold ml-1 cursor-pointer">✕</button>
-                </span>
-              )}
-              {selectedLiveStatus !== "All" && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg text-xs font-semibold">
-                  Status: {selectedLiveStatus}
-                  <button onClick={() => setSelectedLiveStatus("All")} className="hover:text-amber-900 font-bold ml-1 cursor-pointer">✕</button>
-                </span>
-              )}
-              {searchTerm && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 text-slate-700 border border-slate-200 rounded-lg text-xs font-semibold">
-                  Search: "{searchTerm}"
-                  <button onClick={() => setSearchTerm("")} className="hover:text-slate-900 font-bold ml-1 cursor-pointer">✕</button>
-                </span>
-              )}
-
-              {/* Clear All Filters Button */}
-              {(selectedCategory !== "All" || selectedCountry !== "All" || selectedCity !== "All" || selectedLiveStatus !== "All" || searchTerm !== "" || sortBy !== "Upcoming") && (
-                <button
-                  onClick={() => {
-                    setSelectedCategory("All");
-                    setSelectedCountry("All");
-                    setSelectedCity("All");
-                    setSelectedLiveStatus("All");
-                    setSearchTerm("");
-                    setSortBy("Upcoming");
-                  }}
-                  className="text-xs text-red-600 hover:text-red-800 font-bold bg-red-50 px-3 py-1 rounded-lg border border-red-100 transition-colors cursor-pointer"
-                >
-                  Clear All Filters ✕
-                </button>
-              )}
-            </div>
-          </div>
-
-          <p className="text-slate-600 text-xs md:text-sm leading-relaxed max-w-5xl">
-            {filterDescription}
-          </p>
-        </div>
-
-        <div className="flex flex-col gap-8 w-full">
-          {/* Top horizontal filter bar - Fixed sticky positioning right below top navbar */}
-          <div className="sticky top-[64px] sm:top-[68px] z-30 bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-xl sm:rounded-2xl p-3 sm:p-4 shadow-md space-y-3 transition-all duration-300 w-full min-w-0">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3">
-              <div className="flex items-center gap-2">
-                {/* Fixed Filter Button */}
-                <button
-                  onClick={() => setIsFilterOpen(!isFilterOpen)}
-                  className="px-3.5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-all flex items-center gap-2 shadow-sm cursor-pointer shrink-0"
-                >
-                  <Filter className="h-4 w-4 text-white" />
-                  <span>Filters</span>
-                  <SlidersHorizontal className="h-3.5 w-3.5 opacity-80" />
-                </button>
-
-                <h3 className="font-bold text-slate-800 text-xs sm:text-sm hidden sm:flex items-center gap-1.5">
-                  Refine Search
-                </h3>
+          <div className="space-y-4 border-b border-slate-200 pb-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <span className="text-xs font-bold uppercase tracking-wider text-blue-600">Conference Directory</span>
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight font-display mt-1 leading-tight break-words">
+                  {pageHeadingTitle}
+                </h1>
               </div>
 
-              {/* Quick Search Input inside sticky bar */}
-              <div className="relative w-full sm:flex-1 sm:max-w-sm md:max-w-md min-w-0">
-                <input
-                  type="text"
-                  placeholder="Search titles, or use /INDIA..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full text-xs bg-white border-2 border-slate-300 rounded-xl pl-8 pr-7 py-2.5 text-slate-700 shadow-sm transition-all duration-300 hover:border-blue-400 hover:shadow-md focus:border-blue-600 focus:ring-4 focus:ring-blue-500/15 focus:shadow-md focus:outline-none"
-                />
-                <Search className="h-3.5 w-3.5 text-slate-400 absolute left-2.5 top-2.5" />
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Active Filter Badges */}
+                {selectedCategory !== "All" && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg text-xs font-semibold">
+                    Topic: {selectedCategory}
+                    <button onClick={() => setSelectedCategory("All")} className="hover:text-blue-900 font-bold ml-1 cursor-pointer">✕</button>
+                  </span>
+                )}
+                {selectedCountry !== "All" && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-lg text-xs font-semibold">
+                    Country: {selectedCountry}
+                    <button onClick={() => setSelectedCountry("All")} className="hover:text-indigo-900 font-bold ml-1 cursor-pointer">✕</button>
+                  </span>
+                )}
+                {selectedCity !== "All" && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-violet-50 text-violet-700 border border-violet-200 rounded-lg text-xs font-semibold">
+                    City: {selectedCity}
+                    <button onClick={() => setSelectedCity("All")} className="hover:text-violet-900 font-bold ml-1 cursor-pointer">✕</button>
+                  </span>
+                )}
+                {selectedLiveStatus !== "All" && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg text-xs font-semibold">
+                    Status: {selectedLiveStatus}
+                    <button onClick={() => setSelectedLiveStatus("All")} className="hover:text-amber-900 font-bold ml-1 cursor-pointer">✕</button>
+                  </span>
+                )}
                 {searchTerm && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 text-slate-700 border border-slate-200 rounded-lg text-xs font-semibold">
+                    Search: "{searchTerm}"
+                    <button onClick={() => setSearchTerm("")} className="hover:text-slate-900 font-bold ml-1 cursor-pointer">✕</button>
+                  </span>
+                )}
+
+                {/* Clear All Filters Button */}
+                {(selectedCategory !== "All" || selectedCountry !== "All" || selectedCity !== "All" || selectedLiveStatus !== "All" || searchTerm !== "" || sortBy !== "Upcoming") && (
                   <button
-                    onClick={() => setSearchTerm("")}
-                    className="absolute right-2.5 top-1.5 text-slate-400 hover:text-slate-600 font-bold text-xs cursor-pointer"
+                    onClick={() => {
+                      setSelectedCategory("All");
+                      setSelectedCountry("All");
+                      setSelectedCity("All");
+                      setSelectedLiveStatus("All");
+                      setSearchTerm("");
+                      setSortBy("Upcoming");
+                    }}
+                    className="text-xs text-red-600 hover:text-red-800 font-bold bg-red-50 px-3 py-1 rounded-lg border border-red-100 transition-colors cursor-pointer"
                   >
-                    ✕
+                    Clear All Filters ✕
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <p className="text-slate-600 text-xs md:text-sm leading-relaxed max-w-5xl">
+              {filterDescription}
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-8 w-full">
+            {/* Top horizontal filter bar - Fixed sticky positioning right below top navbar */}
+            <div className="sticky top-[64px] sm:top-[68px] z-30 bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-xl sm:rounded-2xl p-3 sm:p-4 shadow-md space-y-3 transition-all duration-300 w-full min-w-0">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3">
+                <div className="flex items-center gap-2">
+                  {/* Fixed Filter Button */}
+                  <button
+                    onClick={() => setIsFilterOpen(!isFilterOpen)}
+                    className="px-3.5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-all flex items-center gap-2 shadow-sm cursor-pointer shrink-0"
+                  >
+                    <Filter className="h-4 w-4 text-white" />
+                    <span>Filters</span>
+                    <SlidersHorizontal className="h-3.5 w-3.5 opacity-80" />
+                  </button>
+
+                  <h3 className="font-bold text-slate-800 text-xs sm:text-sm hidden sm:flex items-center gap-1.5">
+                    Refine Search
+                  </h3>
+                </div>
+
+                {/* Quick Search Input inside sticky bar */}
+                <div className="relative w-full sm:flex-1 sm:max-w-sm md:max-w-md min-w-0">
+                  <input
+                    type="text"
+                    placeholder="Search titles, or use /INDIA..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full text-xs bg-white border-2 border-slate-300 rounded-xl pl-8 pr-7 py-2.5 text-slate-700 shadow-sm transition-all duration-300 hover:border-blue-400 hover:shadow-md focus:border-blue-600 focus:ring-4 focus:ring-blue-500/15 focus:shadow-md focus:outline-none"
+                  />
+                  <Search className="h-3.5 w-3.5 text-slate-400 absolute left-2.5 top-2.5" />
+                  {searchTerm && (
+                    <button
+                      onClick={() => setSearchTerm("")}
+                      className="absolute right-2.5 top-1.5 text-slate-400 hover:text-slate-600 font-bold text-xs cursor-pointer"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+
+                {/* Active Filter Badges / Quick Clear */}
+                {(selectedCategory !== "All" || selectedCountry !== "All" || selectedCity !== "All" || selectedLiveStatus !== "All") && (
+                  <button
+                    onClick={() => {
+                      setSelectedCategory("All");
+                      setSelectedCountry("All");
+                      setSelectedCity("All");
+                      setSelectedLiveStatus("All");
+                      setSearchTerm("");
+                      setSortBy("Upcoming");
+                    }}
+                    className="text-[11px] text-red-600 hover:text-red-800 font-bold bg-red-50 hover:bg-red-100 px-2.5 py-1.5 rounded-xl border border-red-100 transition-colors shrink-0 cursor-pointer hidden md:block"
+                  >
+                    Reset
                   </button>
                 )}
               </div>
 
-              {/* Active Filter Badges / Quick Clear */}
-              {(selectedCategory !== "All" || selectedCountry !== "All" || selectedCity !== "All" || selectedLiveStatus !== "All") && (
-                <button
-                  onClick={() => {
-                    setSelectedCategory("All");
-                    setSelectedCountry("All");
-                    setSelectedCity("All");
-                    setSelectedLiveStatus("All");
-                    setSearchTerm("");
-                    setSortBy("Upcoming");
-                  }}
-                  className="text-[11px] text-red-600 hover:text-red-800 font-bold bg-red-50 hover:bg-red-100 px-2.5 py-1.5 rounded-xl border border-red-100 transition-colors shrink-0 cursor-pointer hidden md:block"
-                >
-                  Reset
-                </button>
+              {/* Filter Dropdowns Grid - Collapsible / Expandable on Filter Button Click */}
+              {isFilterOpen && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2.5 pt-2 border-t border-slate-100 items-end">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Topic</label>
+                    <select
+                      value={selectedCategory}
+                      onChange={(e) => setSelectedCategory(e.target.value)}
+                      className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 text-slate-700 focus:ring-2 focus:ring-blue-500 focus:outline-none cursor-pointer"
+                    >
+                      <option value="All">All Topics</option>
+                      {activeCategories.map((cat, idx) => {
+                        const topicName = topicsMapping[cat.name] || cat.name;
+
+                        return (
+                          <option key={`${cat.id || topicName}-${idx}`} value={topicName}>
+                            {topicName}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Country</label>
+                    <select
+                      value={selectedCountry}
+                      onChange={(e) => {
+                        const cnt = e.target.value;
+                        setSelectedCountry(cnt);
+                        if (cnt !== "All" && selectedCity !== "All") {
+                          const adminValidCities = adminCities.filter((c) => c.country.trim().toLowerCase() === cnt.trim().toLowerCase()).map((c) => c.name);
+                          const dbCities = approvedConferences.filter((c) => (c.country || "").trim().toLowerCase() === cnt.trim().toLowerCase()).map((c) => c.city);
+                          const allValid = new Set([...adminValidCities, ...dbCities].map((s) => (s || "").trim().toLowerCase()));
+                          if (!allValid.has(selectedCity.trim().toLowerCase())) {
+                            setSelectedCity("All");
+                          }
+                        }
+                      }}
+                      className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 text-slate-700 focus:ring-2 focus:ring-blue-500 focus:outline-none cursor-pointer"
+                    >
+                      {countriesDropdown.map((c, idx) => (
+                        <option key={`${c}-${idx}`} value={c}>
+                          {c === "All" ? "All Countries" : c}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">City</label>
+                    <select
+                      value={selectedCountry === "All" ? "All Cities (Select Country First)" : selectedCity}
+                      disabled={selectedCountry === "All" || !selectedCountry}
+                      onChange={(e) => {
+                        const ct = e.target.value;
+                        setSelectedCity(ct);
+                      }}
+                      className={`w-full text-xs border rounded-xl px-2.5 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-colors ${selectedCountry === "All" || !selectedCountry
+                          ? "bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed"
+                          : "bg-slate-50 border-slate-200 text-slate-700 cursor-pointer"
+                        }`}
+                    >
+                      {citiesDropdown.map((c, idx) => (
+                        <option key={`${c}-${idx}`} value={c}>
+                          {c === "All" ? "All Cities" : c}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Event Status</label>
+                    <select
+                      value={selectedLiveStatus}
+                      onChange={(e) => setSelectedLiveStatus(e.target.value)}
+                      className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 text-slate-700 focus:ring-2 focus:ring-blue-500 focus:outline-none font-medium cursor-pointer"
+                    >
+                      <option value="All">All Active Statuses</option>
+                      <option value={LiveStatus.Upcoming}>Upcoming</option>
+                      <option value={LiveStatus.Ongoing}>Ongoing</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Sort By</label>
+                    <select
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value as "Upcoming" | "Newest" | "Latest")}
+                      className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 text-slate-700 focus:ring-2 focus:ring-blue-500 focus:outline-none font-medium cursor-pointer"
+                    >
+                      <option value="Upcoming">Date Order (Today Onwards)</option>
+                      <option value="Newest">Newest Added</option>
+                      <option value="Latest">Latest Event Date</option>
+                    </select>
+                  </div>
+                </div>
               )}
             </div>
 
-            {/* Filter Dropdowns Grid - Collapsible / Expandable on Filter Button Click */}
-            {isFilterOpen && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2.5 pt-2 border-t border-slate-100 items-end">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Topic</label>
-                  <select
-                    value={selectedCategory}
-                    onChange={(e) => setSelectedCategory(e.target.value)}
-                    className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 text-slate-700 focus:ring-2 focus:ring-blue-500 focus:outline-none cursor-pointer"
-                  >
-                    <option value="All">All Topics</option>
-                    {activeCategories.map((cat, idx) => {
-                      const topicName = topicsMapping[cat.name] || cat.name;
+            {/* Main Content Area: Directory Grid Container */}
+            <div className="w-full">
+              {/* Conference Directory Container */}
+              <div className="w-full min-w-0 bg-white border border-slate-200/90 rounded-xl sm:rounded-2xl p-3.5 sm:p-4 md:p-5 shadow-xs flex flex-col justify-between gap-5 sm:gap-6">
+                <div className="space-y-6 flex-1">
+                  {/* Subheading displaying count after filter */}
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+                    <h2 className="text-base md:text-lg font-bold text-slate-900 font-display flex items-center gap-2">
+                      <CheckCircle2 className="h-4.5 w-4.5 text-blue-600 shrink-0" />
+                      <span>{conferenceResultsHeading}</span>
+                    </h2>
+                  </div>
 
-                      return (
-                        <option key={`${cat.id || topicName}-${idx}`} value={topicName}>
-                          {topicName}
-                        </option>
-                      );
-                    })}
-                  </select>
-                </div>
+                  {isSlashSearch && slashCountryLabel && (
+                    <div className="p-8 bg-gradient-to-br from-blue-900 via-indigo-950 to-slate-900 text-white rounded-3xl shadow-xl relative overflow-hidden border border-blue-800/50">
+                      {/* Decorative background elements */}
+                      <div className="absolute top-0 right-0 -mt-12 -mr-12 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
+                      <div className="absolute bottom-0 left-0 -mb-12 -ml-12 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Country</label>
-                  <select
-                    value={selectedCountry}
-                    onChange={(e) => {
-                      const cnt = e.target.value;
-                      setSelectedCountry(cnt);
-                      if (cnt !== "All" && selectedCity !== "All") {
-                        const adminValidCities = adminCities.filter((c) => c.country.trim().toLowerCase() === cnt.trim().toLowerCase()).map((c) => c.name);
-                        const dbCities = approvedConferences.filter((c) => (c.country || "").trim().toLowerCase() === cnt.trim().toLowerCase()).map((c) => c.city);
-                        const allValid = new Set([...adminValidCities, ...dbCities].map((s) => (s || "").trim().toLowerCase()));
-                        if (!allValid.has(selectedCity.trim().toLowerCase())) {
-                          setSelectedCity("All");
-                        }
-                      }
-                    }}
-                    className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 text-slate-700 focus:ring-2 focus:ring-blue-500 focus:outline-none cursor-pointer"
-                  >
-                    {countriesDropdown.map((c, idx) => (
-                      <option key={`${c}-${idx}`} value={c}>
-                        {c === "All" ? "All Countries" : c}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                      <div className="relative z-10 space-y-4">
+                        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-blue-300">
+                          <Globe className="h-4 w-4 animate-spin-slow" /> Regional Spotlight Directory
+                        </div>
+                        <h3 className="text-2xl md:text-3xl font-extrabold tracking-tight font-display text-white">
+                          Top International Conferences in {slashCountryLabel}
+                        </h3>
+                        <p className="text-blue-100/80 text-sm max-w-3xl leading-relaxed">
+                          Explore verified, peer-reviewed, and high-impact academic conferences, research symposiums, and professional summits taking place in {slashCountryLabel}. All listed events undergo rigorous vetting by International Conference to ensure credential legitimacy, past record authenticity, and index authority.
+                        </p>
 
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">City</label>
-                  <select
-                    value={selectedCountry === "All" ? "All Cities (Select Country First)" : selectedCity}
-                    disabled={selectedCountry === "All" || !selectedCountry}
-                    onChange={(e) => {
-                      const ct = e.target.value;
-                      setSelectedCity(ct);
-                    }}
-                    className={`w-full text-xs border rounded-xl px-2.5 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-colors ${
-                      selectedCountry === "All" || !selectedCountry
-                        ? "bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed"
-                        : "bg-slate-50 border-slate-200 text-slate-700 cursor-pointer"
-                    }`}
-                  >
-                    {citiesDropdown.map((c, idx) => (
-                      <option key={`${c}-${idx}`} value={c}>
-                        {c === "All" ? "All Cities" : c}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Event Status</label>
-                  <select
-                    value={selectedLiveStatus}
-                    onChange={(e) => setSelectedLiveStatus(e.target.value)}
-                    className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 text-slate-700 focus:ring-2 focus:ring-blue-500 focus:outline-none font-medium cursor-pointer"
-                  >
-                    <option value="All">All Active Statuses</option>
-                    <option value={LiveStatus.Upcoming}>Upcoming</option>
-                    <option value={LiveStatus.Ongoing}>Ongoing</option>
-                  </select>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Sort By</label>
-                  <select
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value as "Upcoming" | "Newest" | "Latest")}
-                    className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 text-slate-700 focus:ring-2 focus:ring-blue-500 focus:outline-none font-medium cursor-pointer"
-                  >
-                    <option value="Upcoming">Date Order (Today Onwards)</option>
-                    <option value="Newest">Newest Added</option>
-                    <option value="Latest">Latest Event Date</option>
-                  </select>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Main Content Area: Directory Grid Container */}
-          <div className="w-full">
-            {/* Conference Directory Container */}
-            <div className="w-full min-w-0 bg-white border border-slate-200/90 rounded-xl sm:rounded-2xl p-3.5 sm:p-4 md:p-5 shadow-xs flex flex-col justify-between gap-5 sm:gap-6">
-              <div className="space-y-6 flex-1">
-                {/* Subheading displaying count after filter */}
-                <div className="flex items-center justify-between pb-3 border-b border-slate-200">
-                  <h2 className="text-base md:text-lg font-bold text-slate-900 font-display flex items-center gap-2">
-                    <CheckCircle2 className="h-4.5 w-4.5 text-blue-600 shrink-0" />
-                    <span>{conferenceResultsHeading}</span>
-                  </h2>
-                </div>
-
-                {isSlashSearch && slashCountryLabel && (
-                  <div className="p-8 bg-gradient-to-br from-blue-900 via-indigo-950 to-slate-900 text-white rounded-3xl shadow-xl relative overflow-hidden border border-blue-800/50">
-                    {/* Decorative background elements */}
-                    <div className="absolute top-0 right-0 -mt-12 -mr-12 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
-                    <div className="absolute bottom-0 left-0 -mb-12 -ml-12 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
-                    
-                    <div className="relative z-10 space-y-4">
-                      <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-blue-300">
-                        <Globe className="h-4 w-4 animate-spin-slow" /> Regional Spotlight Directory
-                      </div>
-                      <h3 className="text-2xl md:text-3xl font-extrabold tracking-tight font-display text-white">
-                        Top International Conferences in {slashCountryLabel}
-                      </h3>
-                      <p className="text-blue-100/80 text-sm max-w-3xl leading-relaxed">
-                        Explore verified, peer-reviewed, and high-impact academic conferences, research symposiums, and professional summits taking place in {slashCountryLabel}. All listed events undergo rigorous vetting by International Conference to ensure credential legitimacy, past record authenticity, and index authority.
-                      </p>
-                      
-                      <div className="flex flex-wrap items-center gap-4 pt-2 text-xs text-blue-200/90 font-medium">
-                        <span className="bg-white/10 px-3 py-1.5 rounded-full border border-white/10 flex items-center gap-1.5">
-                          <ShieldCheck className="h-4 w-4 text-emerald-400" /> Active International Conference Auditing
-                        </span>
-                        <span className="bg-white/10 px-3 py-1.5 rounded-full border border-white/10">
-                          Showing {conferenceResultCount} {conferenceResultCount === 1 ? "event" : "events"} in {slashCountryLabel}
-                        </span>
+                        <div className="flex flex-wrap items-center gap-4 pt-2 text-xs text-blue-200/90 font-medium">
+                          <span className="bg-white/10 px-3 py-1.5 rounded-full border border-white/10 flex items-center gap-1.5">
+                            <ShieldCheck className="h-4 w-4 text-emerald-400" /> Active International Conference Auditing
+                          </span>
+                          <span className="bg-white/10 px-3 py-1.5 rounded-full border border-white/10">
+                            Showing {conferenceResultCount} {conferenceResultCount === 1 ? "event" : "events"} in {slashCountryLabel}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {conferenceResultCount === 0 ? (
-                  <div className="text-center py-20 bg-slate-50 rounded-2xl border border-dashed border-slate-200 space-y-3">
-                    <FileText className="h-12 w-12 text-slate-300 mx-auto" />
-                    <p className="text-slate-800 font-bold text-lg">
-                      {selectedCountry !== "All"
-                        ? `No conferences available for ${selectedCountry}.`
-                        : selectedCategory !== "All"
-                        ? `No conferences available for topic "${selectedCategory}".`
-                        : "No conferences found matching your filters."}
-                    </p>
-                    <p className="text-slate-400 text-sm">Try resetting filters to explore other options.</p>
-                    <button
-                      onClick={() => {
-                        setSelectedCategory("All");
-                        setSelectedCountry("All");
-                        setSelectedCity("All");
-                        setSelectedLiveStatus("All");
-                        setSearchTerm("");
-                      }}
-                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all text-xs cursor-pointer"
-                    >
-                      View All Conferences
-                    </button>
-                  </div>
-                ) : (
-                  <div className="space-y-6">
-                    {/* Grid View: 2 columns on mobile, 2 on sm, 3 on md, 4 on lg */}
-                    <div className="grid grid-cols-1 min-[520px]:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-5 lg:gap-6">
-                      {paginatedConferences.map((conf, confIdx) => {
-                        const org = organizers.find((o) => o.id === conf.organizerId);
-                        const orgName = org ? org.organizationName : "Verified Organizer";
-                        const confSlug = getConferenceSlug(conf, conferences);
-                        const confUrl = `/conference/${confSlug}`;
-                        const isCompleted = conf.liveStatus === LiveStatus.Completed;
-                        return (
-                          <motion.div
-                            key={conf.id ? `${conf.id}-${confIdx}` : `conf-${confIdx}`}
-                            initial={{ opacity: 0, y: 15 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            whileHover={isCompleted ? {} : { y: -4 }}
-                            onClick={isCompleted ? (e) => e.preventDefault() : () => {
-                              window.open(confUrl, "_blank");
-                            }}
-                            className={`group bg-white border border-slate-200 rounded-xl sm:rounded-2xl overflow-hidden flex flex-col h-full min-w-0 relative transition-all duration-300 ${
-                              isCompleted ? "opacity-75 bg-slate-50 cursor-not-allowed" : "hover:border-blue-500 shadow-xs hover:shadow-lg cursor-pointer"
-                            }`}
-                          >
+                  {conferenceResultCount === 0 ? (
+                    <div className="text-center py-20 bg-slate-50 rounded-2xl border border-dashed border-slate-200 space-y-3">
+                      <FileText className="h-12 w-12 text-slate-300 mx-auto" />
+                      <p className="text-slate-800 font-bold text-lg">
+                        {selectedCountry !== "All"
+                          ? `No conferences available for ${selectedCountry}.`
+                          : selectedCategory !== "All"
+                            ? `No conferences available for topic "${selectedCategory}".`
+                            : "No conferences found matching your filters."}
+                      </p>
+                      <p className="text-slate-400 text-sm">Try resetting filters to explore other options.</p>
+                      <button
+                        onClick={() => {
+                          setSelectedCategory("All");
+                          setSelectedCountry("All");
+                          setSelectedCity("All");
+                          setSelectedLiveStatus("All");
+                          setSearchTerm("");
+                        }}
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all text-xs cursor-pointer"
+                      >
+                        View All Conferences
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      {/* Grid View: 2 columns on mobile, 2 on sm, 3 on md, 4 on lg */}
+                      <div className="grid grid-cols-1 min-[520px]:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-5 lg:gap-6">
+                        {paginatedConferences.map((conf, confIdx) => {
+                          const org = organizers.find((o) => o.id === conf.organizerId);
+                          const orgName = org ? org.organizationName : "Verified Organizer";
+                          const confSlug = getConferenceSlug(conf, conferences);
+                          const confUrl = `/conference/${confSlug}`;
+                          const isCompleted = conf.liveStatus === LiveStatus.Completed;
+                          return (
+                            <motion.div
+                              key={conf.id ? `${conf.id}-${confIdx}` : `conf-${confIdx}`}
+                              initial={{ opacity: 0, y: 15 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              whileHover={isCompleted ? {} : { y: -4 }}
+                              onClick={isCompleted ? (e) => e.preventDefault() : () => {
+                                window.open(confUrl, "_blank");
+                              }}
+                              className={`group bg-white border border-slate-200 rounded-xl sm:rounded-2xl overflow-hidden flex flex-col h-full min-w-0 relative transition-all duration-300 ${isCompleted ? "opacity-75 bg-slate-50 cursor-not-allowed" : "hover:border-blue-500 shadow-xs hover:shadow-lg cursor-pointer"
+                                }`}
+                            >
                               {/* Card Content */}
                               <div className="p-3.5 sm:p-4 md:p-4.5 flex-1 flex flex-col justify-between gap-3 min-w-0">
                                 <div className="space-y-2.5 sm:space-y-3">
@@ -3130,13 +3120,12 @@ const handleNewsletterSubmit = async (e: React.FormEvent) => {
                                         {conf.category}
                                       </span>
 
-                                      <span className={`text-[9px] sm:text-[10px] font-extrabold px-2 py-0.5 rounded-full shadow-2xs shrink-0 ${
-                                        conf.liveStatus === LiveStatus.Ongoing
+                                      <span className={`text-[9px] sm:text-[10px] font-extrabold px-2 py-0.5 rounded-full shadow-2xs shrink-0 ${conf.liveStatus === LiveStatus.Ongoing
                                           ? "bg-emerald-500 text-white"
                                           : conf.liveStatus === LiveStatus.Upcoming
-                                          ? "bg-blue-600 text-white"
-                                          : "bg-slate-600 text-white"
-                                      }`}>
+                                            ? "bg-blue-600 text-white"
+                                            : "bg-slate-600 text-white"
+                                        }`}>
                                         {conf.liveStatus}
                                       </span>
 
@@ -3164,7 +3153,7 @@ const handleNewsletterSubmit = async (e: React.FormEvent) => {
                                         ? `${conf.description.slice(0, 180)}...`
                                         : conf.description}
                                     </p>
-                                    
+
                                     <div className="flex items-center gap-1.5 text-slate-500 text-[10px] sm:text-[11px] font-medium pt-1">
                                       <Users className="h-3.5 w-3.5 text-blue-500 shrink-0" />
                                       <span className="break-words">Hosted by <strong className="text-slate-800 font-semibold">{orgName}</strong></span>
@@ -3209,20 +3198,20 @@ const handleNewsletterSubmit = async (e: React.FormEvent) => {
                                   )}
                                 </div>
                               </div>
-                          </motion.div>
-                        );
-                      })}
+                            </motion.div>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
+                  )}
+                </div>
 
-              {/* Status summary & Pagination Controls - matching Media Partners & Our Associates layout */}
-              {conferenceResultCount > 0 && (
-                <div className="space-y-4 pt-4 border-t border-slate-200/80 mt-auto">
-                  {/* Status summary */}
-                  <div className="flex items-center justify-between text-xs text-slate-500 font-medium">
-                    <span>
+                {/* Status summary & Pagination Controls - matching Media Partners & Our Associates layout */}
+                {conferenceResultCount > 0 && (
+                  <div className="space-y-4 pt-4 border-t border-slate-200/80 mt-auto">
+                    {/* Status summary */}
+                    <div className="flex items-center justify-between text-xs text-slate-500 font-medium">
+                      <span>
                         Showing{" "}
                         {conferenceResultCount === 0
                           ? 0
@@ -3234,280 +3223,278 @@ const handleNewsletterSubmit = async (e: React.FormEvent) => {
                         )}{" "}
                         of {conferenceResultCount} Conferences
                       </span>
-                    <span className="font-semibold text-slate-700">Page {currentPage} of {totalPages}</span>
-                  </div>
-
-                  {/* Pagination Controls */}
-                  {totalPages > 1 && (
-                    <div className="flex items-center justify-center gap-2 pt-2">
-                      <button
-                        onClick={() => {
-                          setCurrentPage((prev) => Math.max(prev - 1, 1));
-                          const target = document.getElementById("all-conferences");
-                          if (target) target.scrollIntoView({ behavior: "smooth" });
-                        }}
-                        disabled={currentPage === 1}
-                        className="px-3.5 py-2 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-white cursor-pointer disabled:cursor-not-allowed transition-all flex items-center gap-1 shadow-2xs"
-                      >
-                        <ChevronLeft className="h-4 w-4" /> Previous
-                      </button>
-
-                      <div className="flex items-center gap-1.5 overflow-x-auto max-w-full py-1">
-                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
-                          <button
-                            key={pageNum}
-                            onClick={() => {
-                              setCurrentPage(pageNum);
-                              const target = document.getElementById("all-conferences");
-                              if (target) target.scrollIntoView({ behavior: "smooth" });
-                            }}
-                            className={`h-9 min-w-9 px-2.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
-                              currentPage === pageNum
-                                ? "bg-blue-600 text-white shadow-xs"
-                                : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
-                            }`}
-                          >
-                            {pageNum}
-                          </button>
-                        ))}
-                      </div>
-
-                      <button
-                        onClick={() => {
-                          setCurrentPage((prev) => Math.min(prev + 1, totalPages));
-                          const target = document.getElementById("all-conferences");
-                          if (target) target.scrollIntoView({ behavior: "smooth" });
-                        }}
-                        disabled={currentPage === totalPages}
-                        className="px-3.5 py-2 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-white cursor-pointer disabled:cursor-not-allowed transition-all flex items-center gap-1 shadow-2xs"
-                      >
-                        Next <ChevronRight className="h-4 w-4" />
-                      </button>
+                      <span className="font-semibold text-slate-700">Page {currentPage} of {totalPages}</span>
                     </div>
-                  )}
-                </div>
-              )}
-            </div>
 
+                    {/* Pagination Controls */}
+                    {totalPages > 1 && (
+                      <div className="flex items-center justify-center gap-2 pt-2">
+                        <button
+                          onClick={() => {
+                            setCurrentPage((prev) => Math.max(prev - 1, 1));
+                            const target = document.getElementById("all-conferences");
+                            if (target) target.scrollIntoView({ behavior: "smooth" });
+                          }}
+                          disabled={currentPage === 1}
+                          className="px-3.5 py-2 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-white cursor-pointer disabled:cursor-not-allowed transition-all flex items-center gap-1 shadow-2xs"
+                        >
+                          <ChevronLeft className="h-4 w-4" /> Previous
+                        </button>
+
+                        <div className="flex items-center gap-1.5 overflow-x-auto max-w-full py-1">
+                          {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                            <button
+                              key={pageNum}
+                              onClick={() => {
+                                setCurrentPage(pageNum);
+                                const target = document.getElementById("all-conferences");
+                                if (target) target.scrollIntoView({ behavior: "smooth" });
+                              }}
+                              className={`h-9 min-w-9 px-2.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${currentPage === pageNum
+                                  ? "bg-blue-600 text-white shadow-xs"
+                                  : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
+                                }`}
+                            >
+                              {pageNum}
+                            </button>
+                          ))}
+                        </div>
+
+                        <button
+                          onClick={() => {
+                            setCurrentPage((prev) => Math.min(prev + 1, totalPages));
+                            const target = document.getElementById("all-conferences");
+                            if (target) target.scrollIntoView({ behavior: "smooth" });
+                          }}
+                          disabled={currentPage === totalPages}
+                          className="px-3.5 py-2 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-white cursor-pointer disabled:cursor-not-allowed transition-all flex items-center gap-1 shadow-2xs"
+                        >
+                          Next <ChevronRight className="h-4 w-4" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
       )}
 
       {/* HOME PAGE (CONTINUED) */}
       {tab === "HOME" && (
         <>
           {/* Customer Feedback Testimonials - Single-Card Shuffled Auto-sliding Carousel */}
-      <section
-        className="relative overflow-hidden rounded-[32px] border border-slate-200 bg-gradient-to-br from-slate-50 via-white to-blue-50/60 p-6 sm:p-8 md:p-10 space-y-8 shadow-sm"
-        onMouseEnter={() => setIsHomeFeedbackHovered(true)}
-        onMouseLeave={() => setIsHomeFeedbackHovered(false)}
-      >
-        <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-0 translate-y-1/2 -translate-x-1/2 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+          <section
+            className="relative overflow-hidden rounded-[32px] border border-slate-200 bg-gradient-to-br from-slate-50 via-white to-blue-50/60 p-6 sm:p-8 md:p-10 space-y-8 shadow-sm"
+            onMouseEnter={() => setIsHomeFeedbackHovered(true)}
+            onMouseLeave={() => setIsHomeFeedbackHovered(false)}
+          >
+            <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute bottom-0 left-0 translate-y-1/2 -translate-x-1/2 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="flex flex-col md:flex-row items-center justify-between gap-5 relative z-10 text-center md:text-left">
-        <div className="space-y-2">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/15 border border-blue-400/30 text-blue-300 text-xs font-bold uppercase tracking-wider">
-              <Sparkles className="h-3.5 w-3.5" />
-              <span>Community Reviews</span>
-            </div>
-            <h3 className="text-2xl sm:text-3xl md:text-4xl font-extrabold font-display text-slate-900 tracking-tight">
-              What Our Community Says
-            </h3>
-            <p className="text-slate-500 text-xs sm:text-sm max-w-xl leading-relaxed">
-              Real feedback shared by researchers, academics, organizers, and conference attendees from around the world.
-            </p>
-          </div>
+            <div className="flex flex-col md:flex-row items-center justify-between gap-5 relative z-10 text-center md:text-left">
+              <div className="space-y-2">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/15 border border-blue-400/30 text-blue-300 text-xs font-bold uppercase tracking-wider">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  <span>Community Reviews</span>
+                </div>
+                <h3 className="text-2xl sm:text-3xl md:text-4xl font-extrabold font-display text-slate-900 tracking-tight">
+                  What Our Community Says
+                </h3>
+                <p className="text-slate-500 text-xs sm:text-sm max-w-xl leading-relaxed">
+                  Real feedback shared by researchers, academics, organizers, and conference attendees from around the world.
+                </p>
+              </div>
 
-          {/* Controls: Active Slide Counter & Step Controls */}
-          {shuffledFeedbacksPool.length > 0 && (
-            <div className="flex items-center gap-2.5 shrink-0">
-              <span className="text-xs font-bold text-slate-600 bg-white border border-slate-200 px-3 py-1.5 rounded-xl shadow-sm">
-                {shuffledFeedbacksPool.length <= 1
-                  ? `${shuffledFeedbacksPool.length} Review`
-                  : `${(homeFeedbackScrollIndex % shuffledFeedbacksPool.length) + 1} / ${shuffledFeedbacksPool.length}`}
-              </span>
+              {/* Controls: Active Slide Counter & Step Controls */}
+              {shuffledFeedbacksPool.length > 0 && (
+                <div className="flex items-center gap-2.5 shrink-0">
+                  <span className="text-xs font-bold text-slate-600 bg-white border border-slate-200 px-3 py-1.5 rounded-xl shadow-sm">
+                    {shuffledFeedbacksPool.length <= 1
+                      ? `${shuffledFeedbacksPool.length} Review`
+                      : `${(homeFeedbackScrollIndex % shuffledFeedbacksPool.length) + 1} / ${shuffledFeedbacksPool.length}`}
+                  </span>
 
-              {shuffledFeedbacksPool.length > 1 && (
-                <>
-                  <button
-                    onClick={() => handleManualScrollFeedback("left")}
-                    aria-label="Previous testimonial"
-                    className="p-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 transition-all hover:shadow-md active:scale-95 cursor-pointer"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </button>
-
-                  <button
-                    onClick={() => handleManualScrollFeedback("right")}
-                    aria-label="Next testimonial"
-                    className="p-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 transition-all hover:shadow-md active:scale-95 cursor-pointer"
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </button>
-                </>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Single-Card Carousel Stage */}
-        <div 
-          className="relative z-10 max-w-2xl mx-auto"
-          onMouseEnter={() => setIsHomeFeedbackHovered(true)}
-          onMouseLeave={() => setIsHomeFeedbackHovered(false)}
-        >
-          {shuffledFeedbacksPool.length === 0 || !currentHomeFeedback ? (
-            <div className="text-center py-10 px-4 text-slate-400 bg-white/5 border border-white/10 rounded-2xl space-y-3">
-              <MessageSquare className="h-8 w-8 text-slate-500 mx-auto" />
-             <p className="text-sm font-semibold text-slate-300">
-              No feedback available yet.
-            </p>
-              <p className="text-xs text-slate-400 max-w-sm mx-auto">
-                Be the first to share your experience with conferences and our platform.
-              </p>
-              <button
-                onClick={() => setIsFeedbackModalOpen(true)}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl shadow transition-all cursor-pointer"
-              >
-                <MessageSquare className="h-3.5 w-3.5 text-amber-300" />
-                <span>Add First Feedback</span>
-              </button>
-            </div>
-          ) : (
-            <div className="relative">
-              <AnimatePresence mode="wait">
-                <motion.div
-                    key={`home-fb-slide-${currentHomeFeedback.id || currentHomeFeedback.name}-${homeFeedbackScrollIndex}`}
-                    initial={{ opacity: 0, x: 30 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -30 }}
-                    transition={{ duration: 0.35, ease: "easeOut" }}
-                    className="bg-white rounded-3xl overflow-hidden shadow-2xl border border-slate-200 text-left"
-                  >
-                    {/* Top accent */}
-                    <div className="h-1.5 bg-gradient-to-r from-blue-600 via-indigo-500 to-violet-500" />
-
-                    <div className="p-6 sm:p-8">
-                      {/* Top Row */}
-                      <div className="flex items-start justify-between gap-4 mb-5">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <img
-                            src={getCleanImageSrc(
-                              currentHomeFeedback.image,
-                              "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&h=120&q=80"
-                            )}
-                            alt={currentHomeFeedback.name}
-                            className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl object-cover border border-slate-200 shadow-sm shrink-0"
-                            referrerPolicy="no-referrer"
-                          />
-
-                          <div className="min-w-0">
-                            <h4 className="font-extrabold text-slate-900 text-sm sm:text-base truncate">
-                              {currentHomeFeedback.name}
-                            </h4>
-
-                            <div className="flex items-center gap-1.5 mt-1 text-xs text-slate-500">
-                              <MapPin className="h-3.5 w-3.5 text-blue-500 shrink-0" />
-                              <span className="truncate">
-                                {currentHomeFeedback.country || "Global"}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                          <Quote className="h-5 w-5" />
-                        </div>
-                      </div>
-
-                      {/* Stars */}
-                      <div className="flex items-center gap-2 mb-4">
-                        <div className="flex items-center gap-0.5">
-                          {[...Array(currentHomeFeedback.rating || 5)].map((_, i) => (
-                            <Star
-                              key={i}
-                              className="h-4 w-4 fill-amber-400 text-amber-400"
-                            />
-                          ))}
-                        </div>
-
-                        <span className="text-xs font-bold text-slate-600">
-                          {currentHomeFeedback.rating || 5}.0
-                        </span>
-                      </div>
-
-                      {/* Feedback */}
-                      <p className="text-slate-700 text-sm sm:text-base leading-7 font-medium">
-                        “{currentHomeFeedback.text}”
-                      </p>
-
-                      {/* Footer */}
-                      <div className="flex items-center justify-between gap-3 mt-6 pt-4 border-t border-slate-100">
-                        <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 px-2.5 py-1 rounded-full">
-                          <CheckCircle2 className="h-3.5 w-3.5" />
-                          Community Feedback
-                        </span>
-
-                        {currentHomeFeedback.date && (
-                          <span className="text-[10px] sm:text-xs text-slate-400 font-medium">
-                            {currentHomeFeedback.date}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </motion.div>
-              </AnimatePresence>
-
-              {/* Progress Dots Indicator (shows for <= 12 items, or compact progress for more) */}
-              {shuffledFeedbacksPool.length > 1 && (
-                <div className="flex items-center justify-center gap-1.5 mt-5">
-                  {shuffledFeedbacksPool.map((_, dotIdx) => {
-                    const isActive =
-                      (homeFeedbackScrollIndex % shuffledFeedbacksPool.length) === dotIdx;
-
-                    return (
+                  {shuffledFeedbacksPool.length > 1 && (
+                    <>
                       <button
-                        key={dotIdx}
-                        onClick={() => setHomeFeedbackScrollIndex(dotIdx)}
-                        aria-label={`Go to feedback ${dotIdx + 1}`}
-                        className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${
-                          isActive
-                            ? "w-7 bg-blue-600"
-                            : "w-2 bg-slate-300 hover:bg-slate-400"
-                        }`}
-                      />
-                    );
-                  })}
+                        onClick={() => handleManualScrollFeedback("left")}
+                        aria-label="Previous testimonial"
+                        className="p-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 transition-all hover:shadow-md active:scale-95 cursor-pointer"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </button>
+
+                      <button
+                        onClick={() => handleManualScrollFeedback("right")}
+                        aria-label="Next testimonial"
+                        className="p-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 transition-all hover:shadow-md active:scale-95 cursor-pointer"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </button>
+                    </>
+                  )}
                 </div>
               )}
             </div>
-          )}
-        </div>
 
-        {/* Bottom "View More" & "Add Feedback" Options */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 pt-4 border-t border-white/10 relative z-10">
-          <button
-            onClick={() => {
-              if (onTabChange) onTabChange("FEEDBACK");
-              window.scrollTo({ top: 0, behavior: "smooth" });
-            }}
-            className="w-full sm:w-auto px-7 py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-2 group"
-          >
-            <span>View More</span>
-            <ArrowRight className="h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
-          </button>
-          
-          <button
-            onClick={() => setIsFeedbackModalOpen(true)}
-            className="w-full sm:w-auto px-5 py-3 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs sm:text-sm rounded-xl border border-slate-200 transition-all hover:border-slate-300 hover:shadow-sm cursor-pointer flex items-center justify-center gap-2"
-          >
-            <MessageSquare className="h-4 w-4 text-blue-600" />
-            <span>Add Your Feedback</span>
-          </button>
-        </div>
-      </section>
+            {/* Single-Card Carousel Stage */}
+            <div
+              className="relative z-10 max-w-2xl mx-auto"
+              onMouseEnter={() => setIsHomeFeedbackHovered(true)}
+              onMouseLeave={() => setIsHomeFeedbackHovered(false)}
+            >
+              {shuffledFeedbacksPool.length === 0 || !currentHomeFeedback ? (
+                <div className="text-center py-10 px-4 text-slate-400 bg-white/5 border border-white/10 rounded-2xl space-y-3">
+                  <MessageSquare className="h-8 w-8 text-slate-500 mx-auto" />
+                  <p className="text-sm font-semibold text-slate-300">
+                    No feedback available yet.
+                  </p>
+                  <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                    Be the first to share your experience with conferences and our platform.
+                  </p>
+                  <button
+                    onClick={() => setIsFeedbackModalOpen(true)}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl shadow transition-all cursor-pointer"
+                  >
+                    <MessageSquare className="h-3.5 w-3.5 text-amber-300" />
+                    <span>Add First Feedback</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="relative">
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={`home-fb-slide-${currentHomeFeedback.id || currentHomeFeedback.name}-${homeFeedbackScrollIndex}`}
+                      initial={{ opacity: 0, x: 30 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -30 }}
+                      transition={{ duration: 0.35, ease: "easeOut" }}
+                      className="bg-white rounded-3xl overflow-hidden shadow-2xl border border-slate-200 text-left"
+                    >
+                      {/* Top accent */}
+                      <div className="h-1.5 bg-gradient-to-r from-blue-600 via-indigo-500 to-violet-500" />
+
+                      <div className="p-6 sm:p-8">
+                        {/* Top Row */}
+                        <div className="flex items-start justify-between gap-4 mb-5">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <img
+                              src={getCleanImageSrc(
+                                currentHomeFeedback.image,
+                                "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&h=120&q=80"
+                              )}
+                              alt={currentHomeFeedback.name}
+                              className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl object-cover border border-slate-200 shadow-sm shrink-0"
+                              referrerPolicy="no-referrer"
+                            />
+
+                            <div className="min-w-0">
+                              <h4 className="font-extrabold text-slate-900 text-sm sm:text-base truncate">
+                                {currentHomeFeedback.name}
+                              </h4>
+
+                              <div className="flex items-center gap-1.5 mt-1 text-xs text-slate-500">
+                                <MapPin className="h-3.5 w-3.5 text-blue-500 shrink-0" />
+                                <span className="truncate">
+                                  {currentHomeFeedback.country || "Global"}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                            <Quote className="h-5 w-5" />
+                          </div>
+                        </div>
+
+                        {/* Stars */}
+                        <div className="flex items-center gap-2 mb-4">
+                          <div className="flex items-center gap-0.5">
+                            {[...Array(currentHomeFeedback.rating || 5)].map((_, i) => (
+                              <Star
+                                key={i}
+                                className="h-4 w-4 fill-amber-400 text-amber-400"
+                              />
+                            ))}
+                          </div>
+
+                          <span className="text-xs font-bold text-slate-600">
+                            {currentHomeFeedback.rating || 5}.0
+                          </span>
+                        </div>
+
+                        {/* Feedback */}
+                        <p className="text-slate-700 text-sm sm:text-base leading-7 font-medium">
+                          “{currentHomeFeedback.text}”
+                        </p>
+
+                        {/* Footer */}
+                        <div className="flex items-center justify-between gap-3 mt-6 pt-4 border-t border-slate-100">
+                          <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 px-2.5 py-1 rounded-full">
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                            Community Feedback
+                          </span>
+
+                          {currentHomeFeedback.date && (
+                            <span className="text-[10px] sm:text-xs text-slate-400 font-medium">
+                              {currentHomeFeedback.date}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </motion.div>
+                  </AnimatePresence>
+
+                  {/* Progress Dots Indicator (shows for <= 12 items, or compact progress for more) */}
+                  {shuffledFeedbacksPool.length > 1 && (
+                    <div className="flex items-center justify-center gap-1.5 mt-5">
+                      {shuffledFeedbacksPool.map((_, dotIdx) => {
+                        const isActive =
+                          (homeFeedbackScrollIndex % shuffledFeedbacksPool.length) === dotIdx;
+
+                        return (
+                          <button
+                            key={dotIdx}
+                            onClick={() => setHomeFeedbackScrollIndex(dotIdx)}
+                            aria-label={`Go to feedback ${dotIdx + 1}`}
+                            className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${isActive
+                                ? "w-7 bg-blue-600"
+                                : "w-2 bg-slate-300 hover:bg-slate-400"
+                              }`}
+                          />
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Bottom "View More" & "Add Feedback" Options */}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 pt-4 border-t border-white/10 relative z-10">
+              <button
+                onClick={() => {
+                  if (onTabChange) onTabChange("FEEDBACK");
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+                className="w-full sm:w-auto px-7 py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-2 group"
+              >
+                <span>View More</span>
+                <ArrowRight className="h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
+              </button>
+
+              <button
+                onClick={() => setIsFeedbackModalOpen(true)}
+                className="w-full sm:w-auto px-5 py-3 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs sm:text-sm rounded-xl border border-slate-200 transition-all hover:border-slate-300 hover:shadow-sm cursor-pointer flex items-center justify-center gap-2"
+              >
+                <MessageSquare className="h-4 w-4 text-blue-600" />
+                <span>Add Your Feedback</span>
+              </button>
+            </div>
+          </section>
         </>
       )}
 
@@ -3677,14 +3664,14 @@ const handleNewsletterSubmit = async (e: React.FormEvent) => {
                   <div className="space-y-3">
                     {/* Upload Logo or URL - Full Width Compact */}
                     <ImageUploaderField
-                              label="Organization Logo"
-                              value={collabLogo}
-                              onChange={setCollabLogo}
-                              placeholder="Paste logo URL (https://...)"
-                              aspectHint="PNG, JPG, SVG, WEBP — Max 50 KB"
-                              isLogo={true}
-                              maxFileSizeKB={50}
-                            />
+                      label="Organization Logo"
+                      value={collabLogo}
+                      onChange={setCollabLogo}
+                      placeholder="Paste logo URL (https://...)"
+                      aspectHint="PNG, JPG, SVG, WEBP — Max 50 KB"
+                      isLogo={true}
+                      maxFileSizeKB={50}
+                    />
 
                     {/* Company Name - Full Width */}
                     <div className="space-y-1">
@@ -3717,11 +3704,10 @@ const handleNewsletterSubmit = async (e: React.FormEvent) => {
                       <label className="text-[11px] font-bold uppercase text-slate-600 tracking-wider">Partnership Type *</label>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                         <label
-                          className={`flex items-center gap-2.5 p-2.5 rounded-xl border cursor-pointer transition-all ${
-                            collabCategory === "Event Partner"
+                          className={`flex items-center gap-2.5 p-2.5 rounded-xl border cursor-pointer transition-all ${collabCategory === "Event Partner"
                               ? "border-blue-600 bg-blue-50/60 text-blue-900 shadow-2xs"
                               : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100"
-                          }`}
+                            }`}
                         >
                           <input
                             type="radio"
@@ -3738,11 +3724,10 @@ const handleNewsletterSubmit = async (e: React.FormEvent) => {
                         </label>
 
                         <label
-                          className={`flex items-center gap-2.5 p-2.5 rounded-xl border cursor-pointer transition-all ${
-                            collabCategory === "Associates"
+                          className={`flex items-center gap-2.5 p-2.5 rounded-xl border cursor-pointer transition-all ${collabCategory === "Associates"
                               ? "border-indigo-600 bg-indigo-50/60 text-indigo-900 shadow-2xs"
                               : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100"
-                          }`}
+                            }`}
                         >
                           <input
                             type="radio"
@@ -3767,11 +3752,10 @@ const handleNewsletterSubmit = async (e: React.FormEvent) => {
                           Description *
                         </label>
                         <span
-                          className={`text-[10px] font-bold px-2 py-0.5 rounded-md transition-colors ${
-                            collabDescription.length >= 150
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-md transition-colors ${collabDescription.length >= 150
                               ? "bg-amber-100 text-amber-800 font-extrabold border border-amber-300"
                               : "text-slate-400 bg-slate-100"
-                          }`}
+                            }`}
                         >
                           {collabDescription.length} / 150 chars
                         </span>
@@ -3786,11 +3770,10 @@ const handleNewsletterSubmit = async (e: React.FormEvent) => {
                           const val = e.target.value;
                           setCollabDescription(val.slice(0, 150));
                         }}
-                        className={`w-full text-xs sm:text-sm bg-slate-50 border rounded-xl p-2.5 text-slate-800 focus:ring-2 focus:bg-white focus:outline-none resize-none transition-all ${
-                          collabDescription.length >= 150
+                        className={`w-full text-xs sm:text-sm bg-slate-50 border rounded-xl p-2.5 text-slate-800 focus:ring-2 focus:bg-white focus:outline-none resize-none transition-all ${collabDescription.length >= 150
                             ? "border-amber-400 focus:ring-amber-500 bg-amber-50/30"
                             : "border-slate-200 focus:ring-blue-500"
-                        }`}
+                          }`}
                       />
                       {collabDescription.length >= 150 && (
                         <p className="text-[11px] text-amber-700 font-semibold flex items-center gap-1.5 pt-0.5">
@@ -3858,9 +3841,9 @@ const handleNewsletterSubmit = async (e: React.FormEvent) => {
                     {/* Logo */}
                     <div className="w-full flex justify-start mb-4">
                       <div className="w-30 h-20 sm:w-30 sm:h-20 bg-white border border-slate-100 rounded-2xl shadow-sm flex items-center justify-center overflow-hidden">
-                        <img 
-                          src={partner.logo} 
-                          alt={`${partner.name} Logo`} 
+                        <img
+                          src={partner.logo}
+                          alt={`${partner.name} Logo`}
                           referrerPolicy="no-referrer"
                           className="w-full h-full object-contain p-2"
                         />
@@ -3880,10 +3863,10 @@ const handleNewsletterSubmit = async (e: React.FormEvent) => {
 
                   {/* Visit Website Button */}
                   <div className="pt-2.5 sm:pt-3 mt-3 sm:mt-4 border-t border-slate-100 flex items-center justify-start">
-                    <a 
-                      href={getFormattedUrl(partner.website)} 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
+                    <a
+                      href={getFormattedUrl(partner.website)}
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-600 text-blue-600 hover:text-white font-bold text-xs transition-all border border-blue-200/80 hover:border-blue-600 shadow-2xs group cursor-pointer"
                     >
                       Visit Website <ExternalLink className="h-3.5 w-3.5 shrink-0" />
@@ -3915,11 +3898,10 @@ const handleNewsletterSubmit = async (e: React.FormEvent) => {
                         setMediaPartnerPage(pageNum);
                         window.scrollTo({ top: 300, behavior: "smooth" });
                       }}
-                      className={`h-9 min-w-9 px-2.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
-                        mediaPartnerPage === pageNum
+                      className={`h-9 min-w-9 px-2.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${mediaPartnerPage === pageNum
                           ? "bg-blue-600 text-white shadow-xs"
                           : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
-                      }`}
+                        }`}
                     >
                       {pageNum}
                     </button>
@@ -3999,16 +3981,16 @@ const handleNewsletterSubmit = async (e: React.FormEvent) => {
                 >
                   <div>
                     {/* Logo */}
-                      <div className="w-full flex justify-start mb-4">
-                        <div className="w-30 h-20 sm:w-30 sm:h-20 bg-white border border-slate-100 rounded-2xl shadow-sm flex items-center justify-center overflow-hidden">
-                          <img 
-                            src={assoc.logo} 
-                            alt={`${assoc.name} Logo`} 
-                            referrerPolicy="no-referrer"
-                            className="w-full h-full object-contain p-2"
-                          />
-                        </div>
+                    <div className="w-full flex justify-start mb-4">
+                      <div className="w-30 h-20 sm:w-30 sm:h-20 bg-white border border-slate-100 rounded-2xl shadow-sm flex items-center justify-center overflow-hidden">
+                        <img
+                          src={assoc.logo}
+                          alt={`${assoc.name} Logo`}
+                          referrerPolicy="no-referrer"
+                          className="w-full h-full object-contain p-2"
+                        />
                       </div>
+                    </div>
 
                     {/* Name */}
                     <div className="space-y-1 mt-2.5 sm:mt-4">
@@ -4023,10 +4005,10 @@ const handleNewsletterSubmit = async (e: React.FormEvent) => {
 
                   {/* Visit Website Button */}
                   <div className="pt-2.5 sm:pt-3 mt-3 sm:mt-4 border-t border-slate-100 flex items-center justify-start">
-                    <a 
-                      href={getFormattedUrl(assoc.website)} 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
+                    <a
+                      href={getFormattedUrl(assoc.website)}
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-600 text-indigo-600 hover:text-white font-bold text-xs transition-all border border-indigo-200/80 hover:border-indigo-600 shadow-2xs group cursor-pointer"
                     >
                       Visit Website <ExternalLink className="h-3.5 w-3.5 shrink-0" />
@@ -4058,11 +4040,10 @@ const handleNewsletterSubmit = async (e: React.FormEvent) => {
                         setAssociatesPage(pageNum);
                         window.scrollTo({ top: 300, behavior: "smooth" });
                       }}
-                      className={`h-9 min-w-9 px-2.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
-                        associatesPage === pageNum
+                      className={`h-9 min-w-9 px-2.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${associatesPage === pageNum
                           ? "bg-indigo-600 text-white shadow-xs"
                           : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
-                      }`}
+                        }`}
                     >
                       {pageNum}
                     </button>
@@ -4219,103 +4200,103 @@ const handleNewsletterSubmit = async (e: React.FormEvent) => {
       )}
 
       {/* 404 - Page Not Found */}
-{tab === "NOT_FOUND" && (
-  <section className="min-h-[60vh] flex items-center justify-center px-4 py-12 sm:py-16 md:py-20">
-    <div className="w-full max-w-2xl text-center bg-white border border-slate-200 rounded-3xl shadow-sm px-6 py-10 sm:px-10 sm:py-14">
+      {tab === "NOT_FOUND" && (
+        <section className="min-h-[60vh] flex items-center justify-center px-4 py-12 sm:py-16 md:py-20">
+          <div className="w-full max-w-2xl text-center bg-white border border-slate-200 rounded-3xl shadow-sm px-6 py-10 sm:px-10 sm:py-14">
 
-      <div className="text-7xl sm:text-8xl font-extrabold text-blue-600 leading-none">
-        404
-      </div>
+            <div className="text-7xl sm:text-8xl font-extrabold text-blue-600 leading-none">
+              404
+            </div>
 
-      <h1 className="mt-5 text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-900 font-display">
-        Page Not Found
-      </h1>
+            <h1 className="mt-5 text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-900 font-display">
+              Page Not Found
+            </h1>
 
-      <p className="mt-3 text-sm sm:text-base text-slate-500 leading-relaxed max-w-lg mx-auto">
-        The page you are looking for does not exist, may have been removed,
-        or the link may be incorrect.
-      </p>
+            <p className="mt-3 text-sm sm:text-base text-slate-500 leading-relaxed max-w-lg mx-auto">
+              The page you are looking for does not exist, may have been removed,
+              or the link may be incorrect.
+            </p>
 
-      <div className="mt-7 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <div className="mt-7 flex flex-col sm:flex-row items-center justify-center gap-3">
 
-        <button
-          type="button"
-          onClick={() => {
-            window.location.href = "/";
-          }}
-          className="w-full sm:w-auto px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl transition-colors cursor-pointer"
-        >
-          Go to Home
-        </button>
+              <button
+                type="button"
+                onClick={() => {
+                  window.location.href = "/";
+                }}
+                className="w-full sm:w-auto px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl transition-colors cursor-pointer"
+              >
+                Go to Home
+              </button>
 
-        <button
-          type="button"
-          onClick={() => {
-            window.location.href = "/conferences";
-          }}
-          className="w-full sm:w-auto px-6 py-3 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 text-sm font-bold rounded-xl transition-colors cursor-pointer"
-        >
-          Browse Conferences
-        </button>
+              <button
+                type="button"
+                onClick={() => {
+                  window.location.href = "/conferences";
+                }}
+                className="w-full sm:w-auto px-6 py-3 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 text-sm font-bold rounded-xl transition-colors cursor-pointer"
+              >
+                Browse Conferences
+              </button>
 
-      </div>
-    </div>
-  </section>
-)}
+            </div>
+          </div>
+        </section>
+      )}
 
-     {/* Privacy Policy Tab */}
-{tab === "PRIVACY" && (
-  <section className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14">
-    <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-2">
-      {dynamicPrivacyPolicy.title}
-    </h1>
+      {/* Privacy Policy Tab */}
+      {tab === "PRIVACY" && (
+        <section className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14">
+          <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-2">
+            {dynamicPrivacyPolicy.title}
+          </h1>
 
-    <p className="text-sm text-slate-500 mb-8">
-      Last updated:{" "}
-      {dynamicPrivacyPolicy.updated_at
-        ? new Date(dynamicPrivacyPolicy.updated_at).toLocaleDateString(
-            "en-US",
-            {
-              year: "numeric",
-              month: "long",
-              day: "numeric"
-            }
-          )
-        : privacyPolicyContent.lastUpdated}
-    </p>
+          <p className="text-sm text-slate-500 mb-8">
+            Last updated:{" "}
+            {dynamicPrivacyPolicy.updated_at
+              ? new Date(dynamicPrivacyPolicy.updated_at).toLocaleDateString(
+                "en-US",
+                {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric"
+                }
+              )
+              : privacyPolicyContent.lastUpdated}
+          </p>
 
-    <div className="prose prose-slate max-w-none text-slate-700 leading-7 whitespace-pre-line">
-      {dynamicPrivacyPolicy.content}
-    </div>
-  </section>
-)}
+          <div className="prose prose-slate max-w-none text-slate-700 leading-7 whitespace-pre-line">
+            {dynamicPrivacyPolicy.content}
+          </div>
+        </section>
+      )}
 
       {/* Terms of Service Tab */}
-{tab === "TERMS" && (
-  <section className="bg-white border border-slate-100 rounded-3xl p-8 md:p-12 shadow-sm space-y-6">
-    <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 font-display leading-tight break-words">
-      {dynamicTermsOfService.title}
-    </h1>
+      {tab === "TERMS" && (
+        <section className="bg-white border border-slate-100 rounded-3xl p-8 md:p-12 shadow-sm space-y-6">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 font-display leading-tight break-words">
+            {dynamicTermsOfService.title}
+          </h1>
 
-    <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">
-      Last updated:{" "}
-      {dynamicTermsOfService.updated_at
-        ? new Date(dynamicTermsOfService.updated_at).toLocaleDateString(
-            "en-US",
-            {
-              year: "numeric",
-              month: "long",
-              day: "numeric"
-            }
-          )
-        : termsOfServiceContent.lastUpdated}
-    </p>
+          <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">
+            Last updated:{" "}
+            {dynamicTermsOfService.updated_at
+              ? new Date(dynamicTermsOfService.updated_at).toLocaleDateString(
+                "en-US",
+                {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric"
+                }
+              )
+              : termsOfServiceContent.lastUpdated}
+          </p>
 
-    <div className="prose prose-blue max-w-none text-sm text-slate-600 leading-7 whitespace-pre-line">
-      {dynamicTermsOfService.content}
-    </div>
-  </section>
-)}
+          <div className="prose prose-blue max-w-none text-sm text-slate-600 leading-7 whitespace-pre-line">
+            {dynamicTermsOfService.content}
+          </div>
+        </section>
+      )}
 
       {/* Customer Feedback / Testimonials Full Dedicated Page */}
       {(tab === "FEEDBACK" || tab === "TESTIMONIALS") && (
@@ -4422,11 +4403,10 @@ const handleNewsletterSubmit = async (e: React.FormEvent) => {
                   <button
                     key={rf.value}
                     onClick={() => setFeedbackRatingFilter(rf.value)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
-                      isActive
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${isActive
                         ? "bg-[#37494E] text-white shadow-xs"
                         : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                    }`}
+                      }`}
                   >
                     {rf.label}
                   </button>
@@ -4466,45 +4446,45 @@ const handleNewsletterSubmit = async (e: React.FormEvent) => {
                 <span className="font-semibold text-slate-700">Page {feedbackPage} of {feedbackTotalPages}</span>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
-              {paginatedFeedbacks.map((fb, idx) => (
-                <div
-                  key={fb.id || `all-fb-${idx}`}
-                  className="bg-white border border-slate-200/90 hover:border-blue-400/60 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all flex flex-col justify-between space-y-5 group"
-                >
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1">
-                        {[...Array(fb.rating || 5)].map((_, i) => (
-                          <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />
-                        ))}
+                {paginatedFeedbacks.map((fb, idx) => (
+                  <div
+                    key={fb.id || `all-fb-${idx}`}
+                    className="bg-white border border-slate-200/90 hover:border-blue-400/60 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all flex flex-col justify-between space-y-5 group"
+                  >
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1">
+                          {[...Array(fb.rating || 5)].map((_, i) => (
+                            <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />
+                          ))}
+                        </div>
+                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                          <CheckCircle2 className="h-3 w-3 text-emerald-600" /> Verified
+                        </span>
                       </div>
-                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
-                        <CheckCircle2 className="h-3 w-3 text-emerald-600" /> Verified
-                      </span>
-                    </div>
 
-                    <p className="text-slate-700 text-sm md:text-base leading-relaxed italic font-normal">
-                      "{fb.text}"
-                    </p>
-                  </div>
-
-                  <div className="flex items-center gap-3 pt-4 border-t border-slate-100">
-                    <img
-                      src={getCleanImageSrc(fb.image, "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&h=120&q=80")}
-                      alt={fb.name}
-                      className="w-11 h-11 rounded-full border-2 border-slate-200 object-contain shadow-xs shrink-0"
-                      referrerPolicy="no-referrer"
-                    />
-                    <div className="min-w-0">
-                      <h4 className="font-bold text-sm text-slate-900 truncate">{fb.name}</h4>
-                      <p className="text-xs text-slate-500 font-medium truncate flex items-center gap-1 mt-0.5">
-                        <MapPin className="h-3 w-3 text-slate-400 shrink-0" />
-                        <span>{fb.country || "Global"}</span>
+                      <p className="text-slate-700 text-sm md:text-base leading-relaxed italic font-normal">
+                        "{fb.text}"
                       </p>
                     </div>
+
+                    <div className="flex items-center gap-3 pt-4 border-t border-slate-100">
+                      <img
+                        src={getCleanImageSrc(fb.image, "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&h=120&q=80")}
+                        alt={fb.name}
+                        className="w-11 h-11 rounded-full border-2 border-slate-200 object-contain shadow-xs shrink-0"
+                        referrerPolicy="no-referrer"
+                      />
+                      <div className="min-w-0">
+                        <h4 className="font-bold text-sm text-slate-900 truncate">{fb.name}</h4>
+                        <p className="text-xs text-slate-500 font-medium truncate flex items-center gap-1 mt-0.5">
+                          <MapPin className="h-3 w-3 text-slate-400 shrink-0" />
+                          <span>{fb.country || "Global"}</span>
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
               </div>
 
               {feedbackTotalPages > 1 && (
@@ -4520,11 +4500,10 @@ const handleNewsletterSubmit = async (e: React.FormEvent) => {
                     <button
                       key={pageNumber}
                       onClick={() => setFeedbackPage(pageNumber)}
-                      className={`h-9 min-w-9 px-2 rounded-xl text-xs font-bold cursor-pointer ${
-                        feedbackPage === pageNumber
+                      className={`h-9 min-w-9 px-2 rounded-xl text-xs font-bold cursor-pointer ${feedbackPage === pageNumber
                           ? "bg-[#37494E] text-white"
                           : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                      }`}
+                        }`}
                     >
                       {pageNumber}
                     </button>
@@ -4561,127 +4540,127 @@ const handleNewsletterSubmit = async (e: React.FormEvent) => {
       )}
 
       {/* Footer Section */}
-        {tab !== "NOT_FOUND" && (
-<footer className="bg-[#37494E] text-slate-300 border-t border-[#2b3a3e] p-4 sm:p-6 md:p-8 lg:p-12 space-y-8 sm:space-y-10 relative z-10 overflow-hidden min-w-0 w-screen ml-[calc(50%-50vw)] -mb-10 sm:-mb-12 md:-mb-16 lg:-mb-20">
-        {/* 5-Column Grid Layout: Logo, Quick Links, Contact Info, Follow Us, Newsletter */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 sm:gap-8">
-          
-          {/* Column 1: Logo & Branding */}
-          <div className="space-y-4">
-            <div 
-              onClick={() => {
-                if (onTabChange) onTabChange("HOME");
-                window.scrollTo({ top: 0, behavior: "smooth" });
-              }}
-              className="flex items-center gap-3 cursor-pointer group"
-            >
-              <div className="w-[145px] h-10 sm:w-[170px] sm:h-12 lg:w-[190px] lg:h-14 flex items-center justify-start shrink-0 group-hover:scale-105 transition-transform">
-                <img
-                  src="/company-logo.png"
-                  alt="International Conference Logo"
-                  className="w-full h-full object-contain"
-                />
-              </div>
-            </div>
-            <p className="text-xs text-slate-300 leading-relaxed font-medium">
-              Global directory for peer-reviewed academic conferences, research symposiums, and professional summits taking place worldwide.
-            </p>
-          </div>
+      {tab !== "NOT_FOUND" && (
+        <footer className="bg-[#37494E] text-slate-300 border-t border-[#2b3a3e] p-4 sm:p-6 md:p-8 lg:p-12 space-y-8 sm:space-y-10 relative z-10 overflow-hidden min-w-0 w-screen ml-[calc(50%-50vw)] -mb-10 sm:-mb-12 md:-mb-16 lg:-mb-20">
+          {/* 5-Column Grid Layout: Logo, Quick Links, Contact Info, Follow Us, Newsletter */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 sm:gap-8">
 
-          {/* Column 2: Quick Links */}
-          <div className="space-y-4">
-            <h4 className="font-bold text-white text-sm">Quick Links</h4>
-            <ul className="space-y-2 text-xs font-semibold">
-              <li>
-                <button
-                  onClick={() => {
-                    if (onTabChange) onTabChange("HOME");
-                    window.scrollTo({ top: 0, behavior: "smooth" });
-                  }}
-                  className="hover:text-blue-300 transition-colors cursor-pointer"
-                >
-                  Home
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => {
-                    if (onTabChange) onTabChange("ABOUT");
-                    window.scrollTo({ top: 0, behavior: "smooth" });
-                  }}
-                  className="hover:text-blue-300 transition-colors cursor-pointer"
-                >
-                  About Us
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => {
-                    if (onTabChange) onTabChange("EVENTS");
-                    window.scrollTo({ top: 0, behavior: "smooth" });
-                  }}
-                  className="hover:text-blue-300 transition-colors cursor-pointer"
-                >
-                  Conferences
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => {
-                    if (onTabChange) onTabChange("ORGANIZERS");
-                    window.scrollTo({ top: 0, behavior: "smooth" });
-                  }}
-                  className="hover:text-blue-300 transition-colors cursor-pointer"
-                >
-                  Organizers
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => {
-                    if (onTabChange) onTabChange("MEDIAPARTNER");
-                    window.scrollTo({ top: 0, behavior: "smooth" });
-                  }}
-                  className="hover:text-blue-300 transition-colors cursor-pointer"
-                >
-                  Media Partner
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => {
-                    if (onTabChange) onTabChange("ASSOCIATES");
-                    window.scrollTo({ top: 0, behavior: "smooth" });
-                  }}
-                  className="hover:text-blue-300 transition-colors cursor-pointer"
-                >
-                  Our Associates
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => {
-                    if (onTabChange) onTabChange("CONTACT");
-                    window.scrollTo({ top: 0, behavior: "smooth" });
-                  }}
-                  className="hover:text-blue-300 transition-colors cursor-pointer"
-                >
-                  Contact Us
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => {
-                    if (onTabChange) onTabChange("FEEDBACK");
-                    window.scrollTo({ top: 0, behavior: "smooth" });
-                  }}
-                  className="hover:text-blue-300 transition-colors cursor-pointer"
-                >
-                  Testimonials
-                </button>
-              </li>
-              {/* Blog section */}
-              <li>
+            {/* Column 1: Logo & Branding */}
+            <div className="space-y-4">
+              <div
+                onClick={() => {
+                  if (onTabChange) onTabChange("HOME");
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+                className="flex items-center gap-3 cursor-pointer group"
+              >
+                <div className="w-[145px] h-10 sm:w-[170px] sm:h-12 lg:w-[190px] lg:h-14 flex items-center justify-start shrink-0 group-hover:scale-105 transition-transform">
+                  <img
+                    src="/company-logo.png"
+                    alt="International Conference Logo"
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-slate-300 leading-relaxed font-medium">
+                Global directory for peer-reviewed academic conferences, research symposiums, and professional summits taking place worldwide.
+              </p>
+            </div>
+
+            {/* Column 2: Quick Links */}
+            <div className="space-y-4">
+              <h4 className="font-bold text-white text-sm">Quick Links</h4>
+              <ul className="space-y-2 text-xs font-semibold">
+                <li>
+                  <button
+                    onClick={() => {
+                      if (onTabChange) onTabChange("HOME");
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                    className="hover:text-blue-300 transition-colors cursor-pointer"
+                  >
+                    Home
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() => {
+                      if (onTabChange) onTabChange("ABOUT");
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                    className="hover:text-blue-300 transition-colors cursor-pointer"
+                  >
+                    About Us
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() => {
+                      if (onTabChange) onTabChange("EVENTS");
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                    className="hover:text-blue-300 transition-colors cursor-pointer"
+                  >
+                    Conferences
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() => {
+                      if (onTabChange) onTabChange("ORGANIZERS");
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                    className="hover:text-blue-300 transition-colors cursor-pointer"
+                  >
+                    Organizers
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() => {
+                      if (onTabChange) onTabChange("MEDIAPARTNER");
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                    className="hover:text-blue-300 transition-colors cursor-pointer"
+                  >
+                    Media Partner
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() => {
+                      if (onTabChange) onTabChange("ASSOCIATES");
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                    className="hover:text-blue-300 transition-colors cursor-pointer"
+                  >
+                    Our Associates
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() => {
+                      if (onTabChange) onTabChange("CONTACT");
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                    className="hover:text-blue-300 transition-colors cursor-pointer"
+                  >
+                    Contact Us
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() => {
+                      if (onTabChange) onTabChange("FEEDBACK");
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                    className="hover:text-blue-300 transition-colors cursor-pointer"
+                  >
+                    Testimonials
+                  </button>
+                </li>
+                {/* Blog section */}
+                <li>
                   <a
                     href="https://global-international-conferences.blogspot.com/"
                     target="_blank "
@@ -4692,144 +4671,144 @@ const handleNewsletterSubmit = async (e: React.FormEvent) => {
                   </a>
                 </li>
 
-              <li>
-                <button onClick={onLoginClick} className="hover:text-blue-300 transition-colors cursor-pointer">
-                  Login
-                </button>
-              </li>
-              <li>
-                <button onClick={onSignUpClick} className="hover:text-blue-300 transition-colors cursor-pointer">
-                  Sign Up
-                </button>
-              </li>
-            </ul>
-          </div>
-
-          {/* Column 3: Contact Info */}
-          <div className="space-y-4 text-xs font-semibold">
-            <h4 className="font-bold text-white text-sm">Contact Info</h4>
-            <ul className="space-y-3">
-              <li className="flex items-center gap-2">
-                <Mail className="h-4 w-4 text-slate-300 shrink-0" />
-                <span className="break-all">{footerContactInfo.email}</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <Phone className="h-4 w-4 text-slate-300 shrink-0" />
-                <span>{footerContactInfo.phone}</span>
-              </li>
-              {footerContactInfo.address && (
-                <li className="flex items-start gap-2">
-                  <MapPin className="h-4 w-4 text-slate-300 shrink-0 mt-0.5" />
-                  <span className="whitespace-pre-line">{footerContactInfo.address}</span>
+                <li>
+                  <button onClick={onLoginClick} className="hover:text-blue-300 transition-colors cursor-pointer">
+                    Login
+                  </button>
                 </li>
-              )}
-            </ul>
-          </div>
+                <li>
+                  <button onClick={onSignUpClick} className="hover:text-blue-300 transition-colors cursor-pointer">
+                    Sign Up
+                  </button>
+                </li>
+              </ul>
+            </div>
 
-          {/* Column 4: Follow Us */}
-          <div className="space-y-3">
-            <h4 className="font-bold text-white text-sm">Follow Us</h4>
-            <p className="text-xs text-slate-300 font-medium leading-relaxed">
-              Connect with our global network across official social channels for daily conference updates.
-            </p>
-            <div className="flex items-center gap-2.5 flex-wrap pt-1">
-              {footerSocialMedia.facebook && (
-                <a href={footerSocialMedia.facebook} target="_blank" rel="noreferrer" className="p-2.5 bg-white/10 hover:bg-white/20 rounded-xl text-white transition-all hover:scale-105 cursor-pointer" title="Facebook">
-                  <Facebook className="h-4 w-4" />
-                </a>
+            {/* Column 3: Contact Info */}
+            <div className="space-y-4 text-xs font-semibold">
+              <h4 className="font-bold text-white text-sm">Contact Info</h4>
+              <ul className="space-y-3">
+                <li className="flex items-center gap-2">
+                  <Mail className="h-4 w-4 text-slate-300 shrink-0" />
+                  <span className="break-all">{footerContactInfo.email}</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Phone className="h-4 w-4 text-slate-300 shrink-0" />
+                  <span>{footerContactInfo.phone}</span>
+                </li>
+                {footerContactInfo.address && (
+                  <li className="flex items-start gap-2">
+                    <MapPin className="h-4 w-4 text-slate-300 shrink-0 mt-0.5" />
+                    <span className="whitespace-pre-line">{footerContactInfo.address}</span>
+                  </li>
+                )}
+              </ul>
+            </div>
+
+            {/* Column 4: Follow Us */}
+            <div className="space-y-3">
+              <h4 className="font-bold text-white text-sm">Follow Us</h4>
+              <p className="text-xs text-slate-300 font-medium leading-relaxed">
+                Connect with our global network across official social channels for daily conference updates.
+              </p>
+              <div className="flex items-center gap-2.5 flex-wrap pt-1">
+                {footerSocialMedia.facebook && (
+                  <a href={footerSocialMedia.facebook} target="_blank" rel="noreferrer" className="p-2.5 bg-white/10 hover:bg-white/20 rounded-xl text-white transition-all hover:scale-105 cursor-pointer" title="Facebook">
+                    <Facebook className="h-4 w-4" />
+                  </a>
+                )}
+                {footerSocialMedia.instagram && (
+                  <a href={footerSocialMedia.instagram} target="_blank" rel="noreferrer" className="p-2.5 bg-white/10 hover:bg-white/20 rounded-xl text-white transition-all hover:scale-105 cursor-pointer" title="Instagram">
+                    <Instagram className="h-4 w-4" />
+                  </a>
+                )}
+                {footerSocialMedia.linkedin && (
+                  <a href={footerSocialMedia.linkedin} target="_blank" rel="noreferrer" className="p-2.5 bg-white/10 hover:bg-white/20 rounded-xl text-white transition-all hover:scale-105 cursor-pointer" title="LinkedIn">
+                    <Linkedin className="h-4 w-4" />
+                  </a>
+                )}
+                {footerSocialMedia.twitter && (
+                  <a href={footerSocialMedia.twitter} target="_blank" rel="noreferrer" className="p-2.5 bg-white/10 hover:bg-white/20 rounded-xl text-white transition-all hover:scale-105 cursor-pointer" title="Twitter / X">
+                    <Twitter className="h-4 w-4" />
+                  </a>
+                )}
+                {footerSocialMedia.other && (
+                  <a href={footerSocialMedia.other} target="_blank" rel="noreferrer" className="p-2.5 bg-white/10 hover:bg-white/20 rounded-xl text-white transition-all hover:scale-105 cursor-pointer" title="Website / Other">
+                    <Globe className="h-4 w-4" />
+                  </a>
+                )}
+              </div>
+            </div>
+
+            {/* Column 5: Newsletter */}
+            <div className="space-y-4">
+              <h4 className="font-bold text-white text-sm">Newsletter</h4>
+              <p className="text-xs font-medium text-slate-300 leading-relaxed">
+                Subscribe to receive indexes of vetted conferences directly in your inbox.
+              </p>
+
+              <form onSubmit={handleNewsletterSubmit} className="space-y-2">
+                <input
+                  type="email"
+                  required
+                  placeholder="Enter your email..."
+                  value={newsletterEmail}
+                  onChange={(e) => {
+                    setNewsletterEmail(e.target.value);
+                    if (newsletterError) setNewsletterError("");
+                  }}
+                  className="w-full bg-white/5 border border-white/15 rounded-xl px-3 py-2.5 text-xs text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-white/40"
+                />
+                <button
+                  type="submit"
+                  className="w-full py-2.5 bg-white/10 hover:bg-white/20 text-white font-bold rounded-xl text-xs transition-colors cursor-pointer border border-white/20 shadow-xs flex items-center justify-center gap-1.5"
+                >
+                  <Mail className="h-3.5 w-3.5" />
+                  <span>Subscribe Now</span>
+                </button>
+              </form>
+
+              {newsletterError && (
+                <p className="text-[11px] text-rose-400 font-bold flex items-center gap-1">
+                  ✕ {newsletterError}
+                </p>
               )}
-              {footerSocialMedia.instagram && (
-                <a href={footerSocialMedia.instagram} target="_blank" rel="noreferrer" className="p-2.5 bg-white/10 hover:bg-white/20 rounded-xl text-white transition-all hover:scale-105 cursor-pointer" title="Instagram">
-                  <Instagram className="h-4 w-4" />
-                </a>
-              )}
-              {footerSocialMedia.linkedin && (
-                <a href={footerSocialMedia.linkedin} target="_blank" rel="noreferrer" className="p-2.5 bg-white/10 hover:bg-white/20 rounded-xl text-white transition-all hover:scale-105 cursor-pointer" title="LinkedIn">
-                  <Linkedin className="h-4 w-4" />
-                </a>
-              )}
-              {footerSocialMedia.twitter && (
-                <a href={footerSocialMedia.twitter} target="_blank" rel="noreferrer" className="p-2.5 bg-white/10 hover:bg-white/20 rounded-xl text-white transition-all hover:scale-105 cursor-pointer" title="Twitter / X">
-                  <Twitter className="h-4 w-4" />
-                </a>
-              )}
-              {footerSocialMedia.other && (
-                <a href={footerSocialMedia.other} target="_blank" rel="noreferrer" className="p-2.5 bg-white/10 hover:bg-white/20 rounded-xl text-white transition-all hover:scale-105 cursor-pointer" title="Website / Other">
-                  <Globe className="h-4 w-4" />
-                </a>
+
+              {newsletterSubscribed && (
+                <p className="text-[11px] text-emerald-400 font-bold flex items-center gap-1">
+                  <CheckCircle2 className="h-3.5 w-3.5" /> Successfully subscribed!
+                </p>
               )}
             </div>
           </div>
 
-          {/* Column 5: Newsletter */}
-          <div className="space-y-4">
-            <h4 className="font-bold text-white text-sm">Newsletter</h4>
-            <p className="text-xs font-medium text-slate-300 leading-relaxed">
-              Subscribe to receive indexes of vetted conferences directly in your inbox.
-            </p>
-            
-            <form onSubmit={handleNewsletterSubmit} className="space-y-2">
-              <input
-                type="email"
-                required
-                placeholder="Enter your email..."
-                value={newsletterEmail}
-                onChange={(e) => {
-                  setNewsletterEmail(e.target.value);
-                  if (newsletterError) setNewsletterError("");
-                }}
-                className="w-full bg-white/5 border border-white/15 rounded-xl px-3 py-2.5 text-xs text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-white/40"
-              />
+          <div className="border-t border-slate-850 pt-6 flex flex-col md:flex-row items-center justify-between gap-4 text-[11px] font-semibold">
+            <div>
+              © 2026 International Conference Portal. All Rights Reserved.
+            </div>
+            <div className="flex gap-4">
               <button
-                type="submit"
-                className="w-full py-2.5 bg-white/10 hover:bg-white/20 text-white font-bold rounded-xl text-xs transition-colors cursor-pointer border border-white/20 shadow-xs flex items-center justify-center gap-1.5"
+                onClick={() => {
+                  if (onTabChange) onTabChange("PRIVACY");
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+                className="hover:text-white transition-colors cursor-pointer"
               >
-                <Mail className="h-3.5 w-3.5" />
-                <span>Subscribe Now</span>
+                Privacy Policy
               </button>
-            </form>
-
-            {newsletterError && (
-              <p className="text-[11px] text-rose-400 font-bold flex items-center gap-1">
-                ✕ {newsletterError}
-              </p>
-            )}
-
-            {newsletterSubscribed && (
-              <p className="text-[11px] text-emerald-400 font-bold flex items-center gap-1">
-                <CheckCircle2 className="h-3.5 w-3.5" /> Successfully subscribed!
-              </p>
-            )}
+              <button
+                onClick={() => {
+                  if (onTabChange) onTabChange("TERMS");
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+                className="hover:text-white transition-colors cursor-pointer"
+              >
+                Terms of Service
+              </button>
+            </div>
           </div>
-        </div>
-
-        <div className="border-t border-slate-850 pt-6 flex flex-col md:flex-row items-center justify-between gap-4 text-[11px] font-semibold">
-          <div>
-            © 2026 International Conference Portal. All Rights Reserved.
-          </div>
-          <div className="flex gap-4">
-            <button
-              onClick={() => {
-                if (onTabChange) onTabChange("PRIVACY");
-                window.scrollTo({ top: 0, behavior: "smooth" });
-              }}
-              className="hover:text-white transition-colors cursor-pointer"
-            >
-              Privacy Policy
-            </button>
-            <button
-              onClick={() => {
-                if (onTabChange) onTabChange("TERMS");
-                window.scrollTo({ top: 0, behavior: "smooth" });
-              }}
-              className="hover:text-white transition-colors cursor-pointer"
-            >
-              Terms of Service
-            </button>
-          </div>
-        </div>
-      </footer>
-)}
+        </footer>
+      )}
       {/* Feedback Pop-Up Modal */}
       <AnimatePresence>
         {userFeedbackSubmitted && !isFeedbackModalOpen && (
@@ -4945,9 +4924,8 @@ const handleNewsletterSubmit = async (e: React.FormEvent) => {
                           title={`${star} star${star > 1 ? "s" : ""}`}
                         >
                           <Star
-                            className={`h-4 w-4 ${
-                              star <= userFeedbackRating ? "text-amber-400 fill-amber-400" : "text-slate-600"
-                            }`}
+                            className={`h-4 w-4 ${star <= userFeedbackRating ? "text-amber-400 fill-amber-400" : "text-slate-600"
+                              }`}
                           />
                         </button>
                       ))}
@@ -4977,7 +4955,7 @@ const handleNewsletterSubmit = async (e: React.FormEvent) => {
                 </div>
 
                 {/* Actions */}
-             <div className="pt-3 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2 sm:gap-3 border-t border-white/10">
+                <div className="pt-3 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2 sm:gap-3 border-t border-white/10">
                   <button
                     type="button"
                     onClick={() => setIsFeedbackModalOpen(false)}

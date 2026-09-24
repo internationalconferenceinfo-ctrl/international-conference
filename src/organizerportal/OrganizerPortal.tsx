@@ -92,7 +92,13 @@ interface OrganizerPortalProps {
   organizers: OrganizerProfile[];
   notifications: Notification[];
   activeOrgId: string | null;
-  onRegisterOrganizer: (org: Partial<OrganizerProfile>) => void;
+  onRegisterOrganizer: (
+  org: Partial<OrganizerProfile>
+) => Promise<{
+  success: boolean;
+  error?: string;
+  field?: "organizationName";
+}>;
   onUpdateOrganizer: (org: OrganizerProfile) => void;
   onSubmitConference: (conf: Partial<Conference>, isDraft: boolean) => Promise<{ error?: string }>;
   onResubmitConference: (confId: string, updated: Partial<Conference>) => Promise<{ error?: string }>;
@@ -520,6 +526,37 @@ const [formCity, setFormCity] = useState("");
   const [profileAbout, setProfileAbout] = useState("");
   const [profileCountry, setProfileCountry] = useState("");
   const [profileCity, setProfileCity] = useState("");
+  type ProfileSetupField =
+  | "organizationName"
+  | "contactPerson"
+  | "country"
+  | "city"
+  | "website"
+  | "about";
+
+const [profileErrors, setProfileErrors] = useState<
+  Partial<Record<ProfileSetupField, string>>
+>({});
+
+const [profileSubmitError, setProfileSubmitError] =
+  useState("");
+
+const [isSavingProfile, setIsSavingProfile] =
+  useState(false);
+
+const clearProfileError = (
+  field: ProfileSetupField
+) => {
+  setProfileErrors((prev) => {
+    if (!prev[field]) return prev;
+
+    const next = { ...prev };
+    delete next[field];
+    return next;
+  });
+
+  setProfileSubmitError("");
+};
 
   useEffect(() => {
   try {
@@ -876,6 +913,7 @@ setLatestAdminCountries(
     ? latestCountries
     : []
 );
+
 
 // Always fetch the latest Admin Topic list
 // directly from Supabase before validation.
@@ -2592,97 +2630,268 @@ const todayStr =
             </p>
           </div>
 
-          <form onSubmit={(e) => {
-            e.preventDefault();
-            if (!profileOrgName.trim()) {
-              showToast("Organization Name is required");
-              return;
-            }
-            if (!profileCountry) {
-              showToast("Please select a Country");
-              return;
-            }
-            if (!profileCity.trim()) {
-              showToast("Please select or enter a City");
-              return;
-            }
-            if (!profileWebsite.trim()) {
-              showToast("Website Link is required");
-              return;
-            }
-            if (!profileAbout.trim()) {
-              showToast("About Organization is required");
-              return;
-            }
+          <form
+            noValidate
+            onSubmit={async (e) => {
+              e.preventDefault();
 
-            let formattedWebsite = profileWebsite.trim();
-            if (formattedWebsite && !/^https?:\/\//i.test(formattedWebsite)) {
-              formattedWebsite = `https://${formattedWebsite}`;
-            }
+              if (isSavingProfile) return;
 
-            onRegisterOrganizer({
-              organizationName: profileOrgName.trim(),
-              contactPerson: profileContact.trim() || authUser?.name || "",
-              logo: profileLogo || "",
-              coverImage: profileCover || "",
-              galleryImages: profileGallery,
-              organizationWebsite: formattedWebsite,
-              aboutOrganization: profileAbout.trim(),
-              country: profileCountry,
-              city: profileCity.trim(),
-              isProfileComplete: true,
-            });
-            // Profile completed — remove the temporary browser draft
-              try {
-                localStorage.removeItem(organizerProfileDraftKey);
-              } catch (error) {
-                console.error("Failed to clear organizer profile draft:", error);
+              const errors: Partial<
+                Record<ProfileSetupField, string>
+              > = {};
+
+              const organizationName =
+                profileOrgName.trim();
+
+              const contactPerson =
+                profileContact.trim();
+
+              const country =
+                profileCountry.trim();
+
+              const city =
+                profileCity.trim();
+
+              const about =
+                profileAbout.trim();
+
+              let formattedWebsite =
+                profileWebsite.trim();
+
+              if (!organizationName) {
+                errors.organizationName =
+                  "Organization Name is required.";
               }
 
-              showToast("Profile completed successfully!");
-          }} 
-          
-          className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 min-w-0"> 
-              <div className="space-y-1 md:col-span-2 min-w-0">
-                <label className="text-xs font-bold uppercase tracking-wider text-gray-500">Organization Name *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. MIT University Systems"
-                  value={profileOrgName || ""}
-                  onChange={(e) => setProfileOrgName(e.target.value)}
-                  className="w-full min-w-0 text-xs sm:text-sm bg-gray-50 border border-gray-200 rounded-xl px-3 sm:px-4 py-3 text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs font-bold uppercase tracking-wider text-gray-500">Contact Person *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Dr. Sarah Jenkins"
-                  value={profileContact || ""}
-                  onChange={(e) => setProfileContact(e.target.value)}
-                  className="w-full min-w-0 text-xs sm:text-sm bg-gray-50 border border-gray-200 rounded-xl px-3 sm:px-4 py-3 text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                />
-              </div>
+              if (!contactPerson) {
+                errors.contactPerson =
+                  "Contact Person is required.";
+              }
+
+              if (!country) {
+                errors.country =
+                  "Please select a Country.";
+              }
+
+              if (!city) {
+                errors.city =
+                  "Please select or enter a City.";
+              }
+
+              if (!formattedWebsite) {
+                errors.website =
+                  "Website Link is required.";
+              } else {
+                if (
+                  !/^https?:\/\//i.test(
+                    formattedWebsite
+                  )
+                ) {
+                  formattedWebsite =
+                    `https://${formattedWebsite}`;
+                }
+
+                try {
+                  const parsedUrl =
+                    new URL(formattedWebsite);
+
+                  const validProtocol =
+                    parsedUrl.protocol === "http:" ||
+                    parsedUrl.protocol === "https:";
+
+                  const validHostname =
+                    Boolean(parsedUrl.hostname) &&
+                    parsedUrl.hostname.includes(".");
+
+                  if (
+                    !validProtocol ||
+                    !validHostname
+                  ) {
+                    errors.website =
+                      "Please enter a valid website address.";
+                  }
+                } catch {
+                  errors.website =
+                    "Please enter a valid website address.";
+                }
+              }
+
+              if (!about) {
+                errors.about =
+                  "About Organization is required.";
+              }
+
+              setProfileErrors(errors);
+
+              const firstError =
+                Object.values(errors)[0];
+
+              if (firstError) {
+                setProfileSubmitError(
+                  "Please correct the highlighted fields."
+                );
+
+                showToast(firstError);
+
+                return;
+              }
+
+              setProfileSubmitError("");
+              setIsSavingProfile(true);
+
+              try {
+                const result =
+                  await onRegisterOrganizer({
+                    organizationName,
+                    contactPerson,
+                    logo: profileLogo || "",
+                    coverImage: profileCover || "",
+                    galleryImages: profileGallery,
+                    organizationWebsite:
+                      formattedWebsite,
+                    aboutOrganization: about,
+                    country,
+                    city,
+                    isProfileComplete: true,
+                  });
+
+                if (!result.success) {
+                  const message =
+                    result.error ||
+                    "Unable to save organizer profile. Please try again.";
+
+                  if (
+                    result.field ===
+                    "organizationName"
+                  ) {
+                    setProfileErrors((prev) => ({
+                      ...prev,
+                      organizationName: message,
+                    }));
+                  }
+
+                  setProfileSubmitError(message);
+                  showToast(message);
+
+                  return;
+                }
+
+                try {
+                  localStorage.removeItem(
+                    organizerProfileDraftKey
+                  );
+                } catch (error) {
+                  console.error(
+                    "Failed to clear organizer profile draft:",
+                    error
+                  );
+                }
+
+                showToast(
+                  "Profile completed successfully!"
+                );
+              } catch (error) {
+                const message =
+                  error instanceof Error
+                    ? error.message
+                    : "Unable to save organizer profile. Please try again.";
+
+                setProfileSubmitError(message);
+                showToast(message);
+              } finally {
+                setIsSavingProfile(false);
+              }
+            }}
+            className="space-y-4"
+>
+ <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 min-w-0">
+
+<div className="space-y-1 md:col-span-2 min-w-0">
+  <label className="text-xs font-bold uppercase tracking-wider text-gray-500">
+    Organization Name *
+  </label>
+
+  <input
+    type="text"
+    required
+    placeholder="e.g. MIT University Systems"
+    value={profileOrgName || ""}
+    onChange={(e) => {
+      setProfileOrgName(e.target.value);
+      clearProfileError("organizationName");
+    }}
+    className={`w-full min-w-0 text-xs sm:text-sm border rounded-xl px-3 sm:px-4 py-3 text-gray-700 focus:ring-2 focus:outline-none ${
+      profileErrors.organizationName
+        ? "bg-red-50 border-red-500 focus:ring-red-500"
+        : "bg-gray-50 border-gray-200 focus:ring-blue-500"
+    }`}
+  />
+
+  {profileErrors.organizationName && (
+    <p className="text-xs font-semibold text-red-600">
+      {profileErrors.organizationName}
+    </p>
+  )}
+</div>
+
+<div className="space-y-1">
+  <label className="text-xs font-bold uppercase tracking-wider text-gray-500">
+    Contact Person *
+  </label>
+
+  <input
+    type="text"
+    required
+    placeholder="Dr. Sarah Jenkins"
+    value={profileContact || ""}
+    onChange={(e) => {
+      setProfileContact(e.target.value);
+      clearProfileError("contactPerson");
+    }}
+    className={`w-full min-w-0 text-xs sm:text-sm border rounded-xl px-3 sm:px-4 py-3 text-gray-700 focus:ring-2 focus:outline-none ${
+      profileErrors.contactPerson
+        ? "bg-red-50 border-red-500 focus:ring-red-500"
+        : "bg-gray-50 border-gray-200 focus:ring-blue-500"
+    }`}
+  />
+
+  {profileErrors.contactPerson && (
+    <p className="text-xs font-semibold text-red-600">
+      {profileErrors.contactPerson}
+    </p>
+  )}
+</div>
               <div className="space-y-1">
                 <label className="text-xs font-bold uppercase tracking-wider text-gray-500">Country *</label>
-                <select
-                  required
-                  value={profileCountry || ""}
-                 onChange={(e) => {
-                  const selectedC = e.target.value;
-                  setProfileCountry(selectedC);
-                  setProfileCity("");
-                }}
-                  className="w-full text-sm bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                >
+<select
+  required
+  value={profileCountry || ""}
+  onChange={(e) => {
+    const selectedC = e.target.value;
+    setProfileCountry(selectedC);
+    setProfileCity("");
+    clearProfileError("country");
+    clearProfileError("city");
+  }}
+  className={`w-full text-sm border rounded-xl px-4 py-3 text-gray-700 focus:ring-2 focus:outline-none ${
+    profileErrors.country
+      ? "bg-red-50 border-red-500 focus:ring-red-500"
+      : "bg-gray-50 border-gray-200 focus:ring-blue-500"
+  }`}
+>
                   <option value="">Select Country</option>
                   {adminCountryOptions.map((c, idx) => (
                     <option key={`${c}-${idx}`} value={c}>{c}</option>
                   ))}
                 </select>
+
+                {profileErrors.country && (
+  <p className="text-xs font-semibold text-red-600">
+    {profileErrors.country}
+  </p>
+)}
+
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-bold uppercase tracking-wider text-gray-500">City *</label>
@@ -2691,12 +2900,17 @@ const todayStr =
                     required
                     disabled={!profileCountry}
                     value={profileCity || ""}
-                    onChange={(e) => setProfileCity(e.target.value)}
-                    className={`w-full min-w-0 text-xs sm:text-sm border rounded-xl px-3 sm:px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-colors ${
-                      !profileCountry
-                        ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
-                        : "bg-gray-50 border-gray-200 text-gray-700 cursor-pointer"
-                    }`}
+                    onChange={(e) => {
+  setProfileCity(e.target.value);
+  clearProfileError("city");
+}}
+className={`w-full min-w-0 text-xs sm:text-sm border rounded-xl px-3 sm:px-4 py-3 focus:ring-2 focus:outline-none transition-colors ${
+  !profileCountry
+    ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
+    : profileErrors.city
+    ? "bg-red-50 border-red-500 text-gray-700 cursor-pointer focus:ring-red-500"
+    : "bg-gray-50 border-gray-200 text-gray-700 cursor-pointer focus:ring-blue-500"
+}`}
                   >
                     <option value="">{profileCountry ? "Select City" : "Select Country First"}</option>
                     {profileCityOptions.map((c, idx) => (
@@ -2710,10 +2924,22 @@ const todayStr =
                     disabled={!profileCountry}
                     placeholder={profileCountry ? "Enter City Name" : "Select Country First"}
                     value={profileCity || ""}
-                    onChange={(e) => setProfileCity(e.target.value)}
-                    className="w-full min-w-0 text-xs sm:text-sm bg-gray-50 border border-gray-200 rounded-xl px-3 sm:px-4 py-3 text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:bg-gray-100 disabled:text-gray-400"
+                    onChange={(e) => {
+  setProfileCity(e.target.value);
+  clearProfileError("city");
+}}
+                    className={`w-full min-w-0 text-xs sm:text-sm border rounded-xl px-3 sm:px-4 py-3 text-gray-700 focus:ring-2 focus:outline-none disabled:bg-gray-100 disabled:text-gray-400 ${
+  profileErrors.city
+    ? "bg-red-50 border-red-500 focus:ring-red-500"
+    : "bg-gray-50 border-gray-200 focus:ring-blue-500"
+}`}
                   />
                 )}
+                {profileErrors.city && (
+  <p className="text-xs font-semibold text-red-600">
+    {profileErrors.city}
+  </p>
+)}
               </div>
               <div className="space-y-1 md:col-span-2 min-w-0">
                 <label className="text-xs font-bold uppercase tracking-wider text-gray-500">Website Link *</label>
@@ -2722,9 +2948,21 @@ const todayStr =
                   required
                   placeholder="e.g. example.edu or https://institution.edu"
                   value={profileWebsite || ""}
-                  onChange={(e) => setProfileWebsite(e.target.value)}
-                  className="w-full min-w-0 text-xs sm:text-sm bg-gray-50 border border-gray-200 rounded-xl px-3 sm:px-4 py-3 text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+onChange={(e) => {
+  setProfileWebsite(e.target.value);
+  clearProfileError("website");
+}}
+className={`w-full min-w-0 text-xs sm:text-sm border rounded-xl px-3 sm:px-4 py-3 text-gray-700 focus:ring-2 focus:outline-none ${
+  profileErrors.website
+    ? "bg-red-50 border-red-500 focus:ring-red-500"
+    : "bg-gray-50 border-gray-200 focus:ring-blue-500"
+}`}
                 />
+                {profileErrors.website && (
+  <p className="text-xs font-semibold text-red-600">
+    {profileErrors.website}
+  </p>
+)}
               </div>
 
               <ImageUploaderField
@@ -2746,19 +2984,52 @@ const todayStr =
                   rows={4}
                   placeholder="Brief summary of your organization..."
                   value={profileAbout || ""}
-                  onChange={(e) => setProfileAbout(e.target.value)}
-                  className="w-full min-w-0 text-xs sm:text-sm bg-gray-50 border border-gray-200 rounded-xl px-3 sm:px-4 py-3 text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none"
+                  onChange={(e) => {
+  setProfileAbout(e.target.value);
+  clearProfileError("about");
+}}
+className={`w-full min-w-0 text-xs sm:text-sm border rounded-xl px-3 sm:px-4 py-3 text-gray-700 focus:ring-2 focus:outline-none resize-none ${
+  profileErrors.about
+    ? "bg-red-50 border-red-500 focus:ring-red-500"
+    : "bg-gray-50 border-gray-200 focus:ring-blue-500"
+}`}
                 />
+
+                {profileErrors.about && (
+  <p className="text-xs font-semibold text-red-600">
+    {profileErrors.about}
+  </p>
+)}
+
               </div>
             </div>
 
+            {profileSubmitError && (
+  <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3">
+    <p className="text-xs sm:text-sm font-semibold text-red-700">
+      {profileSubmitError}
+    </p>
+  </div>
+)}
+
             <div className="pt-2 flex flex-col gap-2">
-              <button
-                type="submit"
-                className="w-full py-3.5 bg-[#37494E] hover:bg-[#2c3b3f] text-white text-sm font-bold rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <Save className="h-4 w-4" /> Save Profile & Continue
-              </button>
+<button
+  type="submit"
+  disabled={isSavingProfile}
+  className="w-full py-3.5 bg-[#37494E] hover:bg-[#2c3b3f] disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm font-bold rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 cursor-pointer"
+>
+  {isSavingProfile ? (
+    <>
+      <RefreshCw className="h-4 w-4 animate-spin" />
+      Saving Profile...
+    </>
+  ) : (
+    <>
+      <Save className="h-4 w-4" />
+      Save Profile & Continue
+    </>
+  )}
+</button>
               {onLogout && (
                 <button
                   type="button"

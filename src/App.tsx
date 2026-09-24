@@ -2439,8 +2439,19 @@ canonicalLink.setAttribute("href", canonicalUrl);
   };
 
   // Organizer functions
-  const handleRegisterOrganizer = async (updatedOrg: Partial<OrganizerProfile>) => {
-    if (!authUser) return;
+const handleRegisterOrganizer = async (
+  updatedOrg: Partial<OrganizerProfile>
+): Promise<{
+  success: boolean;
+  error?: string;
+  field?: "organizationName";
+}> => {
+  if (!authUser) {
+    return {
+      success: false,
+      error: "Organizer session not found. Please sign in again.",
+    };
+  }
 
     const uploadOrganizerImage = async (
   imageValue: string | undefined,
@@ -2573,7 +2584,7 @@ const deleteOrganizerStorageImage = async (
 
     let currentOrgs = organizers;
     try {
-      const fresh = await fetchFromSupabase<OrganizerProfile[]>("organizers", true);
+      const fresh = await fetchOrganizersForRole("ORGANIZER", true);
       if (fresh && Array.isArray(fresh)) currentOrgs = fresh;
     } catch (err) {}
 
@@ -2583,9 +2594,55 @@ const deleteOrganizerStorageImage = async (
         (targetEmail && o.email?.toLowerCase().trim() === targetEmail)
     );
 
-    const orgId = matched?.id || targetOrgId || `org-${Date.now()}`;
-    const orgName = updatedOrg.organizationName || matched?.organizationName || authUser.name || "Organizer";
-    const uniqueSlug = generateUniqueOrganizerSlug(orgName, currentOrgs, orgId);
+const orgId =
+  matched?.id ||
+  targetOrgId ||
+  `org-${Date.now()}`;
+
+const orgName = String(
+  updatedOrg.organizationName ||
+    matched?.organizationName ||
+    authUser.name ||
+    "Organizer"
+).trim();
+
+const normalizeOrganizerName = (value: string) =>
+  String(value || "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .toLowerCase();
+
+const normalizedOrgName =
+  normalizeOrganizerName(orgName);
+
+const duplicateOrganizer =
+  currentOrgs.find((organizer) => {
+    if (organizer.id === orgId) {
+      return false;
+    }
+
+    return (
+      normalizeOrganizerName(
+        organizer.organizationName || ""
+      ) === normalizedOrgName
+    );
+  });
+
+if (duplicateOrganizer) {
+  return {
+    success: false,
+    field: "organizationName",
+    error:
+      "This organizer name is already used. Please enter a different organizer name.",
+  };
+}
+
+const uniqueSlug =
+  generateUniqueOrganizerSlug(
+    orgName,
+    currentOrgs,
+    orgId
+  );
 const nextLogo =
   updatedOrg.logo ??
   matched?.logo ??
@@ -2700,10 +2757,33 @@ try {
       );
     }
 
-    return;
-  }
+const saveError =
+  saveRes.error ||
+  "Unable to save organizer profile. Please try again.";
 
-  // Database save succeeded:
+if (
+  saveError.includes(
+    "This organizer name is already used"
+  ) ||
+  saveError.includes(
+    "idx_organizers_slug_unique_normalized"
+  )
+) {
+  return {
+    success: false,
+    field: "organizationName",
+    error:
+      "This organizer name is already used. Please enter a different organizer name.",
+  };
+}
+
+return {
+  success: false,
+  error: saveError,
+};
+}
+
+// Database save succeeded:
   // now it is safe to remove the previous Storage images.
   if (
     nextLogo.startsWith("data:") &&
@@ -2747,10 +2827,16 @@ try {
     );
   }
 
-  return;
+return {
+  success: false,
+  error:
+    saveErr instanceof Error
+      ? saveErr.message
+      : "Unable to save organizer profile. Please try again.",
+};
 }
 
-    if (!authUser.organizerId || authUser.organizerId !== finalOrg.id) {
+if (!authUser.organizerId || authUser.organizerId !== finalOrg.id) {
       setAuthUser({ ...authUser, organizerId: finalOrg.id });
     }
 
@@ -2787,6 +2873,7 @@ try {
         "ORGANIZER"
       );
     }
+    return { success: true };
   };
 
   const handleSubmitConference = async (newConf: Partial<Conference>, isDraft: boolean = false) => {
@@ -4375,11 +4462,7 @@ const handleEditCategory = async (
         (authUser.email && o.email?.toLowerCase().trim() === authUser.email.toLowerCase().trim())
     );
     if (!org) return false;
-    if (org.isProfileComplete === true) return true;
-    return Boolean(
-      org.organizationName &&
-      org.organizationName.trim().length > 0
-    );
+return org.isProfileComplete === true;
   }, [organizers, authUser]);
 
   // Render Auth Modal
