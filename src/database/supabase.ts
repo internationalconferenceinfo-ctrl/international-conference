@@ -1866,6 +1866,49 @@ export async function fetchPaginatedConferencesFromSupabase(params: {
 }
 
 /**
+ * Fetch the complete active public conference dataset in safe 100-row pages.
+ * The public Conferences directory itself remains paginated.
+ */
+export async function fetchAllActivePublicConferencesFromSupabase(): Promise<any[] | null> {
+  const pageSize = 100;
+  const allConferences: any[] = [];
+  let page = 1;
+
+  while (true) {
+    const result =
+      await fetchPaginatedConferencesFromSupabase({
+        page,
+        pageSize,
+        onlyApproved: true,
+        liveStatus: "All",
+        sortBy: "Upcoming",
+      });
+
+    if (!result) {
+      return null;
+    }
+
+    const batch = Array.isArray(result.data)
+      ? result.data
+      : [];
+
+    allConferences.push(...batch);
+
+    if (
+      batch.length === 0 ||
+      batch.length < pageSize ||
+      allConferences.length >= result.total
+    ) {
+      break;
+    }
+
+    page += 1;
+  }
+
+  return allConferences;
+}
+
+/**
  * Fetch one approved public conference directly by slug or ID.
  * This avoids downloading the complete conferences table
  * when a visitor opens a conference details URL.

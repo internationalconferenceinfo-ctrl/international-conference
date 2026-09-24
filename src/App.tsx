@@ -5,26 +5,27 @@ import { toUpperCaseName } from "./shared/utils/textUtils";
 import {
   findExactConferenceDuplicate,
 } from "./shared/utils/conferenceDuplicateUtils";
-import { 
-  saveToSupabase, 
-fetchFromSupabase,
-fetchPaginatedConferencesFromSupabase,
-fetchCityBySlugFromSupabase,
-fetchPublicConferenceBySlugOrIdFromSupabase,
-fetchAllCountriesFromSupabase,
+import {
+  saveToSupabase,
+  fetchFromSupabase,
+  fetchPaginatedConferencesFromSupabase,
+  fetchAllActivePublicConferencesFromSupabase,
+  fetchCityBySlugFromSupabase,
+  fetchPublicConferenceBySlugOrIdFromSupabase,
+  fetchAllCountriesFromSupabase,
   fetchCitiesByCountryFromSupabase,
-  deleteFromSupabase, 
-  saveRecordToSupabase, 
-  deleteRecordFromSupabase, 
-  subscribeToSupabase, 
-  isSupabaseConfigured, 
+  deleteFromSupabase,
+  saveRecordToSupabase,
+  deleteRecordFromSupabase,
+  subscribeToSupabase,
+  isSupabaseConfigured,
   signInWithSupabase,
-  signOutWithSupabase, 
-  onSupabaseAuthStateChange, 
-  getSupabaseClient 
+  signOutWithSupabase,
+  onSupabaseAuthStateChange,
+  getSupabaseClient
 } from "./database/supabase";
-import { 
-  Award, ShieldCheck, Globe, MapPin, Users, FileText, CheckCircle2, 
+import {
+  Award, ShieldCheck, Globe, MapPin, Users, FileText, CheckCircle2,
   X, ExternalLink, Calendar, Clock, LogIn, UserPlus, LogOut,
   LayoutDashboard, User, Mail, Lock, Key, Building, Menu, Home,
   Sparkles, Search, ArrowRight, ChevronRight, ChevronLeft, Star, TrendingUp,
@@ -174,101 +175,101 @@ export const getCleanImageSrc = (src?: string, fallback = ""): string => {
 
 export const WhatsAppIcon = ({ className = "h-4 w-4" }: { className?: string }) => (
   <svg className={className} fill="currentColor" viewBox="0 0 24 24">
-    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414-.074-.124-.272-.198-.57-.347z"/>
-    <path d="M12 0C5.373 0 0 5.373 0 12c0 2.119.555 4.109 1.525 5.835L0 24l6.335-1.503A11.93 11.93 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22a9.92 9.92 0 01-5.06-1.39l-.363-.216-3.765.893.911-3.669-.236-.375A9.927 9.927 0 012 12c0-5.514 4.486-10 10-10s10 4.486 10 10-4.486 10-10 10z"/>
+    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414-.074-.124-.272-.198-.57-.347z" />
+    <path d="M12 0C5.373 0 0 5.373 0 12c0 2.119.555 4.109 1.525 5.835L0 24l6.335-1.503A11.93 11.93 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22a9.92 9.92 0 01-5.06-1.39l-.363-.216-3.765.893.911-3.669-.236-.375A9.927 9.927 0 012 12c0-5.514 4.486-10 10-10s10 4.486 10 10-4.486 10-10 10z" />
   </svg>
 );
 
 export const TelegramIcon = ({ className = "h-4 w-4" }: { className?: string }) => (
   <svg className={className} fill="currentColor" viewBox="0 0 24 24">
-    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.07-.2-.08-.06-.19-.04-.27-.02-.12.02-1.96 1.25-5.54 3.69-.52.36-1 .53-1.42.52-.47-.01-1.37-.26-2.03-.48-.82-.27-1.47-.42-1.42-.88.03-.25.38-.51 1.07-.78 4.18-1.82 6.97-3.02 8.38-3.61 3.98-1.66 4.81-1.95 5.35-1.96.12 0 .38.03.55.17.14.12.18.28.2.4.02.13.01.27 0 .37z"/>
+    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.07-.2-.08-.06-.19-.04-.27-.02-.12.02-1.96 1.25-5.54 3.69-.52.36-1 .53-1.42.52-.47-.01-1.37-.26-2.03-.48-.82-.27-1.47-.42-1.42-.88.03-.25.38-.51 1.07-.78 4.18-1.82 6.97-3.02 8.38-3.61 3.98-1.66 4.81-1.95 5.35-1.96.12 0 .38.03.55.17.14.12.18.28.2.4.02.13.01.27 0 .37z" />
   </svg>
 );
 
 export const TikTokIcon = ({ className = "h-4 w-4" }: { className?: string }) => (
   <svg className={className} fill="currentColor" viewBox="0 0 24 24">
-    <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-5.2 1.74 2.89 2.89 0 012.31-4.64c.29 0 .58.04.86.12V9.42a6.27 6.27 0 00-.86-.06A6.34 6.34 0 003.15 15.7a6.34 6.34 0 0010.82 4.48V12a8.28 8.28 0 005.62 2.22v-3.71a4.84 4.84 0 01-3.77-1.82z"/>
+    <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-5.2 1.74 2.89 2.89 0 012.31-4.64c.29 0 .58.04.86.12V9.42a6.27 6.27 0 00-.86-.06A6.34 6.34 0 003.15 15.7a6.34 6.34 0 0010.82 4.48V12a8.28 8.28 0 005.62 2.22v-3.71a4.84 4.84 0 01-3.77-1.82z" />
   </svg>
 );
 
 export const GithubIcon = ({ className = "h-4 w-4" }: { className?: string }) => (
   <svg className={className} fill="currentColor" viewBox="0 0 24 24">
-    <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+    <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
   </svg>
 );
 
 export const PinterestIcon = ({ className = "h-4 w-4" }: { className?: string }) => (
   <svg className={className} fill="currentColor" viewBox="0 0 24 24">
-    <path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 5.079 3.158 9.417 7.618 11.162-.105-.949-.199-2.403.041-3.439.219-.937 1.406-5.957 1.406-5.957s-.359-.72-.359-1.781c0-1.663.967-2.911 2.168-2.911 1.024 0 1.518.769 1.518 1.688 0 1.029-.653 2.567-.992 3.992-.285 1.193.6 2.165 1.775 2.165 2.128 0 3.768-2.245 3.768-5.487 0-2.861-2.063-4.869-5.008-4.869-3.41 0-5.409 2.562-5.409 5.199 0 1.033.394 2.143.889 2.741.099.12.112.225.085.345-.09.375-.293 1.199-.334 1.363-.053.225-.172.271-.401.165-1.495-.69-2.433-2.878-2.433-4.646 0-3.776 2.748-7.252 7.92-7.252 4.158 0 7.392 2.967 7.392 6.923 0 4.135-2.607 7.462-6.233 7.462-1.214 0-2.354-.629-2.758-1.379l-.749 2.848c-.269 1.045-1.004 2.352-1.498 3.146 1.123.345 2.306.535 3.55.535 6.607 0 11.985-5.365 11.985-11.987C23.97 5.367 18.592 0 12.017 0z"/>
+    <path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 5.079 3.158 9.417 7.618 11.162-.105-.949-.199-2.403.041-3.439.219-.937 1.406-5.957 1.406-5.957s-.359-.72-.359-1.781c0-1.663.967-2.911 2.168-2.911 1.024 0 1.518.769 1.518 1.688 0 1.029-.653 2.567-.992 3.992-.285 1.193.6 2.165 1.775 2.165 2.128 0 3.768-2.245 3.768-5.487 0-2.861-2.063-4.869-5.008-4.869-3.41 0-5.409 2.562-5.409 5.199 0 1.033.394 2.143.889 2.741.099.12.112.225.085.345-.09.375-.293 1.199-.334 1.363-.053.225-.172.271-.401.165-1.495-.69-2.433-2.878-2.433-4.646 0-3.776 2.748-7.252 7.92-7.252 4.158 0 7.392 2.967 7.392 6.923 0 4.135-2.607 7.462-6.233 7.462-1.214 0-2.354-.629-2.758-1.379l-.749 2.848c-.269 1.045-1.004 2.352-1.498 3.146 1.123.345 2.306.535 3.55.535 6.607 0 11.985-5.365 11.985-11.987C23.97 5.367 18.592 0 12.017 0z" />
   </svg>
 );
 
 export default function App() {
 
   // Keep canonical URL synchronized with every SPA navigation
-useEffect(() => {
-  const canonicalOrigin = "https://www.internationalconference.info";
+  useEffect(() => {
+    const canonicalOrigin = "https://www.internationalconference.info";
 
-  const updateCanonicalUrl = () => {
-    const pathname =
-      window.location.pathname === "/"
-        ? "/"
-        : window.location.pathname.replace(/\/+$/, "");
+    const updateCanonicalUrl = () => {
+      const pathname =
+        window.location.pathname === "/"
+          ? "/"
+          : window.location.pathname.replace(/\/+$/, "");
 
-    const canonicalUrl =
-      pathname === "/"
-        ? `${canonicalOrigin}/`
-        : `${canonicalOrigin}${pathname}`;
+      const canonicalUrl =
+        pathname === "/"
+          ? `${canonicalOrigin}/`
+          : `${canonicalOrigin}${pathname}`;
 
-    let canonicalLink = document.querySelector(
-      'link[rel="canonical"]'
-    ) as HTMLLinkElement | null;
+      let canonicalLink = document.querySelector(
+        'link[rel="canonical"]'
+      ) as HTMLLinkElement | null;
 
-    if (!canonicalLink) {
-      canonicalLink = document.createElement("link");
-      canonicalLink.setAttribute("rel", "canonical");
-      document.head.appendChild(canonicalLink);
-    }
+      if (!canonicalLink) {
+        canonicalLink = document.createElement("link");
+        canonicalLink.setAttribute("rel", "canonical");
+        document.head.appendChild(canonicalLink);
+      }
 
-    canonicalLink.setAttribute("href", canonicalUrl);
-  };
+      canonicalLink.setAttribute("href", canonicalUrl);
+    };
 
-  const originalPushState = window.history.pushState;
-  const originalReplaceState = window.history.replaceState;
+    const originalPushState = window.history.pushState;
+    const originalReplaceState = window.history.replaceState;
 
-  window.history.pushState = function (
-    data: any,
-    unused: string,
-    url?: string | URL | null
-  ) {
-    originalPushState.call(window.history, data, unused, url);
+    window.history.pushState = function (
+      data: any,
+      unused: string,
+      url?: string | URL | null
+    ) {
+      originalPushState.call(window.history, data, unused, url);
+      updateCanonicalUrl();
+    };
+
+    window.history.replaceState = function (
+      data: any,
+      unused: string,
+      url?: string | URL | null
+    ) {
+      originalReplaceState.call(window.history, data, unused, url);
+      updateCanonicalUrl();
+    };
+
+    const handlePopState = () => {
+      updateCanonicalUrl();
+    };
+
+    window.addEventListener("popstate", handlePopState);
+
+    // Set correct canonical immediately on first render
     updateCanonicalUrl();
-  };
 
-  window.history.replaceState = function (
-    data: any,
-    unused: string,
-    url?: string | URL | null
-  ) {
-    originalReplaceState.call(window.history, data, unused, url);
-    updateCanonicalUrl();
-  };
-
-  const handlePopState = () => {
-    updateCanonicalUrl();
-  };
-
-  window.addEventListener("popstate", handlePopState);
-
-  // Set correct canonical immediately on first render
-  updateCanonicalUrl();
-
-  return () => {
-    window.history.pushState = originalPushState;
-    window.history.replaceState = originalReplaceState;
-    window.removeEventListener("popstate", handlePopState);
-  };
-}, []);
+    return () => {
+      window.history.pushState = originalPushState;
+      window.history.replaceState = originalReplaceState;
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, []);
 
   // App State - Supabase is the sole authoritative source of truth (no localStorage persistence)
   const [conferences, setConferences] = useState<Conference[]>([]);
@@ -300,36 +301,36 @@ useEffect(() => {
   const [subscriberEmails, setSubscriberEmails] = useState<SubscriberItem[]>([]);
   const [initialDataLoaded, setInitialDataLoaded] = useState(false);
 
-const DEFAULT_COUNTRIES = [
-  "UNITED STATES", "UNITED KINGDOM", "CANADA", "AUSTRALIA", "GERMANY", 
-  "FRANCE", "JAPAN", "INDIA", "SINGAPORE", "ITALY", "SPAIN", "BRAZIL"
-];
+  const DEFAULT_COUNTRIES = [
+    "UNITED STATES", "UNITED KINGDOM", "CANADA", "AUSTRALIA", "GERMANY",
+    "FRANCE", "JAPAN", "INDIA", "SINGAPORE", "ITALY", "SPAIN", "BRAZIL"
+  ];
 
-const DEFAULT_CITIES: Array<{ name: string; country: string }> = [
-  { name: "NEW YORK", country: "UNITED STATES" },
-  { name: "LOS ANGELES", country: "UNITED STATES" },
-  { name: "CHICAGO", country: "UNITED STATES" },
-  { name: "SAN FRANCISCO", country: "UNITED STATES" },
-  { name: "LONDON", country: "UNITED KINGDOM" },
-  { name: "MANCHESTER", country: "UNITED KINGDOM" },
-  { name: "TORONTO", country: "CANADA" },
-  { name: "VANCOUVER", country: "CANADA" },
-  { name: "SYDNEY", country: "AUSTRALIA" },
-  { name: "MELBOURNE", country: "AUSTRALIA" },
-  { name: "BERLIN", country: "GERMANY" },
-  { name: "MUNICH", country: "GERMANY" },
-  { name: "PARIS", country: "FRANCE" },
-  { name: "TOKYO", country: "JAPAN" },
-  { name: "OSAKA", country: "JAPAN" },
-  { name: "NEW DELHI", country: "INDIA" },
-  { name: "MUMBAI", country: "INDIA" },
-  { name: "SINGAPORE", country: "SINGAPORE" },
-  { name: "ROME", country: "ITALY" },
-  { name: "MILAN", country: "ITALY" },
-  { name: "MADRID", country: "SPAIN" },
-  { name: "BARCELONA", country: "SPAIN" },
-  { name: "RIO DE JANEIRO", country: "BRAZIL" },
-];
+  const DEFAULT_CITIES: Array<{ name: string; country: string }> = [
+    { name: "NEW YORK", country: "UNITED STATES" },
+    { name: "LOS ANGELES", country: "UNITED STATES" },
+    { name: "CHICAGO", country: "UNITED STATES" },
+    { name: "SAN FRANCISCO", country: "UNITED STATES" },
+    { name: "LONDON", country: "UNITED KINGDOM" },
+    { name: "MANCHESTER", country: "UNITED KINGDOM" },
+    { name: "TORONTO", country: "CANADA" },
+    { name: "VANCOUVER", country: "CANADA" },
+    { name: "SYDNEY", country: "AUSTRALIA" },
+    { name: "MELBOURNE", country: "AUSTRALIA" },
+    { name: "BERLIN", country: "GERMANY" },
+    { name: "MUNICH", country: "GERMANY" },
+    { name: "PARIS", country: "FRANCE" },
+    { name: "TOKYO", country: "JAPAN" },
+    { name: "OSAKA", country: "JAPAN" },
+    { name: "NEW DELHI", country: "INDIA" },
+    { name: "MUMBAI", country: "INDIA" },
+    { name: "SINGAPORE", country: "SINGAPORE" },
+    { name: "ROME", country: "ITALY" },
+    { name: "MILAN", country: "ITALY" },
+    { name: "MADRID", country: "SPAIN" },
+    { name: "BARCELONA", country: "SPAIN" },
+    { name: "RIO DE JANEIRO", country: "BRAZIL" },
+  ];
 
   // Location States
   const [countriesList, setCountriesList] = useState<string[]>(DEFAULT_COUNTRIES);
@@ -338,71 +339,71 @@ const DEFAULT_CITIES: Array<{ name: string; country: string }> = [
   const [inactiveCities, setInactiveCities] = useState<string[]>([]);
 
   // Load cities only for the selected country.
-// This keeps millions of cities out of browser memory.
-const loadCitiesForCountry = useCallback(
-  async (country: string) => {
-    const normalizedCountry = String(country || "")
-      .trim()
-      .toUpperCase();
+  // This keeps millions of cities out of browser memory.
+  const loadCitiesForCountry = useCallback(
+    async (country: string) => {
+      const normalizedCountry = String(country || "")
+        .trim()
+        .toUpperCase();
 
-    if (!normalizedCountry) {
-  setCitiesList([]);
-  return [] as Array<{ name: string; country: string }>;
-}
+      if (!normalizedCountry) {
+        setCitiesList([]);
+        return [] as Array<{ name: string; country: string }>;
+      }
 
-    try {
-      const countryCities =
-        await fetchCitiesByCountryFromSupabase(
-          normalizedCountry
+      try {
+        const countryCities =
+          await fetchCitiesByCountryFromSupabase(
+            normalizedCountry
+          );
+
+        const cityMap = new Map<
+          string,
+          { name: string; country: string }
+        >();
+
+        countryCities.forEach((item) => {
+          const name = String(item?.name || "")
+            .trim()
+            .toUpperCase();
+
+          const itemCountry = String(
+            item?.country || normalizedCountry
+          )
+            .trim()
+            .toUpperCase();
+
+          if (!name) return;
+
+          cityMap.set(
+            `${itemCountry}:::${name}`,
+            {
+              name,
+              country: itemCountry
+            }
+          );
+        });
+
+        const loadedCities = Array.from(cityMap.values());
+
+
+
+        setCitiesList(loadedCities);
+
+        return loadedCities;
+
+      } catch (error) {
+        console.error(
+          `Unable to load cities for ${normalizedCountry}:`,
+          error
         );
 
-      const cityMap = new Map<
-        string,
-        { name: string; country: string }
-      >();
-
-      countryCities.forEach((item) => {
-        const name = String(item?.name || "")
-          .trim()
-          .toUpperCase();
-
-        const itemCountry = String(
-          item?.country || normalizedCountry
-        )
-          .trim()
-          .toUpperCase();
-
-        if (!name) return;
-
-        cityMap.set(
-          `${itemCountry}:::${name}`,
-          {
-            name,
-            country: itemCountry
-          }
-        );
-      });
-
-      const loadedCities = Array.from(cityMap.values());
-
-
-
-setCitiesList(loadedCities);
-
-return loadedCities;
-
-    } catch (error) {
-      console.error(
-        `Unable to load cities for ${normalizedCountry}:`,
-        error
-      );
-
-      setCitiesList([]);
-      return [] as Array<{ name: string; country: string }>;
-    }
-  },
-  []
-);
+        setCitiesList([]);
+        return [] as Array<{ name: string; country: string }>;
+      }
+    },
+    []
+  );
 
   const isSupabaseLoaded = useRef(false);
   const pendingFullSyncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -415,7 +416,7 @@ return loadedCities;
         bc.close();
       }
       localStorage.setItem("gch_last_sync_trigger", String(Date.now()));
-    } catch (e) {}
+    } catch (e) { }
   }, []);
 
   // Optimized background data sync function
@@ -432,43 +433,39 @@ return loadedCities;
         try {
           const savedSession = JSON.parse(sessionStorage.getItem("gch_auth_user") || "null") as AuthUser | null;
           if (savedSession?.role) sessionRole = savedSession.role;
-        } catch {}
+        } catch { }
       }
-const needsAdminData = sessionRole === "ADMIN";
-const needsPrivateNotifications =
-  sessionRole === "ADMIN" || sessionRole === "ORGANIZER";
+      const needsAdminData = sessionRole === "ADMIN";
+      const needsPrivateNotifications =
+        sessionRole === "ADMIN" || sessionRole === "ORGANIZER";
 
       // Resolve route-critical data first. Conference detail URLs should not
       // wait for banners, feedback, locations, subscribers, or audit tables.
-const [
-  routeConferences,
-  routeOrganizers,
-  routeCategories,
-  routeCountries,
-] = await Promise.all([
-sessionRole === "VISITOR"
-  ? fetchPaginatedConferencesFromSupabase({
-      page: 1,
-      pageSize: 100,
-      onlyApproved: true
-    }).then(
-      (result) =>
-        (result?.data || []) as Conference[]
-    )
-  : fetchFromSupabase<Conference[]>(
-      "conferences",
-      needsAdminData
-    ),
-fetchOrganizersForRole(
-  sessionRole,
-  needsAdminData
-),
-    fetchFromSupabase<Category[]>(
-      "categories",
-      needsAdminData
-    ),
-    fetchAllCountriesFromSupabase(),
-  ]);
+      const [
+        routeConferences,
+        routeOrganizers,
+        routeCategories,
+        routeCountries,
+      ] = await Promise.all([
+        sessionRole === "VISITOR"
+          ? fetchAllActivePublicConferencesFromSupabase().then(
+            (result) =>
+              (result || []) as Conference[]
+          )
+          : fetchFromSupabase<Conference[]>(
+            "conferences",
+            needsAdminData
+          ),
+        fetchOrganizersForRole(
+          sessionRole,
+          needsAdminData
+        ),
+        fetchFromSupabase<Category[]>(
+          "categories",
+          needsAdminData
+        ),
+        fetchAllCountriesFromSupabase(),
+      ]);
 
       if (Array.isArray(routeConferences)) {
         setConferences((prevConfs) => {
@@ -488,28 +485,28 @@ fetchOrganizersForRole(
         });
       }
 
-if (Array.isArray(routeCategories)) {
-  setCategories(deduplicateCategories(routeCategories));
-}
+      if (Array.isArray(routeCategories)) {
+        setCategories(deduplicateCategories(routeCategories));
+      }
 
-if (Array.isArray(routeOrganizers)) {
-  setOrganizers(ensureOrganizerSlugs(routeOrganizers));
-}
+      if (Array.isArray(routeOrganizers)) {
+        setOrganizers(ensureOrganizerSlugs(routeOrganizers));
+      }
 
-if (Array.isArray(routeCountries)) {
-  setCountriesList(
-    Array.from(
-      new Set(
-        routeCountries
-          .map((country) => String(country || "").trim().toUpperCase())
-          .filter(Boolean)
-      )
-    )
-  );
-}
+      if (Array.isArray(routeCountries)) {
+        setCountriesList(
+          Array.from(
+            new Set(
+              routeCountries
+                .map((country) => String(country || "").trim().toUpperCase())
+                .filter(Boolean)
+            )
+          )
+        );
+      }
 
 
-setInitialDataLoaded(true);
+      setInitialDataLoaded(true);
 
       const [
         confData,
@@ -525,41 +522,41 @@ setInitialDataLoaded(true);
         inactCityData,
         auditData,
         notifData
-] = await Promise.all([
-sessionRole === "VISITOR"
-  ? Promise.resolve(null)
-  : fetchFromSupabase<Conference[]>(
-      "conferences",
-      needsAdminData
-    ),
-  fetchFromSupabase<Category[]>(
-    "categories",
-    needsAdminData
-  ),
-fetchOrganizersForRole(
-  sessionRole,
-  needsAdminData
-),
-  fetchFromSupabase<Banner[]>("banners"),
-  fetchFromSupabase<BannerContentItem[]>("banner_contents"),
-  fetchFromSupabase<UserFeedback[]>("user_feedbacks"),
-  needsAdminData
-    ? fetchFromSupabase<SubscriberItem[]>("subscriber_emails")
-    : Promise.resolve([]),
-  fetchAllCountriesFromSupabase(),
+      ] = await Promise.all([
+        sessionRole === "VISITOR"
+          ? Promise.resolve(null)
+          : fetchFromSupabase<Conference[]>(
+            "conferences",
+            needsAdminData
+          ),
+        fetchFromSupabase<Category[]>(
+          "categories",
+          needsAdminData
+        ),
+        fetchOrganizersForRole(
+          sessionRole,
+          needsAdminData
+        ),
+        fetchFromSupabase<Banner[]>("banners"),
+        fetchFromSupabase<BannerContentItem[]>("banner_contents"),
+        fetchFromSupabase<UserFeedback[]>("user_feedbacks"),
+        needsAdminData
+          ? fetchFromSupabase<SubscriberItem[]>("subscriber_emails")
+          : Promise.resolve([]),
+        fetchAllCountriesFromSupabase(),
 
-  // Never load the complete cities table here.
-  Promise.resolve([] as Array<{ name: string; country: string }>),
+        // Never load the complete cities table here.
+        Promise.resolve([] as Array<{ name: string; country: string }>),
 
-  fetchFromSupabase<string[]>("inactive_countries"),
-  fetchFromSupabase<string[]>("inactive_cities"),
-  needsAdminData
-    ? fetchFromSupabase<AuditLog[]>("audit_logs")
-    : Promise.resolve([]),
-  needsPrivateNotifications
-    ? fetchFromSupabase<Notification[]>("notifications")
-    : Promise.resolve([]),
-]);
+        fetchFromSupabase<string[]>("inactive_countries"),
+        fetchFromSupabase<string[]>("inactive_cities"),
+        needsAdminData
+          ? fetchFromSupabase<AuditLog[]>("audit_logs")
+          : Promise.resolve([]),
+        needsPrivateNotifications
+          ? fetchFromSupabase<Notification[]>("notifications")
+          : Promise.resolve([]),
+      ]);
 
       if (confData !== null && Array.isArray(confData)) {
         setConferences((prevConfs) => {
@@ -696,7 +693,7 @@ fetchOrganizersForRole(
             requestFullSync();
           }
         };
-      } catch (e) {}
+      } catch (e) { }
     }
 
     // Storage event for local cross-tab sync
@@ -753,8 +750,8 @@ fetchOrganizersForRole(
         const expectedLiveStatus = start !== null && now < start
           ? LiveStatus.Upcoming
           : end !== null && now > end
-          ? LiveStatus.Completed
-          : LiveStatus.Ongoing;
+            ? LiveStatus.Completed
+            : LiveStatus.Ongoing;
         if (conf.liveStatus !== expectedLiveStatus) {
           changed = true;
           return { ...conf, liveStatus: expectedLiveStatus };
@@ -815,51 +812,51 @@ fetchOrganizersForRole(
         // authenticated identity using the auth user id. The normal data sync
         // will reconcile organizerId/profile fields as soon as the row returns.
         setAuthUser((current) => ({
-        id: sbUser.id,
-        email: sbUser.email || current?.email || "",
-        role: "ORGANIZER",
-        name:
-          matchedOrg?.contactPerson ||
-          matchedOrg?.organizationName ||
-          (current?.role === "ORGANIZER" ? current.name : "") ||
-          sbUser.user_metadata?.name ||
-          "Organizer",
-        organizerId:
-          matchedOrg?.id ||
-          (current?.role === "ORGANIZER" ? current.organizerId : undefined) ||
-          sbUser.id,
-      }));
+          id: sbUser.id,
+          email: sbUser.email || current?.email || "",
+          role: "ORGANIZER",
+          name:
+            matchedOrg?.contactPerson ||
+            matchedOrg?.organizationName ||
+            (current?.role === "ORGANIZER" ? current.name : "") ||
+            sbUser.user_metadata?.name ||
+            "Organizer",
+          organizerId:
+            matchedOrg?.id ||
+            (current?.role === "ORGANIZER" ? current.organizerId : undefined) ||
+            sbUser.id,
+        }));
 
-      void syncAllDataFromSupabase("ORGANIZER");
+        void syncAllDataFromSupabase("ORGANIZER");
 
-      // Only force the Organizer dashboard when the user is actually on
-      // the Organizer portal route.
-      // Public conference/detail pages must remain public even when the
-      // Organizer is logged in.
-// Re-read the current URL after the async profile lookup.
-// During signup the route may have changed to /organizer-portal
-// while this auth callback was waiting for Supabase.
-const latestPath =
-  decodeURIComponent(window.location.pathname)
-    .toLowerCase()
-    .replace(/\/+$/, "") || "/";
+        // Only force the Organizer dashboard when the user is actually on
+        // the Organizer portal route.
+        // Public conference/detail pages must remain public even when the
+        // Organizer is logged in.
+        // Re-read the current URL after the async profile lookup.
+        // During signup the route may have changed to /organizer-portal
+        // while this auth callback was waiting for Supabase.
+        const latestPath =
+          decodeURIComponent(window.location.pathname)
+            .toLowerCase()
+            .replace(/\/+$/, "") || "/";
 
-const organizerPortalRoute =
-  latestPath === "/organizer-portal" ||
-  latestPath.startsWith("/organizer-portal/");
+        const organizerPortalRoute =
+          latestPath === "/organizer-portal" ||
+          latestPath.startsWith("/organizer-portal/");
 
-      if (organizerPortalRoute) {
-        setActivePortal("ORGANIZER");
-        setAuthMode("NONE");
-      }
+        if (organizerPortalRoute) {
+          setActivePortal("ORGANIZER");
+          setAuthMode("NONE");
+        }
 
-      // If Organizer is viewing a public conference/page,
-      // keep the public portal active.
-      if (!organizerPortalRoute) {
-        setActivePortal("VISITOR");
-      }
+        // If Organizer is viewing a public conference/page,
+        // keep the public portal active.
+        if (!organizerPortalRoute) {
+          setActivePortal("VISITOR");
+        }
 
-      setAuthError("");
+        setAuthError("");
       } else if (!sbUser) {
         setAuthUser((current) => current?.role === "ADMIN" ? current : null);
         const path = decodeURIComponent(window.location.pathname).toLowerCase().replace(/\/+$/, "") || "/";
@@ -1012,7 +1009,7 @@ const organizerPortalRoute =
         const u = JSON.parse(savedUser);
         if (u?.role === "ADMIN" && (firstSegment === "admin-portal" || !firstSegment)) return "ADMIN";
         if (u?.role === "ORGANIZER" && (firstSegment === "organizer-portal" || !firstSegment)) return "ORGANIZER";
-      } catch (e) {}
+      } catch (e) { }
     }
     return "VISITOR";
   });
@@ -1050,18 +1047,18 @@ const organizerPortalRoute =
   const [selectedCity, setSelectedCity] = useState<string>("All");
 
   // Load only the cities belonging to the currently selected country.
-// Never download the complete cities table.
-useEffect(() => {
-  if (
-    !selectedCountry ||
-    selectedCountry === "All"
-  ) {
-    setCitiesList([]);
-    return;
-  }
+  // Never download the complete cities table.
+  useEffect(() => {
+    if (
+      !selectedCountry ||
+      selectedCountry === "All"
+    ) {
+      setCitiesList([]);
+      return;
+    }
 
-  void loadCitiesForCountry(selectedCountry);
-}, [selectedCountry, loadCitiesForCountry]);
+    void loadCitiesForCountry(selectedCountry);
+  }, [selectedCountry, loadCitiesForCountry]);
 
   const orgConferencesScrollRef = useRef<HTMLDivElement>(null);
 
@@ -1070,114 +1067,114 @@ useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [publicTab, selectedConference, selectedOrganizerId, activePortal]);
 
- // Match category from URL pathname
-const matchCategory = (cleanPath: string): string | null => {
-  if (!cleanPath) return null;
+  // Match category from URL pathname
+  const matchCategory = (cleanPath: string): string | null => {
+    if (!cleanPath) return null;
 
-  const normalizedPath = cleanPath
-    .trim()
-    .toLowerCase()
-    .replace(/^\/+|\/+$/g, "");
+    const normalizedPath = cleanPath
+      .trim()
+      .toLowerCase()
+      .replace(/^\/+|\/+$/g, "");
 
-  // Sitemap aliases where the public SEO slug intentionally differs
-  // from the actual category name.
-  const CATEGORY_SLUG_ALIASES: Record<string, string> = {
-    "artificial-intelligence": "ARTIFICIAL INTELLIGENCE",
-  };
+    // Sitemap aliases where the public SEO slug intentionally differs
+    // from the actual category name.
+    const CATEGORY_SLUG_ALIASES: Record<string, string> = {
+      "artificial-intelligence": "ARTIFICIAL INTELLIGENCE",
+    };
 
-  const aliasCategory = CATEGORY_SLUG_ALIASES[normalizedPath];
+    const aliasCategory = CATEGORY_SLUG_ALIASES[normalizedPath];
 
-  // Build the category source dynamically from the current app data.
-  const availableCategories = [
-    ...categories.map((cat) => cat.name),
-    ...INITIAL_CATEGORIES.map((cat) => cat.name),
-    ...conferences
-      .map((conference) => conference.category)
-      .filter((category): category is string => Boolean(category)),
-  ];
+    // Build the category source dynamically from the current app data.
+    const availableCategories = [
+      ...categories.map((cat) => cat.name),
+      ...INITIAL_CATEGORIES.map((cat) => cat.name),
+      ...conferences
+        .map((conference) => conference.category)
+        .filter((category): category is string => Boolean(category)),
+    ];
 
-  // First try the sitemap alias against the real available category names.
-  if (aliasCategory) {
-    const aliasMatch = availableCategories.find(
-      (category) =>
-        category.trim().toUpperCase() === aliasCategory.toUpperCase() ||
-        category.trim().toUpperCase() ===
+    // First try the sitemap alias against the real available category names.
+    if (aliasCategory) {
+      const aliasMatch = availableCategories.find(
+        (category) =>
+          category.trim().toUpperCase() === aliasCategory.toUpperCase() ||
+          category.trim().toUpperCase() ===
           `${aliasCategory.toUpperCase()} & ML`
+      );
+
+      if (aliasMatch) {
+        return aliasMatch;
+      }
+    }
+
+    // All normal topics resolve automatically from their category name.
+    const directMatch = availableCategories.find(
+      (category) =>
+        seoSlugify(category) === normalizedPath ||
+        category.trim().toLowerCase() === normalizedPath
     );
 
-    if (aliasMatch) {
-      return aliasMatch;
-    }
-  }
-
-  // All normal topics resolve automatically from their category name.
-  const directMatch = availableCategories.find(
-    (category) =>
-      seoSlugify(category) === normalizedPath ||
-      category.trim().toLowerCase() === normalizedPath
-  );
-
-  return directMatch || null;
-};
+    return directMatch || null;
+  };
 
   const getCategorySlug = (category: string): string => {
-  const normalizedCategory = String(category || "")
-    .trim()
-    .toUpperCase();
+    const normalizedCategory = String(category || "")
+      .trim()
+      .toUpperCase();
 
-  if (
-    normalizedCategory === "ARTIFICIAL INTELLIGENCE & ML" ||
-    normalizedCategory === "ARTIFICIAL INTELLIGENCE"
-  ) {
-    return "artificial-intelligence";
-  }
+    if (
+      normalizedCategory === "ARTIFICIAL INTELLIGENCE & ML" ||
+      normalizedCategory === "ARTIFICIAL INTELLIGENCE"
+    ) {
+      return "artificial-intelligence";
+    }
 
-  return getSeoCategorySlug(category);
-};
+    return getSeoCategorySlug(category);
+  };
 
   // SEO country aliases used by public URLs and the manual sitemap.
-// The value must match the country name stored in the website/database.
-const COUNTRY_SLUG_ALIASES: Record<string, string> = {
-  usa: "USA",
-  uk: "UK",
-  uae: "UNITED ARAB EMIRATES",
-};
+  // The value must match the country name stored in the website/database.
+  const COUNTRY_SLUG_ALIASES: Record<string, string> = {
+    usa: "USA",
+    uk: "UK",
+    uae: "UNITED ARAB EMIRATES",
+  };
 
-const getCountrySlug = (country: string): string => {
-  const normalizedCountry = String(country || "")
-    .trim()
-    .toUpperCase();
+  const getCountrySlug = (country: string): string => {
+    const normalizedCountry = String(country || "")
+      .trim()
+      .toUpperCase();
 
-  const aliasEntry = Object.entries(COUNTRY_SLUG_ALIASES).find(
-    ([, countryName]) => countryName === normalizedCountry
-  );
+    const aliasEntry = Object.entries(COUNTRY_SLUG_ALIASES).find(
+      ([, countryName]) => countryName === normalizedCountry
+    );
 
-  return getSeoCountrySlug(country);
-};
+    return getSeoCountrySlug(country);
+  };
 
   // Match country or city from URL pathname
   const matchCountryOrCity = (
-  cleanPath: string,
-  targetCities?: Array<{ name: string; country: string }>
-) => {
+    cleanPath: string,
+    targetCities?: Array<{ name: string; country: string }>
+  ) => {
 
     if (!cleanPath) return null;
 
     const citySource = targetCities ?? citiesList;
 
-        // Resolve SEO aliases such as /usa, /uk and /uae.
+    // Resolve SEO aliases such as /usa, /uk and /uae.
     const aliasCountry = COUNTRY_SLUG_ALIASES[cleanPath];
 
-if (
-  aliasCountry &&
-  !inactiveCountries.includes(aliasCountry)
-) {
-  return {
-    type: "country",
-    name: aliasCountry
-  };
-}
-    
+    if (
+      aliasCountry &&
+      !inactiveCountries.includes(aliasCountry)
+    ) {
+      return {
+        type: "country",
+        name: aliasCountry
+      };
+    }
+
     // Check if cleanPath matches any active country in countriesList
     const matchedCountry = countriesList.find(
       (c) => (slugify(c) === cleanPath || c.toLowerCase() === cleanPath) && !inactiveCountries.includes(c)
@@ -1185,7 +1182,7 @@ if (
     if (matchedCountry) {
       return { type: "country", name: matchedCountry };
     }
-    
+
     // Check if cleanPath matches any active country in existing conferences
     const dbCountry = conferences.find(
       (c) => (slugify(c.country || "") === cleanPath || c.country?.toLowerCase() === cleanPath) && !inactiveCountries.includes(c.country || "")
@@ -1193,27 +1190,27 @@ if (
     if (dbCountry && dbCountry.country) {
       return { type: "country", name: dbCountry.country };
     }
-    
+
     // Check if cleanPath matches any active city in citiesList
     const adminCity = citySource.find(
       (ct) => (slugify(ct.name || "") === cleanPath || ct.name?.toLowerCase() === cleanPath) &&
-              !inactiveCountries.includes(ct.country) &&
-              !inactiveCities.includes(`${ct.country}:::${ct.name}`)
+        !inactiveCountries.includes(ct.country) &&
+        !inactiveCities.includes(`${ct.country}:::${ct.name}`)
     );
     if (adminCity) {
       return { type: "city", name: adminCity.name, country: adminCity.country };
     }
-    
+
     // Check if cleanPath matches any active city in existing conferences
     const dbCity = conferences.find(
       (c) => (slugify(c.city || "") === cleanPath || c.city?.toLowerCase() === cleanPath) &&
-              c.country && !inactiveCountries.includes(c.country) &&
-              !inactiveCities.includes(`${c.country}:::${c.city}`)
+        c.country && !inactiveCountries.includes(c.country) &&
+        !inactiveCities.includes(`${c.country}:::${c.city}`)
     );
     if (dbCity && dbCity.city && dbCity.country) {
       return { type: "city", name: dbCity.city, country: dbCity.country };
     }
-    
+
     return null;
   };
 
@@ -1228,12 +1225,12 @@ if (
   });
 
   // Parse URL and apply application state accordingly
-const parseURLAndApplyState = (
-  targetConfsList?: Conference[],
-  targetOrgsList?: OrganizerProfile[],
-  customPath?: string,
-  targetCitiesList?: Array<{ name: string; country: string }>
-) => {
+  const parseURLAndApplyState = (
+    targetConfsList?: Conference[],
+    targetOrgsList?: OrganizerProfile[],
+    customPath?: string,
+    targetCitiesList?: Array<{ name: string; country: string }>
+  ) => {
     const confsToUse = targetConfsList && targetConfsList.length > 0 ? targetConfsList : conferences;
     const orgsToUse = targetOrgsList && targetOrgsList.length > 0 ? targetOrgsList : organizers;
 
@@ -1244,11 +1241,11 @@ const parseURLAndApplyState = (
     const params = new URLSearchParams(searchStr || (typeof window !== "undefined" ? window.location.search : ""));
     const legacyEventId = params.get("event") || params.get("id");
     const legacyOrgId = params.get("organizer");
-    
+
     const cleanPath = decodeURIComponent(pathname || "").toLowerCase().trim().replace(/^\/+|\/+$/g, "");
     const segments = cleanPath.split("/").filter(Boolean);
     const firstSegment = segments[0] || "";
-    
+
     let nextTab = "HOME";
     let nextAuth: AuthMode = "NONE";
     let nextCategory = "All";
@@ -1301,10 +1298,10 @@ const parseURLAndApplyState = (
           );
 
           if (foundOrg) {
-          nextOrgId = foundOrg.id;
-        } else {
-          nextTab = "NOT_FOUND";
-        }
+            nextOrgId = foundOrg.id;
+          } else {
+            nextTab = "NOT_FOUND";
+          }
         }
       }
       else {
@@ -1485,19 +1482,19 @@ const parseURLAndApplyState = (
     }
 
     if (nextTab === "NOT_FOUND") {
-  const invalidPath =
-    pathname && pathname !== "/"
-      ? pathname
-      : fullPath.split("?")[0] || "/";
+      const invalidPath =
+        pathname && pathname !== "/"
+          ? pathname
+          : fullPath.split("?")[0] || "/";
 
-  const invalidUrl = searchStr
-    ? `${invalidPath}?${searchStr}`
-    : invalidPath;
+      const invalidUrl = searchStr
+        ? `${invalidPath}?${searchStr}`
+        : invalidPath;
 
-  setNotFoundPath(invalidUrl);
-} else {
-  setNotFoundPath("");
-}
+      setNotFoundPath(invalidUrl);
+    } else {
+      setNotFoundPath("");
+    }
 
     setPublicTab(nextTab);
     setAuthMode(nextAuth);
@@ -1509,190 +1506,190 @@ const parseURLAndApplyState = (
     setActivePortal(nextPortal);
   };
 
-// URL state synchronization effect
-useEffect(() => {
-  const initialSegments = decodeURIComponent(
-    initialPathRef.current.split("?")[0]
-  )
-    .toLowerCase()
-    .trim()
-    .replace(/^\/+|\/+$/g, "")
-    .split("/")
-    .filter(Boolean);
+  // URL state synchronization effect
+  useEffect(() => {
+    const initialSegments = decodeURIComponent(
+      initialPathRef.current.split("?")[0]
+    )
+      .toLowerCase()
+      .trim()
+      .replace(/^\/+|\/+$/g, "")
+      .split("/")
+      .filter(Boolean);
 
-  const firstSegment = initialSegments[0] || "";
+    const firstSegment = initialSegments[0] || "";
 
-  const isDirectConferenceInitialRoute =
-    ["conference", "conferences", "events"].includes(firstSegment) &&
-    Boolean(initialSegments[1]);
+    const isDirectConferenceInitialRoute =
+      ["conference", "conferences", "events"].includes(firstSegment) &&
+      Boolean(initialSegments[1]);
 
-if (
-  !hasParsedInitialUrl.current &&
-  !isResolvingInitialRoute.current &&
-  (initialDataLoaded || isDirectConferenceInitialRoute)
-) {
-  isResolvingInitialRoute.current = true;
+    if (
+      !hasParsedInitialUrl.current &&
+      !isResolvingInitialRoute.current &&
+      (initialDataLoaded || isDirectConferenceInitialRoute)
+    ) {
+      isResolvingInitialRoute.current = true;
 
-const directConferenceSlug =
-  ["conference", "conferences", "events"].includes(firstSegment)
-    ? initialSegments[1] || ""
-    : "";
+      const directConferenceSlug =
+        ["conference", "conferences", "events"].includes(firstSegment)
+          ? initialSegments[1] || ""
+          : "";
 
-const routeCountry = initialSegments
-  .map((segment) => matchCountryOrCity(segment))
-  .find((location) => location?.type === "country");
+      const routeCountry = initialSegments
+        .map((segment) => matchCountryOrCity(segment))
+        .find((location) => location?.type === "country");
 
-const resolveInitialDirectoryRoute = async () => {
-  try {
-    // Direct conference detail route:
-    // /conference/slug
-    // /conferences/slug
-    // /events/slug
-    if (directConferenceSlug) {
-      const directConference =
-        await fetchPublicConferenceBySlugOrIdFromSupabase(
-          directConferenceSlug
-        );
+      const resolveInitialDirectoryRoute = async () => {
+        try {
+          // Direct conference detail route:
+          // /conference/slug
+          // /conferences/slug
+          // /events/slug
+          if (directConferenceSlug) {
+            const directConference =
+              await fetchPublicConferenceBySlugOrIdFromSupabase(
+                directConferenceSlug
+              );
 
-      if (directConference) {
-        const targetedConferences: Conference[] = [
-          directConference as Conference
-        ];
+            if (directConference) {
+              const targetedConferences: Conference[] = [
+                directConference as Conference
+              ];
 
-        setConferences((prev) => [
-          directConference as Conference,
-          ...prev.filter(
-            (conference) =>
-              conference.id !== directConference.id
-          )
-        ]);
+              setConferences((prev) => [
+                directConference as Conference,
+                ...prev.filter(
+                  (conference) =>
+                    conference.id !== directConference.id
+                )
+              ]);
 
-        parseURLAndApplyState(
-          targetedConferences,
-          organizers,
-          initialPathRef.current
-        );
+              parseURLAndApplyState(
+                targetedConferences,
+                organizers,
+                initialPathRef.current
+              );
 
-        return;
-      }
-    }
-
-    // COUNTRY / COUNTRY + CITY / COUNTRY + TOPIC
-    if (routeCountry?.name) {
-      const loadedCities =
-        await loadCitiesForCountry(routeCountry.name);
-
-      parseURLAndApplyState(
-        conferences,
-        organizers,
-        initialPathRef.current,
-        loadedCities
-      );
-
-      return;
-    }
-
-    const reservedRoutes = new Set([
-      "home",
-      "about",
-      "about-us",
-      "about_us",
-      "media-partner",
-      "event-media-partner",
-      "media",
-      "associates",
-      "our-associates",
-      "contact",
-      "contact-us",
-      "contact_us",
-      "privacy",
-      "privacy-policy",
-      "privacy_policy",
-      "terms",
-      "terms-of-service",
-      "terms_of_service",
-      "feedback",
-      "feedbacks",
-      "testimonials",
-      "testimonial",
-      "reviews",
-      "login",
-      "signup",
-      "sign-up",
-      "register",
-      "organizer-portal",
-      "admin-portal",
-      "organizers",
-      "organizer",
-      "conference",
-      "conferences",
-      "events"
-    ]);
-
-    // CITY / CITY + TOPIC / TOPIC + CITY
-    if (!reservedRoutes.has(firstSegment)) {
-      const possibleCitySegments =
-        initialSegments.filter(
-          (segment) =>
-            segment &&
-            !matchCategory(segment)
-        );
-
-      let foundCity:
-        | {
-            name: string;
-            country: string;
-            timeZone: string;
+              return;
+            }
           }
-        | null = null;
 
-      for (const segment of possibleCitySegments) {
-        foundCity =
-          await fetchCityBySlugFromSupabase(
-            segment
+          // COUNTRY / COUNTRY + CITY / COUNTRY + TOPIC
+          if (routeCountry?.name) {
+            const loadedCities =
+              await loadCitiesForCountry(routeCountry.name);
+
+            parseURLAndApplyState(
+              conferences,
+              organizers,
+              initialPathRef.current,
+              loadedCities
+            );
+
+            return;
+          }
+
+          const reservedRoutes = new Set([
+            "home",
+            "about",
+            "about-us",
+            "about_us",
+            "media-partner",
+            "event-media-partner",
+            "media",
+            "associates",
+            "our-associates",
+            "contact",
+            "contact-us",
+            "contact_us",
+            "privacy",
+            "privacy-policy",
+            "privacy_policy",
+            "terms",
+            "terms-of-service",
+            "terms_of_service",
+            "feedback",
+            "feedbacks",
+            "testimonials",
+            "testimonial",
+            "reviews",
+            "login",
+            "signup",
+            "sign-up",
+            "register",
+            "organizer-portal",
+            "admin-portal",
+            "organizers",
+            "organizer",
+            "conference",
+            "conferences",
+            "events"
+          ]);
+
+          // CITY / CITY + TOPIC / TOPIC + CITY
+          if (!reservedRoutes.has(firstSegment)) {
+            const possibleCitySegments =
+              initialSegments.filter(
+                (segment) =>
+                  segment &&
+                  !matchCategory(segment)
+              );
+
+            let foundCity:
+              | {
+                name: string;
+                country: string;
+                timeZone: string;
+              }
+              | null = null;
+
+            for (const segment of possibleCitySegments) {
+              foundCity =
+                await fetchCityBySlugFromSupabase(
+                  segment
+                );
+
+              if (foundCity) {
+                break;
+              }
+            }
+
+            if (foundCity) {
+              const loadedCities =
+                await loadCitiesForCountry(
+                  foundCity.country
+                );
+
+              parseURLAndApplyState(
+                conferences,
+                organizers,
+                initialPathRef.current,
+                loadedCities
+              );
+
+              return;
+            }
+          }
+
+          parseURLAndApplyState(
+            conferences,
+            organizers,
+            initialPathRef.current
           );
-
-        if (foundCity) {
-          break;
+        } finally {
+          hasParsedInitialUrl.current = true;
+          isResolvingInitialRoute.current = false;
+          setInitialRouteResolved(true);
         }
-      }
+      };
 
-      if (foundCity) {
-        const loadedCities =
-          await loadCitiesForCountry(
-            foundCity.country
-          );
-
-        parseURLAndApplyState(
-          conferences,
-          organizers,
-          initialPathRef.current,
-          loadedCities
-        );
-
-        return;
-      }
+      void resolveInitialDirectoryRoute();
     }
 
-    parseURLAndApplyState(
-      conferences,
-      organizers,
-      initialPathRef.current
-    );
-} finally {
-  hasParsedInitialUrl.current = true;
-  isResolvingInitialRoute.current = false;
-  setInitialRouteResolved(true);
-}
-};
-
-void resolveInitialDirectoryRoute();
-    }
-    
     const handlePopState = () => {
       parseURLAndApplyState();
     };
-    
+
     window.addEventListener("popstate", handlePopState);
     return () => {
       window.removeEventListener("popstate", handlePopState);
@@ -1771,16 +1768,16 @@ void resolveInitialDirectoryRoute();
     const currentCleanPath = decodeURIComponent(window.location.pathname);
     if (currentCleanPath !== newPath || window.location.search) {
       window.history.pushState(
-        { 
-          tab: publicTab, 
-          auth: authMode, 
+        {
+          tab: publicTab,
+          auth: authMode,
           category: selectedCategory,
-          country: selectedCountry, 
-          city: selectedCity, 
-          confId: selectedConference?.id, 
-          orgId: selectedOrganizerId 
-        }, 
-        "", 
+          country: selectedCountry,
+          city: selectedCity,
+          confId: selectedConference?.id,
+          orgId: selectedOrganizerId
+        },
+        "",
         newPath
       );
     }
@@ -1825,17 +1822,17 @@ void resolveInitialDirectoryRoute();
     } else {
       switch (publicTab) {
 
-          //subrat bro
-          
+        //subrat bro
+
         case "HOME":
-        title = `International Conferences ${currentYear} | List of International Conferences`;
+          title = `International Conferences ${currentYear} | List of International Conferences`;
 
-        description =
-          "Find List of International Conferences worldwide. Explore academic, business, scientific, and professional Conferences, connect with experts, and expand your global network.";
+          description =
+            "Find List of International Conferences worldwide. Explore academic, business, scientific, and professional Conferences, connect with experts, and expand your global network.";
 
-        keywords = `upcoming international conferences ${currentYear}, List of international conferences ${currentYear}, international conferences ${currentYear}, international conferences by city, international conferences by topic, Upcoming international conferences, academic international conferences, international conferences for researchers, international conferences for students, international conferences for professionals, international conferences and seminars, international conferences and events, global international conferences and events, upcoming academic international conferences worldwide, international research conferences worldwide`;
+          keywords = `upcoming international conferences ${currentYear}, List of international conferences ${currentYear}, international conferences ${currentYear}, international conferences by city, international conferences by topic, Upcoming international conferences, academic international conferences, international conferences for researchers, international conferences for students, international conferences for professionals, international conferences and seminars, international conferences and events, global international conferences and events, upcoming academic international conferences worldwide, international research conferences worldwide`;
 
-        break;
+          break;
         case "ORGANIZERS":
           title = "Trusted Organizers | International Conference";
           description = "Browse verified academic institutions, scientific societies, professional organizations, universities, and research boards hosting conferences worldwide.";
@@ -1909,15 +1906,15 @@ void resolveInitialDirectoryRoute();
 
           break;
         case "ASSOCIATES":
-        title = "Associates of International Conferences | Conference Partners";
+          title = "Associates of International Conferences | Conference Partners";
 
-        description =
-          "Explore conference partners and associates of international conferences dedicated to supporting global events, industry connections, academic networking, and professional development.";
+          description =
+            "Explore conference partners and associates of international conferences dedicated to supporting global events, industry connections, academic networking, and professional development.";
 
-        keywords =
-          "international conference associates, conference associates, international conference partners, conference partners, global conference associates, international event associates, conference association partners, academic conference associates, scientific conference associates, business conference associates, medical conference associates, professional conference associates, international event partners, global event partners, conference networking partners, conference collaboration partners, international conference collaboration, worldwide conference associates, conference support partners, international conference organizations, global conference network, conference industry partners, international event collaboration";
+          keywords =
+            "international conference associates, conference associates, international conference partners, conference partners, global conference associates, international event associates, conference association partners, academic conference associates, scientific conference associates, business conference associates, medical conference associates, professional conference associates, international event partners, global event partners, conference networking partners, conference collaboration partners, international conference collaboration, worldwide conference associates, conference support partners, international conference organizations, global conference network, conference industry partners, international event collaboration";
 
-        break;
+          break;
         case "CONTACT":
           title = "Contact Us | International Conference";
           description = "Get in touch with the International Conference team for support, partnerships, or conference listings.";
@@ -1951,32 +1948,32 @@ void resolveInitialDirectoryRoute();
       metaDesc.setAttribute("name", "description");
 
       // Set canonical URL for the current public route
-const canonicalOrigin = "https://www.internationalconference.info";
+      const canonicalOrigin = "https://www.internationalconference.info";
 
-const cleanCanonicalPath =
-  window.location.pathname === "/"
-    ? "/"
-    : window.location.pathname.replace(/\/+$/, "");
+      const cleanCanonicalPath =
+        window.location.pathname === "/"
+          ? "/"
+          : window.location.pathname.replace(/\/+$/, "");
 
-const canonicalUrl = `${canonicalOrigin}${cleanCanonicalPath}`;
+      const canonicalUrl = `${canonicalOrigin}${cleanCanonicalPath}`;
 
-let canonicalLink = document.querySelector(
-  'link[rel="canonical"]'
-) as HTMLLinkElement | null;
+      let canonicalLink = document.querySelector(
+        'link[rel="canonical"]'
+      ) as HTMLLinkElement | null;
 
-if (!canonicalLink) {
-  canonicalLink = document.createElement("link");
-  canonicalLink.setAttribute("rel", "canonical");
-  document.head.appendChild(canonicalLink);
-}
+      if (!canonicalLink) {
+        canonicalLink = document.createElement("link");
+        canonicalLink.setAttribute("rel", "canonical");
+        document.head.appendChild(canonicalLink);
+      }
 
-canonicalLink.setAttribute("href", canonicalUrl);
+      canonicalLink.setAttribute("href", canonicalUrl);
 
       document.head.appendChild(metaDesc);
     }
     metaDesc.setAttribute("content", description);
 
-    
+
     // Set meta keywords tag
     let metaKeywords = document.querySelector('meta[name="keywords"]');
     if (!metaKeywords) {
@@ -2099,13 +2096,13 @@ canonicalLink.setAttribute("href", canonicalUrl);
 
         const freshOrgs = await fetchFromSupabase<OrganizerProfile[]>("organizers", true);
         if (freshOrgs && Array.isArray(freshOrgs)) {
-  setOrganizers((current) =>
-    mergeOrganizerPublicAndPrivate(
-      current,
-      freshOrgs
-    )
-  );
-}
+          setOrganizers((current) =>
+            mergeOrganizerPublicAndPrivate(
+              current,
+              freshOrgs
+            )
+          );
+        }
         const organizer = freshOrgs?.find((o) => o.authUserId === sbUser.id || o.id === sbUser.id || o.email?.toLowerCase().trim() === sbUser.email?.toLowerCase().trim());
         const newAuthUser: AuthUser = {
           id: sbUser.id,
@@ -2250,13 +2247,13 @@ canonicalLink.setAttribute("href", canonicalUrl);
       }
       const freshOrgs = await fetchFromSupabase<OrganizerProfile[]>("organizers", true);
       if (freshOrgs && Array.isArray(freshOrgs)) {
-  setOrganizers((current) =>
-    mergeOrganizerPublicAndPrivate(
-      current,
-      freshOrgs
-    )
-  );
-}
+        setOrganizers((current) =>
+          mergeOrganizerPublicAndPrivate(
+            current,
+            freshOrgs
+          )
+        );
+      }
       const organizer = freshOrgs?.find((o) => o.authUserId === sbUser.id || o.id === sbUser.id || o.email?.toLowerCase().trim() === sbUser.email?.toLowerCase().trim());
       if (!organizer) {
         await signOutWithSupabase().catch(() => undefined);
@@ -2298,13 +2295,13 @@ canonicalLink.setAttribute("href", canonicalUrl);
         if (!sbUser) throw new Error("No authenticated user");
         const freshOrgs = await fetchFromSupabase<OrganizerProfile[]>("organizers", true);
         if (freshOrgs && Array.isArray(freshOrgs)) {
-  setOrganizers((current) =>
-    mergeOrganizerPublicAndPrivate(
-      current,
-      freshOrgs
-    )
-  );
-}
+          setOrganizers((current) =>
+            mergeOrganizerPublicAndPrivate(
+              current,
+              freshOrgs
+            )
+          );
+        }
         const organizer = freshOrgs?.find((o) => o.authUserId === sbUser.id || o.id === sbUser.id || o.email?.toLowerCase().trim() === sbUser.email?.toLowerCase().trim());
         if (!organizer || organizer.isSuspended) {
           await signOutWithSupabase().catch(() => undefined);
@@ -2334,14 +2331,14 @@ canonicalLink.setAttribute("href", canonicalUrl);
       // would log an Organizer out in another tab of the same browser.
       try {
         await adminFetch("/api/admin/logout", { method: "POST", credentials: "same-origin" });
-      } catch {}
+      } catch { }
       clearAdminTabToken();
     } else if (roleAtLogout === "ORGANIZER" && isSupabaseConfigured()) {
       // Organizer logout affects only the Supabase Organizer session; it does
       // not clear the independent Admin cookie.
       try {
         await signOutWithSupabase();
-      } catch (err) {}
+      } catch (err) { }
     }
     setAuthUser(null);
     setActivePortal("VISITOR");
@@ -2439,146 +2436,146 @@ canonicalLink.setAttribute("href", canonicalUrl);
   };
 
   // Organizer functions
-const handleRegisterOrganizer = async (
-  updatedOrg: Partial<OrganizerProfile>
-): Promise<{
-  success: boolean;
-  error?: string;
-  field?: "organizationName";
-}> => {
-  if (!authUser) {
-    return {
-      success: false,
-      error: "Organizer session not found. Please sign in again.",
-    };
-  }
+  const handleRegisterOrganizer = async (
+    updatedOrg: Partial<OrganizerProfile>
+  ): Promise<{
+    success: boolean;
+    error?: string;
+    field?: "organizationName";
+  }> => {
+    if (!authUser) {
+      return {
+        success: false,
+        error: "Organizer session not found. Please sign in again.",
+      };
+    }
 
     const uploadOrganizerImage = async (
-  imageValue: string | undefined,
-  imageType: "profile" | "cover"
-): Promise<string> => {
-  const value = String(imageValue || "").trim();
+      imageValue: string | undefined,
+      imageType: "profile" | "cover"
+    ): Promise<string> => {
+      const value = String(imageValue || "").trim();
 
-  if (!value || !value.startsWith("data:")) {
-    return value;
-  }
-
-  const client = getSupabaseClient();
-
-  if (!client) {
-    throw new Error("Supabase client is unavailable.");
-  }
-
-  const { data: sessionData } =
-    await client.auth.getSession();
-
-  const token =
-    sessionData.session?.access_token;
-
-  if (!token) {
-    throw new Error(
-      "Organizer authentication session expired. Please sign in again."
-    );
-  }
-
-  const response = await fetch(
-    "/api/organizer/uploads/image",
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        image: value,
-        imageType
-      })
-    }
-  );
-
-  const result =
-    await response.json().catch(() => ({}));
-
-  if (
-    !response.ok ||
-    !result.success ||
-    !result.publicUrl
-  ) {
-    throw new Error(
-      result.error ||
-        "Unable to upload organizer image."
-    );
-  }
-
-  return String(result.publicUrl);
-};
-
-const deleteOrganizerStorageImage = async (
-  imageUrl: string | undefined,
-  imageType: "profile" | "cover"
-) => {
-  const url = String(imageUrl || "").trim();
-
-  if (!url) return;
-
-  const bucket =
-    imageType === "cover"
-      ? "organizer-cover-images"
-      : "organizer-profile-images";
-
-  const marker =
-    `/storage/v1/object/public/${bucket}/`;
-
-  const markerIndex = url.indexOf(marker);
-
-  if (markerIndex === -1) {
-    return;
-  }
-
-  const storagePath = decodeURIComponent(
-    url.substring(markerIndex + marker.length)
-  );
-
-  if (!storagePath) return;
-
-  const client = getSupabaseClient();
-
-  if (!client) {
-    return;
-  }
-
-  const { data: sessionData } =
-    await client.auth.getSession();
-
-  const token =
-    sessionData.session?.access_token;
-
-  if (!token) {
-    return;
-  }
-
-  try {
-    await fetch(
-      "/api/organizer/uploads/image",
-      {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          bucket,
-          path: storagePath
-        })
+      if (!value || !value.startsWith("data:")) {
+        return value;
       }
-    );
-  } catch (error) {
-    console.warn(
-      "Organizer old image cleanup failed:",
-      error
-    );
-  }
-};
+
+      const client = getSupabaseClient();
+
+      if (!client) {
+        throw new Error("Supabase client is unavailable.");
+      }
+
+      const { data: sessionData } =
+        await client.auth.getSession();
+
+      const token =
+        sessionData.session?.access_token;
+
+      if (!token) {
+        throw new Error(
+          "Organizer authentication session expired. Please sign in again."
+        );
+      }
+
+      const response = await fetch(
+        "/api/organizer/uploads/image",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            image: value,
+            imageType
+          })
+        }
+      );
+
+      const result =
+        await response.json().catch(() => ({}));
+
+      if (
+        !response.ok ||
+        !result.success ||
+        !result.publicUrl
+      ) {
+        throw new Error(
+          result.error ||
+          "Unable to upload organizer image."
+        );
+      }
+
+      return String(result.publicUrl);
+    };
+
+    const deleteOrganizerStorageImage = async (
+      imageUrl: string | undefined,
+      imageType: "profile" | "cover"
+    ) => {
+      const url = String(imageUrl || "").trim();
+
+      if (!url) return;
+
+      const bucket =
+        imageType === "cover"
+          ? "organizer-cover-images"
+          : "organizer-profile-images";
+
+      const marker =
+        `/storage/v1/object/public/${bucket}/`;
+
+      const markerIndex = url.indexOf(marker);
+
+      if (markerIndex === -1) {
+        return;
+      }
+
+      const storagePath = decodeURIComponent(
+        url.substring(markerIndex + marker.length)
+      );
+
+      if (!storagePath) return;
+
+      const client = getSupabaseClient();
+
+      if (!client) {
+        return;
+      }
+
+      const { data: sessionData } =
+        await client.auth.getSession();
+
+      const token =
+        sessionData.session?.access_token;
+
+      if (!token) {
+        return;
+      }
+
+      try {
+        await fetch(
+          "/api/organizer/uploads/image",
+          {
+            method: "DELETE",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              bucket,
+              path: storagePath
+            })
+          }
+        );
+      } catch (error) {
+        console.warn(
+          "Organizer old image cleanup failed:",
+          error
+        );
+      }
+    };
     const targetOrgId = authUser.organizerId;
     const targetEmail = authUser.email?.toLowerCase().trim();
 
@@ -2586,7 +2583,7 @@ const deleteOrganizerStorageImage = async (
     try {
       const fresh = await fetchOrganizersForRole("ORGANIZER", true);
       if (fresh && Array.isArray(fresh)) currentOrgs = fresh;
-    } catch (err) {}
+    } catch (err) { }
 
     const matched = currentOrgs.find(
       (o) =>
@@ -2594,249 +2591,249 @@ const deleteOrganizerStorageImage = async (
         (targetEmail && o.email?.toLowerCase().trim() === targetEmail)
     );
 
-const orgId =
-  matched?.id ||
-  targetOrgId ||
-  `org-${Date.now()}`;
+    const orgId =
+      matched?.id ||
+      targetOrgId ||
+      `org-${Date.now()}`;
 
-const orgName = String(
-  updatedOrg.organizationName ||
-    matched?.organizationName ||
-    authUser.name ||
-    "Organizer"
-).trim();
+    const orgName = String(
+      updatedOrg.organizationName ||
+      matched?.organizationName ||
+      authUser.name ||
+      "Organizer"
+    ).trim();
 
-const normalizeOrganizerName = (value: string) =>
-  String(value || "")
-    .trim()
-    .replace(/\s+/g, " ")
-    .toLowerCase();
+    const normalizeOrganizerName = (value: string) =>
+      String(value || "")
+        .trim()
+        .replace(/\s+/g, " ")
+        .toLowerCase();
 
-const normalizedOrgName =
-  normalizeOrganizerName(orgName);
+    const normalizedOrgName =
+      normalizeOrganizerName(orgName);
 
-const duplicateOrganizer =
-  currentOrgs.find((organizer) => {
-    if (organizer.id === orgId) {
-      return false;
+    const duplicateOrganizer =
+      currentOrgs.find((organizer) => {
+        if (organizer.id === orgId) {
+          return false;
+        }
+
+        return (
+          normalizeOrganizerName(
+            organizer.organizationName || ""
+          ) === normalizedOrgName
+        );
+      });
+
+    if (duplicateOrganizer) {
+      return {
+        success: false,
+        field: "organizationName",
+        error:
+          "This organizer name is already used. Please enter a different organizer name.",
+      };
     }
 
-    return (
-      normalizeOrganizerName(
-        organizer.organizationName || ""
-      ) === normalizedOrgName
-    );
-  });
+    const uniqueSlug =
+      generateUniqueOrganizerSlug(
+        orgName,
+        currentOrgs,
+        orgId
+      );
+    const nextLogo =
+      updatedOrg.logo ??
+      matched?.logo ??
+      "";
 
-if (duplicateOrganizer) {
-  return {
-    success: false,
-    field: "organizationName",
-    error:
-      "This organizer name is already used. Please enter a different organizer name.",
-  };
-}
+    const nextCoverImage =
+      updatedOrg.coverImage ??
+      matched?.coverImage ??
+      "";
 
-const uniqueSlug =
-  generateUniqueOrganizerSlug(
-    orgName,
-    currentOrgs,
-    orgId
-  );
-const nextLogo =
-  updatedOrg.logo ??
-  matched?.logo ??
-  "";
+    const uploadedLogo =
+      await uploadOrganizerImage(
+        nextLogo,
+        "profile"
+      );
 
-const nextCoverImage =
-  updatedOrg.coverImage ??
-  matched?.coverImage ??
-  "";
-
-const uploadedLogo =
-  await uploadOrganizerImage(
-    nextLogo,
-    "profile"
-  );
-
-const uploadedCoverImage =
-  await uploadOrganizerImage(
-    nextCoverImage,
-    "cover"
-  );
+    const uploadedCoverImage =
+      await uploadOrganizerImage(
+        nextCoverImage,
+        "cover"
+      );
 
 
     const finalOrg: OrganizerProfile = {
-  id: orgId,
-  email:
-    authUser.email ||
-    matched?.email ||
-    "",
+      id: orgId,
+      email:
+        authUser.email ||
+        matched?.email ||
+        "",
 
-  organizationName: orgName,
+      organizationName: orgName,
 
-  contactPerson:
-    updatedOrg.contactPerson ||
-    matched?.contactPerson ||
-    authUser.name ||
-    "",
+      contactPerson:
+        updatedOrg.contactPerson ||
+        matched?.contactPerson ||
+        authUser.name ||
+        "",
 
-  organizationWebsite:
-    updatedOrg.organizationWebsite ||
-    matched?.organizationWebsite ||
-    "",
+      organizationWebsite:
+        updatedOrg.organizationWebsite ||
+        matched?.organizationWebsite ||
+        "",
 
-  aboutOrganization:
-    updatedOrg.aboutOrganization ||
-    matched?.aboutOrganization ||
-    "",
+      aboutOrganization:
+        updatedOrg.aboutOrganization ||
+        matched?.aboutOrganization ||
+        "",
 
-  country:
-    updatedOrg.country ||
-    matched?.country ||
-    "",
+      country:
+        updatedOrg.country ||
+        matched?.country ||
+        "",
 
-  city:
-    updatedOrg.city ||
-    matched?.city ||
-    "",
+      city:
+        updatedOrg.city ||
+        matched?.city ||
+        "",
 
-  isVerified:
-    matched?.isVerified ?? false,
+      isVerified:
+        matched?.isVerified ?? false,
 
-  isSuspended:
-    matched?.isSuspended ?? false,
+      isSuspended:
+        matched?.isSuspended ?? false,
 
-  isFeatured:
-    matched?.isFeatured ?? false,
+      isFeatured:
+        matched?.isFeatured ?? false,
 
-  isProfileComplete: true,
+      isProfileComplete: true,
 
-  createdAt:
-    matched?.createdAt ||
-    new Date().toISOString(),
+      createdAt:
+        matched?.createdAt ||
+        new Date().toISOString(),
 
-  slug: uniqueSlug,
+      slug: uniqueSlug,
 
-  ...updatedOrg,
+      ...updatedOrg,
 
-  // IMPORTANT:
-  // Keep Storage URLs after ...updatedOrg so base64
-  // values cannot overwrite them.
-  logo: uploadedLogo,
-  coverImage: uploadedCoverImage
-};
+      // IMPORTANT:
+      // Keep Storage URLs after ...updatedOrg so base64
+      // values cannot overwrite them.
+      logo: uploadedLogo,
+      coverImage: uploadedCoverImage
+    };
 
     // Save record to Supabase
     // Save record to Supabase
-try {
-  const saveRes = await saveRecordToSupabase(
-    "organizers",
-    finalOrg
-  );
-
-  if (!saveRes.success) {
-    console.warn(
-      "Notice saving organizer profile to Supabase:",
-      saveRes.error
-    );
-
-    // Database save failed:
-    // remove newly uploaded images so Storage does not keep orphan files.
-    if (nextLogo.startsWith("data:")) {
-      await deleteOrganizerStorageImage(
-        uploadedLogo,
-        "profile"
+    try {
+      const saveRes = await saveRecordToSupabase(
+        "organizers",
+        finalOrg
       );
+
+      if (!saveRes.success) {
+        console.warn(
+          "Notice saving organizer profile to Supabase:",
+          saveRes.error
+        );
+
+        // Database save failed:
+        // remove newly uploaded images so Storage does not keep orphan files.
+        if (nextLogo.startsWith("data:")) {
+          await deleteOrganizerStorageImage(
+            uploadedLogo,
+            "profile"
+          );
+        }
+
+        if (nextCoverImage.startsWith("data:")) {
+          await deleteOrganizerStorageImage(
+            uploadedCoverImage,
+            "cover"
+          );
+        }
+
+        const saveError =
+          saveRes.error ||
+          "Unable to save organizer profile. Please try again.";
+
+        if (
+          saveError.includes(
+            "This organizer name is already used"
+          ) ||
+          saveError.includes(
+            "idx_organizers_slug_unique_normalized"
+          )
+        ) {
+          return {
+            success: false,
+            field: "organizationName",
+            error:
+              "This organizer name is already used. Please enter a different organizer name.",
+          };
+        }
+
+        return {
+          success: false,
+          error: saveError,
+        };
+      }
+
+      // Database save succeeded:
+      // now it is safe to remove the previous Storage images.
+      if (
+        nextLogo.startsWith("data:") &&
+        matched?.logo &&
+        matched.logo !== uploadedLogo
+      ) {
+        await deleteOrganizerStorageImage(
+          matched.logo,
+          "profile"
+        );
+      }
+
+      if (
+        nextCoverImage.startsWith("data:") &&
+        matched?.coverImage &&
+        matched.coverImage !== uploadedCoverImage
+      ) {
+        await deleteOrganizerStorageImage(
+          matched.coverImage,
+          "cover"
+        );
+      }
+    } catch (saveErr) {
+      console.warn(
+        "Exception saving organizer profile to Supabase:",
+        saveErr
+      );
+
+      // Also clean up newly uploaded files when an exception occurs.
+      if (nextLogo.startsWith("data:")) {
+        await deleteOrganizerStorageImage(
+          uploadedLogo,
+          "profile"
+        );
+      }
+
+      if (nextCoverImage.startsWith("data:")) {
+        await deleteOrganizerStorageImage(
+          uploadedCoverImage,
+          "cover"
+        );
+      }
+
+      return {
+        success: false,
+        error:
+          saveErr instanceof Error
+            ? saveErr.message
+            : "Unable to save organizer profile. Please try again.",
+      };
     }
 
-    if (nextCoverImage.startsWith("data:")) {
-      await deleteOrganizerStorageImage(
-        uploadedCoverImage,
-        "cover"
-      );
-    }
-
-const saveError =
-  saveRes.error ||
-  "Unable to save organizer profile. Please try again.";
-
-if (
-  saveError.includes(
-    "This organizer name is already used"
-  ) ||
-  saveError.includes(
-    "idx_organizers_slug_unique_normalized"
-  )
-) {
-  return {
-    success: false,
-    field: "organizationName",
-    error:
-      "This organizer name is already used. Please enter a different organizer name.",
-  };
-}
-
-return {
-  success: false,
-  error: saveError,
-};
-}
-
-// Database save succeeded:
-  // now it is safe to remove the previous Storage images.
-  if (
-    nextLogo.startsWith("data:") &&
-    matched?.logo &&
-    matched.logo !== uploadedLogo
-  ) {
-    await deleteOrganizerStorageImage(
-      matched.logo,
-      "profile"
-    );
-  }
-
-  if (
-    nextCoverImage.startsWith("data:") &&
-    matched?.coverImage &&
-    matched.coverImage !== uploadedCoverImage
-  ) {
-    await deleteOrganizerStorageImage(
-      matched.coverImage,
-      "cover"
-    );
-  }
-} catch (saveErr) {
-  console.warn(
-    "Exception saving organizer profile to Supabase:",
-    saveErr
-  );
-
-  // Also clean up newly uploaded files when an exception occurs.
-  if (nextLogo.startsWith("data:")) {
-    await deleteOrganizerStorageImage(
-      uploadedLogo,
-      "profile"
-    );
-  }
-
-  if (nextCoverImage.startsWith("data:")) {
-    await deleteOrganizerStorageImage(
-      uploadedCoverImage,
-      "cover"
-    );
-  }
-
-return {
-  success: false,
-  error:
-    saveErr instanceof Error
-      ? saveErr.message
-      : "Unable to save organizer profile. Please try again.",
-};
-}
-
-if (!authUser.organizerId || authUser.organizerId !== finalOrg.id) {
+    if (!authUser.organizerId || authUser.organizerId !== finalOrg.id) {
       setAuthUser({ ...authUser, organizerId: finalOrg.id });
     }
 
@@ -2881,7 +2878,7 @@ if (!authUser.organizerId || authUser.organizerId !== finalOrg.id) {
     try {
       const fetched = await fetchFromSupabase<OrganizerProfile[]>("organizers", true);
       if (fetched && Array.isArray(fetched)) freshOrgs = fetched;
-    } catch (err) {}
+    } catch (err) { }
 
     let matchedOrg = freshOrgs.find(
       (o) =>
@@ -2941,28 +2938,28 @@ if (!authUser.organizerId || authUser.organizerId !== finalOrg.id) {
     try {
       const latestConferences = await fetchFromSupabase<Conference[]>("conferences", true);
       if (Array.isArray(latestConferences)) duplicateSource = latestConferences;
-    } catch {}
+    } catch { }
 
     const exactDuplicate = findExactConferenceDuplicate(
-  duplicateSource,
-  {
-    title: newConf.title,
-    category: newConf.category,
-    country: newConf.country,
-    city: newConf.city,
-    startDate: newConf.startDate,
-    endDate: newConf.endDate,
-  },
-  orgId,
-  isEdit ? confId : undefined
-);
+      duplicateSource,
+      {
+        title: newConf.title,
+        category: newConf.category,
+        country: newConf.country,
+        city: newConf.city,
+        startDate: newConf.startDate,
+        endDate: newConf.endDate,
+      },
+      orgId,
+      isEdit ? confId : undefined
+    );
 
-if (exactDuplicate) {
-  return {
-    error:
-      "This exact conference already exists in your Pending or Approved conferences. Change the Topic, Country, City, Start Date, or End Date before submitting.",
-  };
-}
+    if (exactDuplicate) {
+      return {
+        error:
+          "This exact conference already exists in your Pending or Approved conferences. Change the Topic, Country, City, Start Date, or End Date before submitting.",
+      };
+    }
 
     const existingConf = conferences.find((c) => c.id === confId);
     const titleForSlug = newConf.title || newConf.shortTitle || existingConf?.title || "conference";
@@ -2981,8 +2978,8 @@ if (exactDuplicate) {
         status: isDraft
           ? ConferenceStatus.Draft
           : authUser?.role === "ADMIN"
-          ? newConf.status || ConferenceStatus.Approved
-          : ConferenceStatus.PendingReview,
+            ? newConf.status || ConferenceStatus.Approved
+            : ConferenceStatus.PendingReview,
         history: [
           ...(Array.isArray(existingConf.history) ? existingConf.history : []),
           {
@@ -3000,8 +2997,8 @@ if (exactDuplicate) {
         status: isDraft
           ? ConferenceStatus.Draft
           : authUser?.role === "ADMIN"
-          ? newConf.status || ConferenceStatus.Approved
-          : ConferenceStatus.PendingReview,
+            ? newConf.status || ConferenceStatus.Approved
+            : ConferenceStatus.PendingReview,
         liveStatus: LiveStatus.Upcoming,
         organizerId: orgId,
         organizerName: orgName,
@@ -3069,7 +3066,7 @@ if (exactDuplicate) {
     try {
       const fetched = await fetchFromSupabase<OrganizerProfile[]>("organizers", true);
       if (fetched && Array.isArray(fetched)) freshOrgs = fetched;
-    } catch (err) {}
+    } catch (err) { }
 
     let matchedOrg = freshOrgs.find(
       (o) =>
@@ -3098,10 +3095,10 @@ if (exactDuplicate) {
       rejectionReason: undefined,
       history: [
         ...(Array.isArray(existingConf.history) ? existingConf.history : []),
-        { 
-          timestamp: new Date().toISOString(), 
-          action: "Resubmitted for Admin Review", 
-          actor: orgName 
+        {
+          timestamp: new Date().toISOString(),
+          action: "Resubmitted for Admin Review",
+          actor: orgName
         },
       ],
     };
@@ -3143,7 +3140,13 @@ if (exactDuplicate) {
     if (!conf) return { success: false, isActive: false, error: "Conference not found." };
 
     const nextDeactivated = !conf.isDeactivated;
-    const updatedConf = { ...conf, isDeactivated: nextDeactivated };
+    const updatedConf = {
+      ...conf,
+      isDeactivated: nextDeactivated,
+      isFeatured: nextDeactivated
+        ? false
+        : conf.isFeatured
+    };
 
     // Update the button/status immediately, then persist and roll back on failure.
     setConferences((current) => current.map((item) => item.id === confId ? updatedConf : item));
@@ -3168,657 +3171,755 @@ if (exactDuplicate) {
   };
 
   const handleDeleteConference = async (
-  confId: string
-): Promise<{
-  success: boolean;
-  error?: string;
-  warning?: string;
-}> => {
-  const conf = conferences.find(
-    (c) => c.id === confId
-  );
-
-  if (!conf) {
-    return {
-      success: false,
-      error: "Conference not found."
-    };
-  }
-
-  const deleteResult =
-    await deleteRecordFromSupabase(
-      "conferences",
-      confId
+    confId: string
+  ): Promise<{
+    success: boolean;
+    error?: string;
+    warning?: string;
+  }> => {
+    const conf = conferences.find(
+      (c) => c.id === confId
     );
 
-  if (!deleteResult.success) {
-    console.error(
-      "Conference deletion failed:",
-      deleteResult.error
-    );
+    if (!conf) {
+      return {
+        success: false,
+        error: "Conference not found."
+      };
+    }
 
-    return {
-      success: false,
-      error:
-        deleteResult.error ||
-        "Database deletion failed."
-    };
-  }
-
-  setConferences((prev) =>
-    prev.filter((c) => c.id !== confId)
-  );
-
-  const freshConfs =
-    await fetchFromSupabase<
-      Conference[]
-    >(
-      "conferences",
-      true
-    );
-
-  if (
-    freshConfs &&
-    Array.isArray(freshConfs)
-  ) {
-    setConferences(
-      ensureConferenceSlugs(
-        freshConfs
-      )
-    );
-  }
-
-  let storageWarning = "";
-
-  if (conf.bannerImage) {
-    const storageInfo =
-      extractStoragePathFromUrl(
-        conf.bannerImage
+    const deleteResult =
+      await deleteRecordFromSupabase(
+        "conferences",
+        confId
       );
 
-    if (storageInfo) {
-      try {
-        if (authUser?.role === "ADMIN") {
-          const response =
-            await adminFetch(
-              "/api/admin/uploads/image",
-              {
-                method: "DELETE",
-                credentials: "same-origin",
-                headers: {
-                  "Content-Type":
-                    "application/json"
-                },
-                body: JSON.stringify({
-                bucket: storageInfo.bucket,
-                path: storageInfo.path
-              })
-              }
-            );
+    if (!deleteResult.success) {
+      console.error(
+        "Conference deletion failed:",
+        deleteResult.error
+      );
 
-          const body = await response
-            .json()
-            .catch(() => ({}));
+      return {
+        success: false,
+        error:
+          deleteResult.error ||
+          "Database deletion failed."
+      };
+    }
 
-          if (
-            !response.ok ||
-            !body?.success
-          ) {
-            storageWarning =
-              body?.error ||
-              "Conference deleted, but its stored image could not be removed.";
+    setConferences((prev) =>
+      prev.filter((c) => c.id !== confId)
+    );
 
-            console.warn(
-              "Conference image cleanup failed:",
-              storageWarning
-            );
-          }
-        } else {
-          const client =
-            getSupabaseClient();
+    const freshConfs =
+      await fetchFromSupabase<
+        Conference[]
+      >(
+        "conferences",
+        true
+      );
 
-          if (client) {
-            const { error } =
-              await client.storage
-                .from(storageInfo.bucket)
-                .remove([
-                  storageInfo.path
-                ]);
+    if (
+      freshConfs &&
+      Array.isArray(freshConfs)
+    ) {
+      setConferences(
+        ensureConferenceSlugs(
+          freshConfs
+        )
+      );
+    }
 
-            if (error) {
+    let storageWarning = "";
+
+    if (conf.bannerImage) {
+      const storageInfo =
+        extractStoragePathFromUrl(
+          conf.bannerImage
+        );
+
+      if (storageInfo) {
+        try {
+          if (authUser?.role === "ADMIN") {
+            const response =
+              await adminFetch(
+                "/api/admin/uploads/image",
+                {
+                  method: "DELETE",
+                  credentials: "same-origin",
+                  headers: {
+                    "Content-Type":
+                      "application/json"
+                  },
+                  body: JSON.stringify({
+                    bucket: storageInfo.bucket,
+                    path: storageInfo.path
+                  })
+                }
+              );
+
+            const body = await response
+              .json()
+              .catch(() => ({}));
+
+            if (
+              !response.ok ||
+              !body?.success
+            ) {
               storageWarning =
-                error.message ||
+                body?.error ||
                 "Conference deleted, but its stored image could not be removed.";
 
               console.warn(
                 "Conference image cleanup failed:",
-                error
+                storageWarning
               );
             }
-          }
-        }
-      } catch (error) {
-        storageWarning =
-          error instanceof Error
-            ? error.message
-            : "Conference deleted, but its stored image could not be removed.";
+          } else {
+            const client =
+              getSupabaseClient();
 
-        console.warn(
-          "Conference image cleanup failed:",
-          error
-        );
+            if (client) {
+              const { error } =
+                await client.storage
+                  .from(storageInfo.bucket)
+                  .remove([
+                    storageInfo.path
+                  ]);
+
+              if (error) {
+                storageWarning =
+                  error.message ||
+                  "Conference deleted, but its stored image could not be removed.";
+
+                console.warn(
+                  "Conference image cleanup failed:",
+                  error
+                );
+              }
+            }
+          }
+        } catch (error) {
+          storageWarning =
+            error instanceof Error
+              ? error.message
+              : "Conference deleted, but its stored image could not be removed.";
+
+          console.warn(
+            "Conference image cleanup failed:",
+            error
+          );
+        }
       }
     }
-  }
 
-  triggerBroadcastSync();
+    triggerBroadcastSync();
 
-  if (
-    conf.organizerId &&
-    authUser?.role === "ADMIN"
-  ) {
-    addNotification(
-      "Conference Deleted 🗑️",
-      `Your conference '${conf.title}' was deleted by Admin.`,
-      "warning",
-      conf.organizerId
-    );
-  }
+    if (
+      conf.organizerId &&
+      authUser?.role === "ADMIN"
+    ) {
+      addNotification(
+        "Conference Deleted 🗑️",
+        `Your conference '${conf.title}' was deleted by Admin.`,
+        "warning",
+        conf.organizerId
+      );
+    }
 
-  logAudit(
-    "Deleted Conference",
-    `Permanently removed conference '${conf.title}'`,
-    authUser?.name ||
+    logAudit(
+      "Deleted Conference",
+      `Permanently removed conference '${conf.title}'`,
+      authUser?.name ||
       (authUser?.role === "ADMIN"
         ? "Super Admin"
         : "Organizer"),
-    authUser?.role || "ORGANIZER"
-  );
+      authUser?.role || "ORGANIZER"
+    );
 
-  return {
-    success: true,
-    ...(storageWarning
-      ? { warning: storageWarning }
-      : {})
+    return {
+      success: true,
+      ...(storageWarning
+        ? { warning: storageWarning }
+        : {})
+    };
   };
-};
 
-const handleDeleteDraft = async (
-  confId: string
-): Promise<{ success: boolean; error?: string }> => {
-  const result = await deleteRecordFromSupabase(
-    "conferences",
-    confId
-  );
-
-  if (!result.success) {
-    return {
-      success: false,
-      error:
-        result.error ||
-        "Unable to delete draft conference."
-    };
-  }
-
-  const freshConfs =
-    await fetchFromSupabase<Conference[]>(
+  const handleDeleteDraft = async (
+    confId: string
+  ): Promise<{ success: boolean; error?: string }> => {
+    const result = await deleteRecordFromSupabase(
       "conferences",
-      true
-    );
-
-  if (freshConfs && Array.isArray(freshConfs)) {
-    setConferences(
-      ensureConferenceSlugs(freshConfs)
-    );
-  } else {
-    setConferences((prev) =>
-      prev.filter((c) => c.id !== confId)
-    );
-  }
-
-  triggerBroadcastSync();
-
-  logAudit(
-    "Deleted Draft",
-    `Removed draft conference ID ${confId}`,
-    "Organizer",
-    "ORGANIZER"
-  );
-
-  return { success: true };
-};
-
-  // Admin functions
- const handleApproveConference = async (
-  confId: string
-): Promise<{
-  success: boolean;
-  error?: string;
-}> => {
-  const conf = conferences.find(
-    (c) => c.id === confId
-  );
-
-  if (!conf) {
-    return {
-      success: false,
-      error: "Conference not found."
-    };
-  }
-
-  // Only already-published conferences reserve public URL slugs.
-  const publicSlugSource = conferences.filter(
-    (item) =>
-      item.id !== confId &&
-      item.status === ConferenceStatus.Approved
-  );
-
-  const publicSlug =
-    generateUniqueConferenceSlug(
-      conf.title ||
-        conf.shortTitle ||
-        "conference",
-      publicSlugSource,
       confId
     );
 
-  const approvedConf: Conference = {
-    ...conf,
-    slug: publicSlug,
-    status: ConferenceStatus.Approved,
-    isDeactivated: false,
-    history: [
-      ...(Array.isArray(conf.history)
-        ? conf.history
-        : []),
-      {
-        timestamp:
-          new Date().toISOString(),
-        action: "Approved by Admin",
-        actor: "Super Admin"
-      }
-    ]
-  };
-
-  const saveResult =
-    await saveRecordToSupabase(
-      "conferences",
-      approvedConf
-    );
-
-  if (!saveResult.success) {
-    console.error(
-      "Failed to approve conference:",
-      saveResult.error
-    );
-
-    return {
-      success: false,
-      error:
-        saveResult.error ||
-        "Database update failed."
-    };
-  }
-
-  setConferences((prev) =>
-    ensureConferenceSlugs(
-      prev.map((item) =>
-        item.id === confId
-          ? approvedConf
-          : item
-      )
-    )
-  );
-
-  const freshConfs =
-    await fetchFromSupabase<
-      Conference[]
-    >(
-      "conferences",
-      true
-    );
-
-  if (
-    freshConfs &&
-    Array.isArray(freshConfs)
-  ) {
-    setConferences(
-      ensureConferenceSlugs(
-        freshConfs
-      )
-    );
-  }
-
-  triggerBroadcastSync();
-
-  addNotification(
-    "Conference Approved! 🎉",
-    `Your conference '${conf.title}' has been published.`,
-    "success",
-    conf.organizerId
-  );
-
-  logAudit(
-    "Approved Submission",
-    `Approved and published conference '${conf.title}'`,
-    "Super Admin",
-    "ADMIN"
-  );
-
-  return {
-    success: true
-  };
-};
-const handleRejectConference = async (
-  confId: string,
-  reason: string
-): Promise<{
-  success: boolean;
-  error?: string;
-}> => {
-  const conf = conferences.find(
-    (c) => c.id === confId
-  );
-
-  if (!conf) {
-    return {
-      success: false,
-      error: "Conference not found."
-    };
-  }
-
-  const rejectedConf: Conference = {
-    ...conf,
-    status: ConferenceStatus.Rejected,
-    rejectionReason: reason,
-    history: [
-      ...(Array.isArray(conf.history)
-        ? conf.history
-        : []),
-      {
-        timestamp:
-          new Date().toISOString(),
-        action: `Rejected: ${reason}`,
-        actor: "Super Admin"
-      }
-    ]
-  };
-
-  const saveResult =
-    await saveRecordToSupabase(
-      "conferences",
-      rejectedConf
-    );
-
-  if (!saveResult.success) {
-    console.error(
-      "Failed to reject conference:",
-      saveResult.error
-    );
-
-    return {
-      success: false,
-      error:
-        saveResult.error ||
-        "Database update failed."
-    };
-  }
-
-  setConferences((prev) =>
-    ensureConferenceSlugs(
-      prev.map((item) =>
-        item.id === confId
-          ? rejectedConf
-          : item
-      )
-    )
-  );
-
-  const freshConfs =
-    await fetchFromSupabase<
-      Conference[]
-    >(
-      "conferences",
-      true
-    );
-
-  if (
-    freshConfs &&
-    Array.isArray(freshConfs)
-  ) {
-    setConferences(
-      ensureConferenceSlugs(
-        freshConfs
-      )
-    );
-  }
-
-  triggerBroadcastSync();
-
-  addNotification(
-    "Conference Rejected",
-    `Your conference '${conf.title}' was rejected by the administrator.`,
-    "error",
-    conf.organizerId
-  );
-
-  logAudit(
-    "Rejected Submission",
-    `Rejected conference '${conf.title}'. Reason: ${reason}`,
-    "Super Admin",
-    "ADMIN"
-  );
-
-  return {
-    success: true
-  };
-};
-
-  const handleToggleFeatureConference = async (confId: string) => {
-    const conf = conferences.find((c) => c.id === confId);
-    if (!conf) return;
-
-    const toggledConf = { ...conf, isFeatured: !conf.isFeatured };
-    await saveRecordToSupabase("conferences", toggledConf);
-    const freshConfs = await fetchFromSupabase<Conference[]>("conferences", true);
-    if (freshConfs && Array.isArray(freshConfs)) {
-      setConferences(ensureConferenceSlugs(freshConfs));
+    if (!result.success) {
+      return {
+        success: false,
+        error:
+          result.error ||
+          "Unable to delete draft conference."
+      };
     }
+
+    const freshConfs =
+      await fetchFromSupabase<Conference[]>(
+        "conferences",
+        true
+      );
+
+    if (freshConfs && Array.isArray(freshConfs)) {
+      setConferences(
+        ensureConferenceSlugs(freshConfs)
+      );
+    } else {
+      setConferences((prev) =>
+        prev.filter((c) => c.id !== confId)
+      );
+    }
+
     triggerBroadcastSync();
 
-    logAudit("Toggled Featured Conference", `Changed featured flag for '${conf.title}'`, "Super Admin", "ADMIN");
+    logAudit(
+      "Deleted Draft",
+      `Removed draft conference ID ${confId}`,
+      "Organizer",
+      "ORGANIZER"
+    );
+
+    return { success: true };
   };
 
-const handleToggleVerifyConference = async (
-  confId: string
-): Promise<{
-  success: boolean;
-  isVerified: boolean;
-  error?: string;
-}> => {
-  const conf = conferences.find(
-    (c) => c.id === confId
-  );
+  // Admin functions
+  const handleApproveConference = async (
+    confId: string
+  ): Promise<{
+    success: boolean;
+    error?: string;
+  }> => {
+    const conf = conferences.find(
+      (c) => c.id === confId
+    );
 
-  if (!conf) {
-    return {
-      success: false,
-      isVerified: false,
-      error: "Conference not found."
+    if (!conf) {
+      return {
+        success: false,
+        error: "Conference not found."
+      };
+    }
+
+    // Only already-published conferences reserve public URL slugs.
+    const publicSlugSource = conferences.filter(
+      (item) =>
+        item.id !== confId &&
+        item.status === ConferenceStatus.Approved
+    );
+
+    const publicSlug =
+      generateUniqueConferenceSlug(
+        conf.title ||
+        conf.shortTitle ||
+        "conference",
+        publicSlugSource,
+        confId
+      );
+
+    const approvedConf: Conference = {
+      ...conf,
+      slug: publicSlug,
+      status: ConferenceStatus.Approved,
+      isDeactivated: false,
+      history: [
+        ...(Array.isArray(conf.history)
+          ? conf.history
+          : []),
+        {
+          timestamp:
+            new Date().toISOString(),
+          action: "Approved by Admin",
+          actor: "Super Admin"
+        }
+      ]
     };
-  }
 
-  const nextState = !conf.isVerified;
+    const saveResult =
+      await saveRecordToSupabase(
+        "conferences",
+        approvedConf
+      );
 
-  const toggledConf = {
-    ...conf,
-    isVerified: nextState
+    if (!saveResult.success) {
+      console.error(
+        "Failed to approve conference:",
+        saveResult.error
+      );
+
+      return {
+        success: false,
+        error:
+          saveResult.error ||
+          "Database update failed."
+      };
+    }
+
+    setConferences((prev) =>
+      ensureConferenceSlugs(
+        prev.map((item) =>
+          item.id === confId
+            ? approvedConf
+            : item
+        )
+      )
+    );
+
+    const freshConfs =
+      await fetchFromSupabase<
+        Conference[]
+      >(
+        "conferences",
+        true
+      );
+
+    if (
+      freshConfs &&
+      Array.isArray(freshConfs)
+    ) {
+      setConferences(
+        ensureConferenceSlugs(
+          freshConfs
+        )
+      );
+    }
+
+    triggerBroadcastSync();
+
+    addNotification(
+      "Conference Approved! 🎉",
+      `Your conference '${conf.title}' has been published.`,
+      "success",
+      conf.organizerId
+    );
+
+    logAudit(
+      "Approved Submission",
+      `Approved and published conference '${conf.title}'`,
+      "Super Admin",
+      "ADMIN"
+    );
+
+    return {
+      success: true
+    };
+  };
+  const handleRejectConference = async (
+    confId: string,
+    reason: string
+  ): Promise<{
+    success: boolean;
+    error?: string;
+  }> => {
+    const conf = conferences.find(
+      (c) => c.id === confId
+    );
+
+    if (!conf) {
+      return {
+        success: false,
+        error: "Conference not found."
+      };
+    }
+
+    const rejectedConf: Conference = {
+      ...conf,
+      status: ConferenceStatus.Rejected,
+      rejectionReason: reason,
+      history: [
+        ...(Array.isArray(conf.history)
+          ? conf.history
+          : []),
+        {
+          timestamp:
+            new Date().toISOString(),
+          action: `Rejected: ${reason}`,
+          actor: "Super Admin"
+        }
+      ]
+    };
+
+    const saveResult =
+      await saveRecordToSupabase(
+        "conferences",
+        rejectedConf
+      );
+
+    if (!saveResult.success) {
+      console.error(
+        "Failed to reject conference:",
+        saveResult.error
+      );
+
+      return {
+        success: false,
+        error:
+          saveResult.error ||
+          "Database update failed."
+      };
+    }
+
+    setConferences((prev) =>
+      ensureConferenceSlugs(
+        prev.map((item) =>
+          item.id === confId
+            ? rejectedConf
+            : item
+        )
+      )
+    );
+
+    const freshConfs =
+      await fetchFromSupabase<
+        Conference[]
+      >(
+        "conferences",
+        true
+      );
+
+    if (
+      freshConfs &&
+      Array.isArray(freshConfs)
+    ) {
+      setConferences(
+        ensureConferenceSlugs(
+          freshConfs
+        )
+      );
+    }
+
+    triggerBroadcastSync();
+
+    addNotification(
+      "Conference Rejected",
+      `Your conference '${conf.title}' was rejected by the administrator.`,
+      "error",
+      conf.organizerId
+    );
+
+    logAudit(
+      "Rejected Submission",
+      `Rejected conference '${conf.title}'. Reason: ${reason}`,
+      "Super Admin",
+      "ADMIN"
+    );
+
+    return {
+      success: true
+    };
   };
 
-  const saved =
-    await saveRecordToSupabase(
+  const handleToggleFeatureConference = async (
+    confId: string
+  ): Promise<{
+    success: boolean;
+    isFeatured: boolean;
+    error?: string;
+  }> => {
+    const conf = conferences.find(
+      (c) => c.id === confId
+    );
+
+    if (!conf) {
+      return {
+        success: false,
+        isFeatured: false,
+        error: "Conference not found."
+      };
+    }
+
+    const nextFeatured = !Boolean(conf.isFeatured);
+
+    if (nextFeatured && conf.isDeactivated) {
+      return {
+        success: false,
+        isFeatured: false,
+        error:
+          "A deactivated conference cannot be featured. Activate it first."
+      };
+    }
+
+    if (nextFeatured && isConferenceCompleted(conf)) {
+      return {
+        success: false,
+        isFeatured: false,
+        error:
+          "A completed conference cannot be featured."
+      };
+    }
+
+    if (nextFeatured) {
+      const featuredCount = conferences.filter(
+        (item) =>
+          item.id !== confId &&
+          Boolean(item.isFeatured) &&
+          !item.isDeactivated &&
+          !isConferenceCompleted(item)
+      ).length;
+
+      if (featuredCount >= 8) {
+        return {
+          success: false,
+          isFeatured: false,
+          error:
+            "Maximum 8 active featured conferences allowed."
+        };
+      }
+    }
+
+    const toggledConf = {
+      ...conf,
+      isFeatured: nextFeatured
+    };
+
+    const saved = await saveRecordToSupabase(
       "conferences",
       toggledConf
     );
 
-  if (!saved.success) {
-    console.error(
-      "Conference verification update failed:",
-      saved.error
+    if (!saved.success) {
+      return {
+        success: false,
+        isFeatured: Boolean(conf.isFeatured),
+        error:
+          saved.error ||
+          "Unable to update featured status."
+      };
+    }
+
+    setConferences((current) =>
+      current.map((item) =>
+        item.id === confId
+          ? toggledConf
+          : item
+      )
+    );
+
+    const freshConfs =
+      await fetchFromSupabase<Conference[]>(
+        "conferences",
+        true
+      );
+
+    if (freshConfs && Array.isArray(freshConfs)) {
+      setConferences(
+        ensureConferenceSlugs(freshConfs)
+      );
+    }
+
+    triggerBroadcastSync();
+
+    logAudit(
+      nextFeatured
+        ? "Featured Conference"
+        : "Removed Featured Conference",
+      `${nextFeatured ? "Featured" : "Removed featured status from"} '${conf.title}'`,
+      "Super Admin",
+      "ADMIN"
     );
 
     return {
-      success: false,
-      isVerified: Boolean(conf.isVerified),
-      error:
-        saved.error ||
-        "Database update failed."
+      success: true,
+      isFeatured: nextFeatured
     };
-  }
-
-  setConferences((current) =>
-    current.map((item) =>
-      item.id === confId
-        ? toggledConf
-        : item
-    )
-  );
-
-  const freshConfs =
-    await fetchFromSupabase<
-      Conference[]
-    >(
-      "conferences",
-      true
-    );
-
-  if (
-    freshConfs &&
-    Array.isArray(freshConfs)
-  ) {
-    setConferences(
-      ensureConferenceSlugs(
-        freshConfs
-      )
-    );
-  }
-
-  triggerBroadcastSync();
-
-  logAudit(
-    "Toggled Verified Conference",
-    `Set conference '${conf.title}' verification to ${
-      nextState ? "verified" : "unverified"
-    }`,
-    "Super Admin",
-    "ADMIN"
-  );
-
-  return {
-    success: true,
-    isVerified: nextState
   };
-};
 
-    const handleVerifyOrganizer = async (
-      orgId: string
-    ): Promise<{
-      success: boolean;
-      isVerified: boolean;
-      error?: string;
-    }> => {
-      const org = organizers.find(
-        (o) => o.id === orgId
-      );
+  const handleToggleVerifyConference = async (
+    confId: string
+  ): Promise<{
+    success: boolean;
+    isVerified: boolean;
+    error?: string;
+  }> => {
+    const conf = conferences.find(
+      (c) => c.id === confId
+    );
 
-      if (!org) {
-        return {
-          success: false,
-          isVerified: false,
-          error: "Organizer not found."
-        };
-      }
-
-      const nextState = !org.isVerified;
-
-      const toggledOrg = {
-        ...org,
-        isVerified: nextState
+    if (!conf) {
+      return {
+        success: false,
+        isVerified: false,
+        error: "Conference not found."
       };
+    }
 
-      const saved =
-        await saveRecordToSupabase(
-          "organizers",
-          toggledOrg
-        );
+    const nextState = !conf.isVerified;
 
-      if (!saved.success) {
-        console.error(
-          "Organizer verification update failed:",
-          saved.error
-        );
+    const toggledConf = {
+      ...conf,
+      isVerified: nextState
+    };
 
-        return {
-          success: false,
-          isVerified: Boolean(org.isVerified),
-          error:
-            saved.error ||
-            "Database update failed."
-        };
-      }
-
-      setOrganizers((current) =>
-        current.map((item) =>
-          item.id === orgId
-            ? toggledOrg
-            : item
-        )
+    const saved =
+      await saveRecordToSupabase(
+        "conferences",
+        toggledConf
       );
 
-      const freshOrgs =
-        await fetchFromSupabase<
-          OrganizerProfile[]
-        >(
-          "organizers",
-          true
-        );
-
-      if (
-        freshOrgs &&
-        Array.isArray(freshOrgs)
-      ) {
-        setOrganizers(
-          ensureOrganizerSlugs(
-            freshOrgs
-          )
-        );
-      }
-
-      triggerBroadcastSync();
-
-      if (nextState) {
-        addNotification(
-          "Account Verified ✅",
-          "Your organization has been verified!",
-          "success",
-          orgId
-        );
-      }
-
-      logAudit(
-        "Vetted Organizer",
-        `Set organizer ID ${orgId} verification to ${
-          nextState ? "verified" : "unverified"
-        }`,
-        "Super Admin",
-        "ADMIN"
+    if (!saved.success) {
+      console.error(
+        "Conference verification update failed:",
+        saved.error
       );
 
       return {
-        success: true,
-        isVerified: nextState
+        success: false,
+        isVerified: Boolean(conf.isVerified),
+        error:
+          saved.error ||
+          "Database update failed."
       };
+    }
+
+    setConferences((current) =>
+      current.map((item) =>
+        item.id === confId
+          ? toggledConf
+          : item
+      )
+    );
+
+    const freshConfs =
+      await fetchFromSupabase<
+        Conference[]
+      >(
+        "conferences",
+        true
+      );
+
+    if (
+      freshConfs &&
+      Array.isArray(freshConfs)
+    ) {
+      setConferences(
+        ensureConferenceSlugs(
+          freshConfs
+        )
+      );
+    }
+
+    triggerBroadcastSync();
+
+    logAudit(
+      "Toggled Verified Conference",
+      `Set conference '${conf.title}' verification to ${nextState ? "verified" : "unverified"
+      }`,
+      "Super Admin",
+      "ADMIN"
+    );
+
+    return {
+      success: true,
+      isVerified: nextState
     };
+  };
+
+  const handleVerifyOrganizer = async (
+    orgId: string
+  ): Promise<{
+    success: boolean;
+    isVerified: boolean;
+    error?: string;
+  }> => {
+    const org = organizers.find(
+      (o) => o.id === orgId
+    );
+
+    if (!org) {
+      return {
+        success: false,
+        isVerified: false,
+        error: "Organizer not found."
+      };
+    }
+
+    const nextState = !org.isVerified;
+
+    const toggledOrg = {
+      ...org,
+      isVerified: nextState
+    };
+
+    const saved =
+      await saveRecordToSupabase(
+        "organizers",
+        toggledOrg
+      );
+
+    if (!saved.success) {
+      console.error(
+        "Organizer verification update failed:",
+        saved.error
+      );
+
+      return {
+        success: false,
+        isVerified: Boolean(org.isVerified),
+        error:
+          saved.error ||
+          "Database update failed."
+      };
+    }
+
+    setOrganizers((current) =>
+      current.map((item) =>
+        item.id === orgId
+          ? toggledOrg
+          : item
+      )
+    );
+
+    const freshOrgs =
+      await fetchFromSupabase<
+        OrganizerProfile[]
+      >(
+        "organizers",
+        true
+      );
+
+    if (
+      freshOrgs &&
+      Array.isArray(freshOrgs)
+    ) {
+      setOrganizers(
+        ensureOrganizerSlugs(
+          freshOrgs
+        )
+      );
+    }
+
+    triggerBroadcastSync();
+
+    if (nextState) {
+      addNotification(
+        "Account Verified ✅",
+        "Your organization has been verified!",
+        "success",
+        orgId
+      );
+    }
+
+    logAudit(
+      "Vetted Organizer",
+      `Set organizer ID ${orgId} verification to ${nextState ? "verified" : "unverified"
+      }`,
+      "Super Admin",
+      "ADMIN"
+    );
+
+    return {
+      success: true,
+      isVerified: nextState
+    };
+  };
 
   const handleToggleSuspendOrganizer = async (orgId: string) => {
     const org = organizers.find((o) => o.id === orgId);
@@ -3858,412 +3959,171 @@ const handleToggleVerifyConference = async (
     return { success: true, isActive: !nextSuspended };
   };
 
-const handleDeleteOrganizer = async (
-  orgId: string
-): Promise<{
-  success: boolean;
-  error?: string;
-}> => {
-  const normalizedOrgId =
-    String(orgId || "").trim();
+  const handleDeleteOrganizer = async (
+    orgId: string
+  ): Promise<{
+    success: boolean;
+    error?: string;
+  }> => {
+    const normalizedOrgId =
+      String(orgId || "").trim();
 
-  if (!normalizedOrgId) {
-    return {
-      success: false,
-      error: "Organizer ID is missing."
-    };
-  }
+    if (!normalizedOrgId) {
+      return {
+        success: false,
+        error: "Organizer ID is missing."
+      };
+    }
 
-  try {
-    const response = await adminFetch(
-      `/api/admin/organizers/${encodeURIComponent(
-        normalizedOrgId
-      )}`,
-      {
-        method: "DELETE",
-        credentials: "same-origin",
-        cache: "no-store"
+    try {
+      const response = await adminFetch(
+        `/api/admin/organizers/${encodeURIComponent(
+          normalizedOrgId
+        )}`,
+        {
+          method: "DELETE",
+          credentials: "same-origin",
+          cache: "no-store"
+        }
+      );
+
+      const data = await response
+        .json()
+        .catch(() => ({}));
+
+      if (
+        !response.ok ||
+        !data?.success
+      ) {
+        const errorMessage =
+          data?.error ||
+          "Failed to permanently delete organizer.";
+
+        console.error(
+          "Organizer delete failed:",
+          errorMessage
+        );
+
+        return {
+          success: false,
+          error: errorMessage
+        };
       }
-    );
 
-    const data = await response
-      .json()
-      .catch(() => ({}));
+      // Reload organizers from the real database.
+      const freshOrgs =
+        await fetchFromSupabase<
+          OrganizerProfile[]
+        >(
+          "organizers",
+          true
+        );
 
-    if (
-      !response.ok ||
-      !data?.success
-    ) {
-      const errorMessage =
-        data?.error ||
-        "Failed to permanently delete organizer.";
+      if (
+        freshOrgs &&
+        Array.isArray(freshOrgs)
+      ) {
+        setOrganizers(
+          ensureOrganizerSlugs(
+            freshOrgs
+          )
+        );
+      }
 
+      // Reload conferences because the server
+      // also deletes this organizer's conferences.
+      const freshConfs =
+        await fetchFromSupabase<
+          Conference[]
+        >(
+          "conferences",
+          true
+        );
+
+      if (
+        freshConfs &&
+        Array.isArray(freshConfs)
+      ) {
+        setConferences(
+          ensureConferenceSlugs(
+            freshConfs
+          )
+        );
+      }
+
+      triggerBroadcastSync();
+
+      logAudit(
+        "Deleted Organizer",
+        `Permanently deleted organizer ID ${normalizedOrgId}, their login account, and associated records`,
+        "Super Admin",
+        "ADMIN"
+      );
+
+      return {
+        success: true
+      };
+    } catch (error) {
       console.error(
-        "Organizer delete failed:",
-        errorMessage
+        "Organizer permanent delete error:",
+        error
       );
 
       return {
         success: false,
-        error: errorMessage
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to permanently delete organizer."
       };
     }
+  };
 
-    // Reload organizers from the real database.
-    const freshOrgs =
-      await fetchFromSupabase<
-        OrganizerProfile[]
-      >(
-        "organizers",
-        true
-      );
+  const handleAddCategory = async (cat: Partial<Category>) => {
+    if (!cat.name?.trim()) return;
 
-    if (
-      freshOrgs &&
-      Array.isArray(freshOrgs)
-    ) {
-      setOrganizers(
-        ensureOrganizerSlugs(
-          freshOrgs
-        )
-      );
-    }
-
-    // Reload conferences because the server
-    // also deletes this organizer's conferences.
-    const freshConfs =
-      await fetchFromSupabase<
-        Conference[]
-      >(
-        "conferences",
-        true
-      );
-
-    if (
-      freshConfs &&
-      Array.isArray(freshConfs)
-    ) {
-      setConferences(
-        ensureConferenceSlugs(
-          freshConfs
-        )
-      );
-    }
-
-    triggerBroadcastSync();
-
-    logAudit(
-      "Deleted Organizer",
-      `Permanently deleted organizer ID ${normalizedOrgId}, their login account, and associated records`,
-      "Super Admin",
-      "ADMIN"
+    const nameTrimmed = toUpperCaseName(
+      cat.name.trim()
     );
 
-    return {
-      success: true
-    };
-  } catch (error) {
-    console.error(
-      "Organizer permanent delete error:",
-      error
+    const existing = categories.find(
+      (c) =>
+        c.name.trim().toUpperCase() ===
+        nameTrimmed
     );
 
-    return {
-      success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : "Failed to permanently delete organizer."
-    };
-  }
-};
+    const id =
+      existing?.id ||
+      cat.id ||
+      `cat-${Date.now()}-${Math.random()
+        .toString(36)
+        .substring(2, 7)}`;
 
-const handleAddCategory = async (cat: Partial<Category>) => {
-  if (!cat.name?.trim()) return;
-
-  const nameTrimmed = toUpperCaseName(
-    cat.name.trim()
-  );
-
-  const existing = categories.find(
-    (c) =>
-      c.name.trim().toUpperCase() ===
-      nameTrimmed
-  );
-
-  const id =
-    existing?.id ||
-    cat.id ||
-    `cat-${Date.now()}-${Math.random()
-      .toString(36)
-      .substring(2, 7)}`;
-
- const topic: Category = {
-  id,
-  name: nameTrimmed,
-  description:
-    cat.description ||
-    existing?.description ||
-    "",
-  slug:
-    existing?.slug ||
-    cat.slug ||
-    nameTrimmed
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, ""),
-};
-
-  const result =
-    await saveRecordToSupabase(
-      "categories",
-      topic
-    );
-
-  if (!result.success) {
-    console.error(
-      "Topic save failed:",
-      result.error
-    );
-    return;
-  }
-
-  const freshCats =
-    await fetchFromSupabase<Category[]>(
-      "categories",
-      true
-    );
-
-  if (
-    freshCats &&
-    Array.isArray(freshCats)
-  ) {
-    setCategories(
-      deduplicateCategories(freshCats)
-    );
-  } else {
-    setCategories((prev) => {
-      const withoutSameName =
-        prev.filter(
-          (item) =>
-            item.name
-              .trim()
-              .toUpperCase() !==
-            nameTrimmed
-        );
-
-      return [
-        ...withoutSameName,
-        topic,
-      ];
-    });
-  }
-
-  triggerBroadcastSync();
-
-  logAudit(
-    existing
-      ? "Updated Category"
-      : "Added Category",
-    existing
-      ? `Replaced existing topic '${nameTrimmed}'`
-      : `Created system topic '${nameTrimmed}'`,
-    "Super Admin",
-    "ADMIN"
-  );
-};
-const handleAddBulkCategories = async (
-  catsList: Partial<Category>[]
-) => {
-  if (!catsList || catsList.length === 0) return;
-
-  try {
-    const workingMap = new Map<
-      string,
-      Category
-    >();
-
-    // Existing topics first
-    categories.forEach((cat) => {
-      const normalized =
-        String(cat.name || "")
-          .trim()
-          .toUpperCase();
-
-      if (!normalized) return;
-
-      workingMap.set(normalized, {
-      id: cat.id,
-      name: toUpperCaseName(cat.name),
-      description: cat.description || "",
-      slug:
-        cat.slug ||
-        normalized
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, "-")
-          .replace(/^-+|-+$/g, ""),
-    });
-    });
-
-    let addedCount = 0;
-    let replacedCount = 0;
-
-    catsList.forEach((cat) => {
-      if (!cat.name?.trim()) return;
-
-      const nameTrimmed =
-        toUpperCaseName(cat.name.trim());
-
-      const normalizedName =
-        nameTrimmed.toUpperCase();
-
-      const existing =
-        workingMap.get(normalizedName);
-
-      const id =
-        existing?.id ||
-        cat.id ||
-        `cat-${Date.now()}-${Math.random()
-          .toString(36)
-          .substring(2, 7)}`;
-
-      const topic: Category = {
-        id,
-        name: nameTrimmed,
-        description:
-          cat.description ||
-          existing?.description ||
-          "",
-        slug:
-          existing?.slug ||
-          cat.slug ||
-          nameTrimmed
-            .toLowerCase()
-            .replace(/[^a-z0-9]+/g, "-")
-            .replace(/^-+|-+$/g, ""),
-      };
-
-      if (existing) {
-        replacedCount++;
-      } else {
-        addedCount++;
-      }
-
-      // Same name always replaces previous entry
-      workingMap.set(
-        normalizedName,
-        topic
-      );
-    });
-
-    const finalTopics =
-      Array.from(
-        workingMap.values()
-      );
-
-    if (finalTopics.length === 0) {
-      return;
-    }
-
-    for (const topic of finalTopics) {
-      const result =
-        await saveRecordToSupabase(
-          "categories",
-          topic
-        );
-
-      if (!result.success) {
-        console.error(
-          `Topic save failed for "${topic.name}":`,
-          result.error
-        );
-      }
-    }
-
-    const freshCats =
-      await fetchFromSupabase<Category[]>(
-        "categories",
-        true
-      );
-
-    if (
-      freshCats &&
-      Array.isArray(freshCats)
-    ) {
-      setCategories(
-        deduplicateCategories(freshCats)
-      );
-    } else {
-      setCategories(
-        deduplicateCategories(
-          finalTopics
-        )
-      );
-    }
-
-    triggerBroadcastSync();
-
-    logAudit(
-      "Bulk Upserted Categories",
-      `${addedCount} new topic(s), ${replacedCount} duplicate topic(s) replaced`,
-      "Super Admin",
-      "ADMIN"
-    );
-  } catch (error) {
-    console.error(
-      "Bulk topic upload failed:",
-      error
-    );
-  }
-};
-
-const handleEditCategory = async (
-  catId: string,
-  updated: Partial<Category>
-) => {
-  try {
-    const existing =
-      categories.find(
-        (c) => c.id === catId
-      );
-
-    if (!existing) {
-      console.error(
-        "Topic not found for update:",
-        catId
-      );
-      return;
-    }
-
-    const nameTrimmed =
-      updated.name?.trim()
-        ? toUpperCaseName(
-            updated.name.trim()
-          )
-        : existing.name;
-
-    const merged: Category = {
-      id: existing.id,
+    const topic: Category = {
+      id,
       name: nameTrimmed,
+      description:
+        cat.description ||
+        existing?.description ||
+        "",
       slug:
-        updated.slug ||
-        existing.slug ||
+        existing?.slug ||
+        cat.slug ||
         nameTrimmed
           .toLowerCase()
           .replace(/[^a-z0-9]+/g, "-")
           .replace(/^-+|-+$/g, ""),
-          description: updated.description?.trim() || existing.description || "",
     };
 
     const result =
       await saveRecordToSupabase(
         "categories",
-        merged
+        topic
       );
 
     if (!result.success) {
       console.error(
-        "Topic update failed:",
+        "Topic save failed:",
         result.error
       );
       return;
@@ -4280,37 +4140,278 @@ const handleEditCategory = async (
       Array.isArray(freshCats)
     ) {
       setCategories(
-        deduplicateCategories(
-          freshCats
-        )
+        deduplicateCategories(freshCats)
       );
     } else {
-      setCategories((prev) =>
-        prev.map((item) =>
-          item.id === catId
-            ? merged
-            : item
-        )
-      );
+      setCategories((prev) => {
+        const withoutSameName =
+          prev.filter(
+            (item) =>
+              item.name
+                .trim()
+                .toUpperCase() !==
+              nameTrimmed
+          );
+
+        return [
+          ...withoutSameName,
+          topic,
+        ];
+      });
     }
 
     triggerBroadcastSync();
 
     logAudit(
-      "Updated Category",
-      `Updated topic '${merged.name}'`,
+      existing
+        ? "Updated Category"
+        : "Added Category",
+      existing
+        ? `Replaced existing topic '${nameTrimmed}'`
+        : `Created system topic '${nameTrimmed}'`,
       "Super Admin",
       "ADMIN"
     );
-  } catch (error) {
-    console.error(
-      "Topic update failed:",
-      error
-    );
-  }
-};
+  };
+  const handleAddBulkCategories = async (
+    catsList: Partial<Category>[]
+  ) => {
+    if (!catsList || catsList.length === 0) return;
 
-    const handleDeleteCategory = async (catId: string) => {
+    try {
+      const workingMap = new Map<
+        string,
+        Category
+      >();
+
+      // Existing topics first
+      categories.forEach((cat) => {
+        const normalized =
+          String(cat.name || "")
+            .trim()
+            .toUpperCase();
+
+        if (!normalized) return;
+
+        workingMap.set(normalized, {
+          id: cat.id,
+          name: toUpperCaseName(cat.name),
+          description: cat.description || "",
+          slug:
+            cat.slug ||
+            normalized
+              .toLowerCase()
+              .replace(/[^a-z0-9]+/g, "-")
+              .replace(/^-+|-+$/g, ""),
+        });
+      });
+
+      let addedCount = 0;
+      let replacedCount = 0;
+
+      catsList.forEach((cat) => {
+        if (!cat.name?.trim()) return;
+
+        const nameTrimmed =
+          toUpperCaseName(cat.name.trim());
+
+        const normalizedName =
+          nameTrimmed.toUpperCase();
+
+        const existing =
+          workingMap.get(normalizedName);
+
+        const id =
+          existing?.id ||
+          cat.id ||
+          `cat-${Date.now()}-${Math.random()
+            .toString(36)
+            .substring(2, 7)}`;
+
+        const topic: Category = {
+          id,
+          name: nameTrimmed,
+          description:
+            cat.description ||
+            existing?.description ||
+            "",
+          slug:
+            existing?.slug ||
+            cat.slug ||
+            nameTrimmed
+              .toLowerCase()
+              .replace(/[^a-z0-9]+/g, "-")
+              .replace(/^-+|-+$/g, ""),
+        };
+
+        if (existing) {
+          replacedCount++;
+        } else {
+          addedCount++;
+        }
+
+        // Same name always replaces previous entry
+        workingMap.set(
+          normalizedName,
+          topic
+        );
+      });
+
+      const finalTopics =
+        Array.from(
+          workingMap.values()
+        );
+
+      if (finalTopics.length === 0) {
+        return;
+      }
+
+      for (const topic of finalTopics) {
+        const result =
+          await saveRecordToSupabase(
+            "categories",
+            topic
+          );
+
+        if (!result.success) {
+          console.error(
+            `Topic save failed for "${topic.name}":`,
+            result.error
+          );
+        }
+      }
+
+      const freshCats =
+        await fetchFromSupabase<Category[]>(
+          "categories",
+          true
+        );
+
+      if (
+        freshCats &&
+        Array.isArray(freshCats)
+      ) {
+        setCategories(
+          deduplicateCategories(freshCats)
+        );
+      } else {
+        setCategories(
+          deduplicateCategories(
+            finalTopics
+          )
+        );
+      }
+
+      triggerBroadcastSync();
+
+      logAudit(
+        "Bulk Upserted Categories",
+        `${addedCount} new topic(s), ${replacedCount} duplicate topic(s) replaced`,
+        "Super Admin",
+        "ADMIN"
+      );
+    } catch (error) {
+      console.error(
+        "Bulk topic upload failed:",
+        error
+      );
+    }
+  };
+
+  const handleEditCategory = async (
+    catId: string,
+    updated: Partial<Category>
+  ) => {
+    try {
+      const existing =
+        categories.find(
+          (c) => c.id === catId
+        );
+
+      if (!existing) {
+        console.error(
+          "Topic not found for update:",
+          catId
+        );
+        return;
+      }
+
+      const nameTrimmed =
+        updated.name?.trim()
+          ? toUpperCaseName(
+            updated.name.trim()
+          )
+          : existing.name;
+
+      const merged: Category = {
+        id: existing.id,
+        name: nameTrimmed,
+        slug:
+          updated.slug ||
+          existing.slug ||
+          nameTrimmed
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-+|-+$/g, ""),
+        description: updated.description?.trim() || existing.description || "",
+      };
+
+      const result =
+        await saveRecordToSupabase(
+          "categories",
+          merged
+        );
+
+      if (!result.success) {
+        console.error(
+          "Topic update failed:",
+          result.error
+        );
+        return;
+      }
+
+      const freshCats =
+        await fetchFromSupabase<Category[]>(
+          "categories",
+          true
+        );
+
+      if (
+        freshCats &&
+        Array.isArray(freshCats)
+      ) {
+        setCategories(
+          deduplicateCategories(
+            freshCats
+          )
+        );
+      } else {
+        setCategories((prev) =>
+          prev.map((item) =>
+            item.id === catId
+              ? merged
+              : item
+          )
+        );
+      }
+
+      triggerBroadcastSync();
+
+      logAudit(
+        "Updated Category",
+        `Updated topic '${merged.name}'`,
+        "Super Admin",
+        "ADMIN"
+      );
+    } catch (error) {
+      console.error(
+        "Topic update failed:",
+        error
+      );
+    }
+  };
+
+  const handleDeleteCategory = async (catId: string) => {
     try {
       const result = await deleteRecordFromSupabase(
         "categories",
@@ -4359,74 +4460,74 @@ const handleEditCategory = async (
     }
   };
 
- const handleDeleteAllCategories = async () => {
-  try {
-    const ids = categories
-      .map((category) => category.id)
-      .filter(Boolean);
+  const handleDeleteAllCategories = async () => {
+    try {
+      const ids = categories
+        .map((category) => category.id)
+        .filter(Boolean);
 
-    if (ids.length === 0) {
-      setCategories([]);
-      return;
-    }
+      if (ids.length === 0) {
+        setCategories([]);
+        return;
+      }
 
-    const results = await Promise.all(
-      ids.map((id) =>
-        deleteRecordFromSupabase(
-          "categories",
-          id
+      const results = await Promise.all(
+        ids.map((id) =>
+          deleteRecordFromSupabase(
+            "categories",
+            id
+          )
         )
-      )
-    );
+      );
 
-    const failed = results.filter(
-      (result) => !result.success
-    );
+      const failed = results.filter(
+        (result) => !result.success
+      );
 
-    if (failed.length > 0) {
+      if (failed.length > 0) {
+        console.error(
+          "Some topics could not be deleted:",
+          failed
+        );
+      }
+
+      const freshCats =
+        await fetchFromSupabase<Category[]>(
+          "categories",
+          true
+        );
+
+      if (freshCats && Array.isArray(freshCats)) {
+        setCategories(
+          deduplicateCategories(freshCats)
+        );
+      } else {
+        setCategories([]);
+      }
+
+      triggerBroadcastSync();
+
+      logAudit(
+        "Deleted All Categories",
+        `Permanently deleted ${ids.length - failed.length} topic(s)`,
+        "Super Admin",
+        "ADMIN"
+      );
+    } catch (error) {
       console.error(
-        "Some topics could not be deleted:",
-        failed
+        "Delete all topics failed:",
+        error
       );
     }
-
-    const freshCats =
-      await fetchFromSupabase<Category[]>(
-        "categories",
-        true
-      );
-
-    if (freshCats && Array.isArray(freshCats)) {
-      setCategories(
-        deduplicateCategories(freshCats)
-      );
-    } else {
-      setCategories([]);
-    }
-
-    triggerBroadcastSync();
-
-    logAudit(
-      "Deleted All Categories",
-      `Permanently deleted ${ids.length - failed.length} topic(s)`,
-      "Super Admin",
-      "ADMIN"
-    );
-  } catch (error) {
-    console.error(
-      "Delete all topics failed:",
-      error
-    );
-  }
-};
+  };
 
   const handleRegisterClick = (_confId: string) => {
-  // Profile visit / registration click tracking disabled.
-};
+    // Profile visit / registration click tracking disabled.
+  };
 
   const handleSelectConference = (_conf: Conference) => {
-  // View tracking removed.
-    };
+    // View tracking removed.
+  };
 
   const handleClearNotifications = () => {
     if (!authUser?.organizerId) return;
@@ -4462,7 +4563,7 @@ const handleEditCategory = async (
         (authUser.email && o.email?.toLowerCase().trim() === authUser.email.toLowerCase().trim())
     );
     if (!org) return false;
-return org.isProfileComplete === true;
+    return org.isProfileComplete === true;
   }, [organizers, authUser]);
 
   // Render Auth Modal
@@ -4571,28 +4672,28 @@ return org.isProfileComplete === true;
                   )}
                 </div>
                 <div className="relative">
-              <input
-                type={showAuthPassword ? "text" : "password"}
-                required
-                placeholder="Enter your password"
-                value={authPassword}
-                onChange={(e) => setAuthPassword(e.target.value)}
-                className="w-full text-sm bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 pr-12 text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
-              />
+                  <input
+                    type={showAuthPassword ? "text" : "password"}
+                    required
+                    placeholder="Enter your password"
+                    value={authPassword}
+                    onChange={(e) => setAuthPassword(e.target.value)}
+                    className="w-full text-sm bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 pr-12 text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
+                  />
 
-              <button
-                type="button"
-                onClick={() => setShowAuthPassword((prev) => !prev)}
-                className="absolute inset-y-0 right-0 w-12 flex items-center justify-center text-gray-400 hover:text-gray-700 transition-colors cursor-pointer"
-                aria-label={showAuthPassword ? "Hide password" : "Show password"}
-              >
-                {showAuthPassword ? (
-                  <EyeOff className="h-5 w-5" />
-                ) : (
-                  <Eye className="h-5 w-5" />
-                )}
-              </button>
-            </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowAuthPassword((prev) => !prev)}
+                    className="absolute inset-y-0 right-0 w-12 flex items-center justify-center text-gray-400 hover:text-gray-700 transition-colors cursor-pointer"
+                    aria-label={showAuthPassword ? "Hide password" : "Show password"}
+                  >
+                    {showAuthPassword ? (
+                      <EyeOff className="h-5 w-5" />
+                    ) : (
+                      <Eye className="h-5 w-5" />
+                    )}
+                  </button>
+                </div>
               </div>
             )}
 
@@ -4602,34 +4703,34 @@ return org.isProfileComplete === true;
                   <Key className="h-3.5 w-3.5" /> Reset PIN (Security Recovery Code)
                 </label>
                 <div className="relative">
-              <input
-                type={showResetPin ? "text" : "password"}
-                inputMode="numeric"
-                pattern="[0-9]{6}"
-                minLength={6}
-                maxLength={6}
-                required
-                placeholder="Create a 6-digit PIN"
-                value={authResetPin}
-                onChange={(e) =>
-                  setAuthResetPin(e.target.value.replace(/\D/g, "").slice(0, 6))
-                }
-                className="w-full text-sm bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 pr-12 text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
-              />
+                  <input
+                    type={showResetPin ? "text" : "password"}
+                    inputMode="numeric"
+                    pattern="[0-9]{6}"
+                    minLength={6}
+                    maxLength={6}
+                    required
+                    placeholder="Create a 6-digit PIN"
+                    value={authResetPin}
+                    onChange={(e) =>
+                      setAuthResetPin(e.target.value.replace(/\D/g, "").slice(0, 6))
+                    }
+                    className="w-full text-sm bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 pr-12 text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
+                  />
 
-              <button
-                type="button"
-                onClick={() => setShowResetPin((prev) => !prev)}
-                className="absolute inset-y-0 right-0 w-12 flex items-center justify-center text-gray-400 hover:text-gray-700 transition-colors cursor-pointer"
-                aria-label={showResetPin ? "Hide Reset PIN" : "Show Reset PIN"}
-              >
-                {showResetPin ? (
-                  <EyeOff className="h-5 w-5" />
-                ) : (
-                  <Eye className="h-5 w-5" />
-                )}
-              </button>
-            </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowResetPin((prev) => !prev)}
+                    className="absolute inset-y-0 right-0 w-12 flex items-center justify-center text-gray-400 hover:text-gray-700 transition-colors cursor-pointer"
+                    aria-label={showResetPin ? "Hide Reset PIN" : "Show Reset PIN"}
+                  >
+                    {showResetPin ? (
+                      <EyeOff className="h-5 w-5" />
+                    ) : (
+                      <Eye className="h-5 w-5" />
+                    )}
+                  </button>
+                </div>
                 <p className="text-[11px] text-gray-400">
                   🔒 Save these six digits safely. They are required to recover a forgotten password, and the PIN itself is never stored.
                 </p>
@@ -4642,34 +4743,34 @@ return org.isProfileComplete === true;
                   <Key className="h-3.5 w-3.5" /> Reset PIN
                 </label>
                 <div className="relative">
-              <input
-                type={showResetPin ? "text" : "password"}
-                inputMode="numeric"
-                pattern="[0-9]{6}"
-                minLength={6}
-                maxLength={6}
-                required
-                placeholder="Enter your 6-digit Recovery PIN"
-                value={authResetPin}
-                onChange={(e) =>
-                  setAuthResetPin(e.target.value.replace(/\D/g, "").slice(0, 6))
-                }
-                className="w-full text-sm bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 pr-12 text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
-              />
+                  <input
+                    type={showResetPin ? "text" : "password"}
+                    inputMode="numeric"
+                    pattern="[0-9]{6}"
+                    minLength={6}
+                    maxLength={6}
+                    required
+                    placeholder="Enter your 6-digit Recovery PIN"
+                    value={authResetPin}
+                    onChange={(e) =>
+                      setAuthResetPin(e.target.value.replace(/\D/g, "").slice(0, 6))
+                    }
+                    className="w-full text-sm bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 pr-12 text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
+                  />
 
-              <button
-                type="button"
-                onClick={() => setShowResetPin((prev) => !prev)}
-                className="absolute inset-y-0 right-0 w-12 flex items-center justify-center text-gray-400 hover:text-gray-700 transition-colors cursor-pointer"
-                aria-label={showResetPin ? "Hide Reset PIN" : "Show Reset PIN"}
-              >
-                {showResetPin ? (
-                  <EyeOff className="h-5 w-5" />
-                ) : (
-                  <Eye className="h-5 w-5" />
-                )}
-              </button>
-            </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowResetPin((prev) => !prev)}
+                    className="absolute inset-y-0 right-0 w-12 flex items-center justify-center text-gray-400 hover:text-gray-700 transition-colors cursor-pointer"
+                    aria-label={showResetPin ? "Hide Reset PIN" : "Show Reset PIN"}
+                  >
+                    {showResetPin ? (
+                      <EyeOff className="h-5 w-5" />
+                    ) : (
+                      <Eye className="h-5 w-5" />
+                    )}
+                  </button>
+                </div>
               </div>
             )}
 
@@ -4680,60 +4781,60 @@ return org.isProfileComplete === true;
                     <Lock className="h-3.5 w-3.5" /> Create New Password
                   </label>
                   <div className="relative">
-                  <input
-                    type={showNewPassword ? "text" : "password"}
-                    required
-                    placeholder="Min 6 characters"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    className="w-full text-sm bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 pr-12 text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
-                  />
+                    <input
+                      type={showNewPassword ? "text" : "password"}
+                      required
+                      placeholder="Min 6 characters"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      className="w-full text-sm bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 pr-12 text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
+                    />
 
-                  <button
-                    type="button"
-                    onClick={() => setShowNewPassword((prev) => !prev)}
-                    className="absolute inset-y-0 right-0 w-12 flex items-center justify-center text-gray-400 hover:text-gray-700 transition-colors cursor-pointer"
-                    aria-label={showNewPassword ? "Hide new password" : "Show new password"}
-                  >
-                    {showNewPassword ? (
-                      <EyeOff className="h-5 w-5" />
-                    ) : (
-                      <Eye className="h-5 w-5" />
-                    )}
-                  </button>
-                </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword((prev) => !prev)}
+                      className="absolute inset-y-0 right-0 w-12 flex items-center justify-center text-gray-400 hover:text-gray-700 transition-colors cursor-pointer"
+                      aria-label={showNewPassword ? "Hide new password" : "Show new password"}
+                    >
+                      {showNewPassword ? (
+                        <EyeOff className="h-5 w-5" />
+                      ) : (
+                        <Eye className="h-5 w-5" />
+                      )}
+                    </button>
+                  </div>
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs font-bold uppercase tracking-wider text-gray-500 flex items-center gap-1">
                     <Lock className="h-3.5 w-3.5" /> Confirm New Password
                   </label>
                   <div className="relative">
-                  <input
-                    type={showConfirmNewPassword ? "text" : "password"}
-                    required
-                    placeholder="Re-enter new password"
-                    value={confirmNewPassword}
-                    onChange={(e) => setConfirmNewPassword(e.target.value)}
-                    className="w-full text-sm bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 pr-12 text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
-                  />
+                    <input
+                      type={showConfirmNewPassword ? "text" : "password"}
+                      required
+                      placeholder="Re-enter new password"
+                      value={confirmNewPassword}
+                      onChange={(e) => setConfirmNewPassword(e.target.value)}
+                      className="w-full text-sm bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 pr-12 text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
+                    />
 
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmNewPassword((prev) => !prev)}
-                    className="absolute inset-y-0 right-0 w-12 flex items-center justify-center text-gray-400 hover:text-gray-700 transition-colors cursor-pointer"
-                    aria-label={
-                      showConfirmNewPassword
-                        ? "Hide confirm password"
-                        : "Show confirm password"
-                    }
-                  >
-                    {showConfirmNewPassword ? (
-                      <EyeOff className="h-5 w-5" />
-                    ) : (
-                      <Eye className="h-5 w-5" />
-                    )}
-                  </button>
-                </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmNewPassword((prev) => !prev)}
+                      className="absolute inset-y-0 right-0 w-12 flex items-center justify-center text-gray-400 hover:text-gray-700 transition-colors cursor-pointer"
+                      aria-label={
+                        showConfirmNewPassword
+                          ? "Hide confirm password"
+                          : "Show confirm password"
+                      }
+                    >
+                      {showConfirmNewPassword ? (
+                        <EyeOff className="h-5 w-5" />
+                      ) : (
+                        <Eye className="h-5 w-5" />
+                      )}
+                    </button>
+                  </div>
                 </div>
               </>
             )}
@@ -4793,8 +4894,8 @@ return org.isProfileComplete === true;
                 }}
                 className="text-sm text-blue-600 hover:text-blue-800 font-semibold transition-colors cursor-pointer"
               >
-                {isLogin 
-                  ? "Don't have an account? Sign Up" 
+                {isLogin
+                  ? "Don't have an account? Sign Up"
                   : "Already have an account? Sign In"}
               </button>
             )}
@@ -4829,7 +4930,7 @@ return org.isProfileComplete === true;
     return (
       <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-100/85 shadow-sm px-3 sm:px-4 md:px-6 py-2.5 sm:py-3 flex items-center justify-between gap-2 min-w-0">
         {/* Left Side: Website Logo */}
-        <div 
+        <div
           className="flex items-center gap-3 cursor-pointer group"
           onClick={() => {
             if (authUser?.role === "ADMIN") {
@@ -4868,11 +4969,10 @@ return org.isProfileComplete === true;
                   <button
                     key={item.label}
                     onClick={() => handleNavClick(item.tabId)}
-                    className={`text-sm font-semibold transition-all relative py-1 cursor-pointer ${
-                      isActive
-                        ? "text-blue-600"
-                        : "text-gray-600 hover:text-blue-600"
-                    }`}
+                    className={`text-sm font-semibold transition-all relative py-1 cursor-pointer ${isActive
+                      ? "text-blue-600"
+                      : "text-gray-600 hover:text-blue-600"
+                      }`}
                   >
                     {item.label}
                     {isActive && (
@@ -4892,43 +4992,42 @@ return org.isProfileComplete === true;
             {authUser ? (
               <>
                 <button
-              type="button"
-              onClick={() => {
-                if (authUser.role === "ORGANIZER") {
-                  window.history.pushState({}, "", "/organizer-portal");
-                  setActivePortal("ORGANIZER");
-                  setAuthMode("NONE");
-                } else if (authUser.role === "ADMIN") {
-                  window.history.pushState({}, "", "/admin-portal");
-                  setActivePortal("ADMIN");
-                  setAuthMode("NONE");
-                }
-              }}
-              className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-full border border-gray-100 hover:bg-gray-100 transition-colors cursor-pointer"
-              title={
-                authUser.role === "ORGANIZER"
-                  ? "Go to Organizer Dashboard"
-                  : "Go to Admin Dashboard"
-              }
-            >
-              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center text-xs font-bold">
-                {authUser.name?.charAt(0) || "U"}
-              </div>
+                  type="button"
+                  onClick={() => {
+                    if (authUser.role === "ORGANIZER") {
+                      window.history.pushState({}, "", "/organizer-portal");
+                      setActivePortal("ORGANIZER");
+                      setAuthMode("NONE");
+                    } else if (authUser.role === "ADMIN") {
+                      window.history.pushState({}, "", "/admin-portal");
+                      setActivePortal("ADMIN");
+                      setAuthMode("NONE");
+                    }
+                  }}
+                  className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-full border border-gray-100 hover:bg-gray-100 transition-colors cursor-pointer"
+                  title={
+                    authUser.role === "ORGANIZER"
+                      ? "Go to Organizer Dashboard"
+                      : "Go to Admin Dashboard"
+                  }
+                >
+                  <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center text-xs font-bold">
+                    {authUser.name?.charAt(0) || "U"}
+                  </div>
 
-              <span className="text-xs font-medium text-gray-700 max-w-[100px] truncate">
-                {authUser.name || authUser.email}
-              </span>
+                  <span className="text-xs font-medium text-gray-700 max-w-[100px] truncate">
+                    {authUser.name || authUser.email}
+                  </span>
 
-              <span
-                className={`text-[8px] font-bold uppercase px-1.5 py-0.5 rounded ${
-                  authUser.role === "ADMIN"
-                    ? "bg-purple-100 text-purple-700"
-                    : "bg-blue-100 text-blue-700"
-                }`}
-              >
-                {authUser.role}
-              </span>
-            </button>
+                  <span
+                    className={`text-[8px] font-bold uppercase px-1.5 py-0.5 rounded ${authUser.role === "ADMIN"
+                      ? "bg-purple-100 text-purple-700"
+                      : "bg-blue-100 text-blue-700"
+                      }`}
+                  >
+                    {authUser.role}
+                  </span>
+                </button>
                 {authUser.role === "ADMIN" && (
                   <button
                     onClick={() => setActivePortal("ADMIN")}
@@ -4990,11 +5089,10 @@ return org.isProfileComplete === true;
                 <button
                   key={item.label}
                   onClick={() => handleNavClick(item.tabId)}
-                  className={`text-left w-full py-2.5 px-3 text-sm font-semibold rounded-xl transition-all cursor-pointer ${
-                    isActive
-                      ? "text-blue-600 bg-blue-50/50"
-                      : "text-gray-600 hover:text-blue-600 hover:bg-gray-50"
-                  }`}
+                  className={`text-left w-full py-2.5 px-3 text-sm font-semibold rounded-xl transition-all cursor-pointer ${isActive
+                    ? "text-blue-600 bg-blue-50/50"
+                    : "text-gray-600 hover:text-blue-600 hover:bg-gray-50"
+                    }`}
                 >
                   {item.label}
                 </button>
@@ -5071,7 +5169,7 @@ return org.isProfileComplete === true;
           >
             <ArrowLeft className="h-4 w-4" /> Back to Directory
           </button>
-          
+
           <div className="text-xs text-slate-400 font-mono flex items-center gap-1.5 flex-wrap">
             <button
               onClick={() => {
@@ -5119,17 +5217,16 @@ return org.isProfileComplete === true;
                 <ShieldCheck className="h-3.5 w-3.5 text-amber-600" /> Verified Legitimate
               </span>
             )}
-            <span className={`text-xs font-bold px-3 py-1 rounded-full shadow-2xs ${
-              selectedConference.liveStatus === LiveStatus.Ongoing
-                ? "bg-emerald-500 text-white"
-                : selectedConference.liveStatus === LiveStatus.Upcoming
+            <span className={`text-xs font-bold px-3 py-1 rounded-full shadow-2xs ${selectedConference.liveStatus === LiveStatus.Ongoing
+              ? "bg-emerald-500 text-white"
+              : selectedConference.liveStatus === LiveStatus.Upcoming
                 ? "bg-blue-600 text-white"
                 : "bg-slate-600 text-white"
-            }`}>
+              }`}>
               {selectedConference.liveStatus}
             </span>
           </div>
-          
+
           <h1 className="text-2xl md:text-4xl font-extrabold text-slate-900 tracking-tight font-display leading-tight">
             {selectedConference.title}
           </h1>
@@ -5198,312 +5295,308 @@ return org.isProfileComplete === true;
         </div>
 
 
-{/* Conference Information & Schedule */}
-<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 lg:gap-6 items-start">
-  {/* COLUMN 1 - DATE & SCHEDULE */}
-  <div className="bg-blue-50/90 border border-blue-200/90 p-5 rounded-2xl shadow-2xs">
-    <div className="text-blue-900 font-extrabold text-xs uppercase tracking-wider flex items-center gap-2 border-b border-blue-200 pb-3 mb-4">
-      <CalendarIcon className="h-4 w-4 text-blue-600 shrink-0" />
-      Date & Schedule
-    </div>
+        {/* Conference Information & Schedule */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 lg:gap-6 items-start">
+          {/* COLUMN 1 - DATE & SCHEDULE */}
+          <div className="bg-blue-50/90 border border-blue-200/90 p-5 rounded-2xl shadow-2xs">
+            <div className="text-blue-900 font-extrabold text-xs uppercase tracking-wider flex items-center gap-2 border-b border-blue-200 pb-3 mb-4">
+              <CalendarIcon className="h-4 w-4 text-blue-600 shrink-0" />
+              Date & Schedule
+            </div>
 
-    <div className="space-y-3">
-      <div>
-        <p className="text-[11px] text-blue-700 font-bold uppercase mb-1">
-          Start Date
-        </p>
-        <p className="font-extrabold text-slate-900 text-sm">
-          {formatConferenceDate(selectedConference.startDate)}
-        </p>
-      </div>
+            <div className="space-y-3">
+              <div>
+                <p className="text-[11px] text-blue-700 font-bold uppercase mb-1">
+                  Start Date
+                </p>
+                <p className="font-extrabold text-slate-900 text-sm">
+                  {formatConferenceDate(selectedConference.startDate)}
+                </p>
+              </div>
 
-      <div>
-        <p className="text-[11px] text-blue-700 font-bold uppercase mb-1">
-          End Date
-        </p>
-        <p className="font-extrabold text-slate-900 text-sm">
-          {formatConferenceDate(selectedConference.endDate)}
-        </p>
-      </div>
+              <div>
+                <p className="text-[11px] text-blue-700 font-bold uppercase mb-1">
+                  End Date
+                </p>
+                <p className="font-extrabold text-slate-900 text-sm">
+                  {formatConferenceDate(selectedConference.endDate)}
+                </p>
+              </div>
 
-      {selectedConference.time && (
-        <div>
-          <p className="text-[11px] text-blue-700 font-bold uppercase mb-1">
-            Time
-          </p>
-          <p className="font-semibold text-slate-800 text-sm">
-            {selectedConference.time}
-          </p>
-        </div>
-      )}
+              {selectedConference.time && (
+                <div>
+                  <p className="text-[11px] text-blue-700 font-bold uppercase mb-1">
+                    Time
+                  </p>
+                  <p className="font-semibold text-slate-800 text-sm">
+                    {selectedConference.time}
+                  </p>
+                </div>
+              )}
 
-      {selectedConference.timeZone && (
-        <div>
-          <p className="text-[11px] text-blue-700 font-bold uppercase mb-1">
-            Time Zone
-          </p>
-          <p className="font-semibold text-slate-800 text-sm">
-            {selectedConference.timeZone}
-          </p>
-        </div>
-      )}
-    </div>
-  </div>
-
-
-  {/* COLUMN 2 - VENUE & LOCATION */}
-  <div className="bg-emerald-50/90 border border-emerald-200/90 p-5 rounded-2xl shadow-2xs">
-    <div className="text-emerald-900 font-extrabold text-xs uppercase tracking-wider flex items-center gap-2 border-b border-emerald-200 pb-3 mb-4">
-      <MapPinIcon className="h-4 w-4 text-emerald-600 shrink-0" />
-      Venue & Location
-    </div>
-
-    <div className="space-y-3">
-      {selectedConference.venue && (
-        <div>
-          <p className="text-[11px] text-emerald-700 font-bold uppercase mb-1">
-            Venue
-          </p>
-          <p className="font-extrabold text-slate-900 text-sm">
-            {selectedConference.venue}
-          </p>
-        </div>
-      )}
-
-      {selectedConference.city && (
-        <div>
-          <p className="text-[11px] text-emerald-700 font-bold uppercase mb-1">
-            City
-          </p>
-          <p className="font-semibold text-slate-800 text-sm">
-            {selectedConference.city}
-          </p>
-        </div>
-      )}
-
-      {selectedConference.country && (
-        <div>
-          <p className="text-[11px] text-emerald-700 font-bold uppercase mb-1">
-            Country
-          </p>
-          <p className="font-semibold text-slate-800 text-sm">
-            {selectedConference.country}
-          </p>
-        </div>
-      )}
-    </div>
-  </div>
-
-  {/* COLUMN 3 - CONFERENCE SCHEDULE */}
-  <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-2xs">
-    <div className="space-y-2 border-b border-slate-100 pb-3 mb-4">
-      <div className="flex items-center gap-2">
-        <CalendarIcon className="h-5 w-5 text-blue-600 shrink-0" />
-        <h3 className="text-base md:text-lg font-extrabold text-slate-900 font-display">
-          Conference Schedule
-        </h3>
-      </div>
-
-      <p className="text-[10px] text-slate-500 font-medium leading-relaxed">
-        Indicative schedule. Final timings may vary by organizer.
-      </p>
-    </div>
-
-    <div className="grid grid-cols-3 gap-2 bg-slate-100 p-1.5 rounded-xl mb-5">
-      <button
-        type="button"
-        onClick={() => setActiveScheduleTab("offline")}
-        className={`px-3 py-2.5 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer ${
-          activeScheduleTab === "offline"
-            ? "bg-white text-blue-700 shadow-sm"
-            : "text-slate-600 hover:text-slate-900"
-        }`}
-      >
-        Offline
-      </button>
-
-      <button
-        type="button"
-        onClick={() => setActiveScheduleTab("online")}
-        className={`px-3 py-2.5 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer ${
-          activeScheduleTab === "online"
-            ? "bg-white text-blue-700 shadow-sm"
-            : "text-slate-600 hover:text-slate-900"
-        }`}
-      >
-        Online
-      </button>
-
-      <button
-        type="button"
-        onClick={() => setActiveScheduleTab("hybrid")}
-        className={`px-3 py-2.5 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer ${
-          activeScheduleTab === "hybrid"
-            ? "bg-white text-blue-700 shadow-sm"
-            : "text-slate-600 hover:text-slate-900"
-        }`}
-      >
-        Hybrid
-      </button>
-    </div>
-
-    {activeScheduleTab === "offline" && (
-      <div className="grid grid-cols-1 gap-2.5">
-        {[
-          "Registration & Venue Check-In",
-          "Opening Session",
-          "Keynote Session",
-          "Technical & Paper Presentations",
-          "Networking & Refreshment Break",
-          "Closing Session"
-        ].map((item) => (
-          <div
-            key={item}
-            className="flex items-start gap-2.5 bg-blue-50/70 border border-blue-100 p-3.5 rounded-xl"
-          >
-            <CheckCircle2 className="h-4 w-4 text-blue-600 mt-0.5 shrink-0" />
-            <span className="text-sm font-semibold text-slate-700">{item}</span>
+              {selectedConference.timeZone && (
+                <div>
+                  <p className="text-[11px] text-blue-700 font-bold uppercase mb-1">
+                    Time Zone
+                  </p>
+                  <p className="font-semibold text-slate-800 text-sm">
+                    {selectedConference.timeZone}
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
-        ))}
-      </div>
-    )}
 
-    {activeScheduleTab === "online" && (
-      <div className="grid grid-cols-1 gap-2.5">
-        {[
-          "Virtual Platform Check-In",
-          "Online Opening Session",
-          "Keynote Session",
-          "Virtual Paper Presentations",
-          "Interactive Q&A & Networking",
-          "Online Closing Session"
-        ].map((item) => (
-          <div
-            key={item}
-            className="flex items-start gap-2.5 bg-indigo-50/70 border border-indigo-100 p-3.5 rounded-xl"
-          >
-            <CheckCircle2 className="h-4 w-4 text-indigo-600 mt-0.5 shrink-0" />
-            <span className="text-sm font-semibold text-slate-700">{item}</span>
+
+          {/* COLUMN 2 - VENUE & LOCATION */}
+          <div className="bg-emerald-50/90 border border-emerald-200/90 p-5 rounded-2xl shadow-2xs">
+            <div className="text-emerald-900 font-extrabold text-xs uppercase tracking-wider flex items-center gap-2 border-b border-emerald-200 pb-3 mb-4">
+              <MapPinIcon className="h-4 w-4 text-emerald-600 shrink-0" />
+              Venue & Location
+            </div>
+
+            <div className="space-y-3">
+              {selectedConference.venue && (
+                <div>
+                  <p className="text-[11px] text-emerald-700 font-bold uppercase mb-1">
+                    Venue
+                  </p>
+                  <p className="font-extrabold text-slate-900 text-sm">
+                    {selectedConference.venue}
+                  </p>
+                </div>
+              )}
+
+              {selectedConference.city && (
+                <div>
+                  <p className="text-[11px] text-emerald-700 font-bold uppercase mb-1">
+                    City
+                  </p>
+                  <p className="font-semibold text-slate-800 text-sm">
+                    {selectedConference.city}
+                  </p>
+                </div>
+              )}
+
+              {selectedConference.country && (
+                <div>
+                  <p className="text-[11px] text-emerald-700 font-bold uppercase mb-1">
+                    Country
+                  </p>
+                  <p className="font-semibold text-slate-800 text-sm">
+                    {selectedConference.country}
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
-        ))}
-      </div>
-    )}
 
-    {activeScheduleTab === "hybrid" && (
-      <div className="grid grid-cols-1 gap-2.5">
-        {[
-          "Venue & Online Access Check-In",
-          "Combined Opening Session",
-          "Keynote Session",
-          "Hybrid Paper Presentations",
-          "On-Site & Virtual Networking",
-          "Combined Closing Session"
-        ].map((item) => (
-          <div
-            key={item}
-            className="flex items-start gap-2.5 bg-emerald-50/70 border border-emerald-100 p-3.5 rounded-xl"
-          >
-            <CheckCircle2 className="h-4 w-4 text-emerald-600 mt-0.5 shrink-0" />
-            <span className="text-sm font-semibold text-slate-700">{item}</span>
+          {/* COLUMN 3 - CONFERENCE SCHEDULE */}
+          <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-2xs">
+            <div className="space-y-2 border-b border-slate-100 pb-3 mb-4">
+              <div className="flex items-center gap-2">
+                <CalendarIcon className="h-5 w-5 text-blue-600 shrink-0" />
+                <h3 className="text-base md:text-lg font-extrabold text-slate-900 font-display">
+                  Conference Schedule
+                </h3>
+              </div>
+
+              <p className="text-[10px] text-slate-500 font-medium leading-relaxed">
+                Indicative schedule. Final timings may vary by organizer.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2 bg-slate-100 p-1.5 rounded-xl mb-5">
+              <button
+                type="button"
+                onClick={() => setActiveScheduleTab("offline")}
+                className={`px-3 py-2.5 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer ${activeScheduleTab === "offline"
+                  ? "bg-white text-blue-700 shadow-sm"
+                  : "text-slate-600 hover:text-slate-900"
+                  }`}
+              >
+                Offline
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveScheduleTab("online")}
+                className={`px-3 py-2.5 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer ${activeScheduleTab === "online"
+                  ? "bg-white text-blue-700 shadow-sm"
+                  : "text-slate-600 hover:text-slate-900"
+                  }`}
+              >
+                Online
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveScheduleTab("hybrid")}
+                className={`px-3 py-2.5 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer ${activeScheduleTab === "hybrid"
+                  ? "bg-white text-blue-700 shadow-sm"
+                  : "text-slate-600 hover:text-slate-900"
+                  }`}
+              >
+                Hybrid
+              </button>
+            </div>
+
+            {activeScheduleTab === "offline" && (
+              <div className="grid grid-cols-1 gap-2.5">
+                {[
+                  "Registration & Venue Check-In",
+                  "Opening Session",
+                  "Keynote Session",
+                  "Technical & Paper Presentations",
+                  "Networking & Refreshment Break",
+                  "Closing Session"
+                ].map((item) => (
+                  <div
+                    key={item}
+                    className="flex items-start gap-2.5 bg-blue-50/70 border border-blue-100 p-3.5 rounded-xl"
+                  >
+                    <CheckCircle2 className="h-4 w-4 text-blue-600 mt-0.5 shrink-0" />
+                    <span className="text-sm font-semibold text-slate-700">{item}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {activeScheduleTab === "online" && (
+              <div className="grid grid-cols-1 gap-2.5">
+                {[
+                  "Virtual Platform Check-In",
+                  "Online Opening Session",
+                  "Keynote Session",
+                  "Virtual Paper Presentations",
+                  "Interactive Q&A & Networking",
+                  "Online Closing Session"
+                ].map((item) => (
+                  <div
+                    key={item}
+                    className="flex items-start gap-2.5 bg-indigo-50/70 border border-indigo-100 p-3.5 rounded-xl"
+                  >
+                    <CheckCircle2 className="h-4 w-4 text-indigo-600 mt-0.5 shrink-0" />
+                    <span className="text-sm font-semibold text-slate-700">{item}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {activeScheduleTab === "hybrid" && (
+              <div className="grid grid-cols-1 gap-2.5">
+                {[
+                  "Venue & Online Access Check-In",
+                  "Combined Opening Session",
+                  "Keynote Session",
+                  "Hybrid Paper Presentations",
+                  "On-Site & Virtual Networking",
+                  "Combined Closing Session"
+                ].map((item) => (
+                  <div
+                    key={item}
+                    className="flex items-start gap-2.5 bg-emerald-50/70 border border-emerald-100 p-3.5 rounded-xl"
+                  >
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600 mt-0.5 shrink-0" />
+                    <span className="text-sm font-semibold text-slate-700">{item}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-        ))}
-      </div>
-    )}
-  </div>
 
-  {/* COLUMN 4 - OTHER DETAILS */}
-  <div className="bg-purple-50/90 border border-purple-200/90 p-5 rounded-2xl shadow-2xs">
-    <div className="text-purple-900 font-extrabold text-xs uppercase tracking-wider flex items-center gap-2 border-b border-purple-200 pb-3 mb-4">
-      <Sparkles className="h-4 w-4 text-purple-600 shrink-0" />
-      Other Details
-    </div>
+          {/* COLUMN 4 - OTHER DETAILS */}
+          <div className="bg-purple-50/90 border border-purple-200/90 p-5 rounded-2xl shadow-2xs">
+            <div className="text-purple-900 font-extrabold text-xs uppercase tracking-wider flex items-center gap-2 border-b border-purple-200 pb-3 mb-4">
+              <Sparkles className="h-4 w-4 text-purple-600 shrink-0" />
+              Other Details
+            </div>
 
-    <div className="space-y-4">
+            <div className="space-y-4">
 
-      {/* Category + Attendance */}
-      <div>
-        <p className="text-[11px] text-purple-700 font-bold uppercase mb-2">
-          Topic & Attendance
-        </p>
+              {/* Category + Attendance */}
+              <div>
+                <p className="text-[11px] text-purple-700 font-bold uppercase mb-2">
+                  Topic & Attendance
+                </p>
 
-        <div className="flex flex-wrap gap-2">
-          <span className="text-xs font-extrabold bg-white text-purple-900 border border-purple-200 px-2.5 py-1 rounded-lg">
-            {selectedConference.category}
-          </span>
+                <div className="flex flex-wrap gap-2">
+                  <span className="text-xs font-extrabold bg-white text-purple-900 border border-purple-200 px-2.5 py-1 rounded-lg">
+                    {selectedConference.category}
+                  </span>
 
-          {selectedConference.attendanceType && (
-            <span className="text-xs font-extrabold bg-purple-600 text-white px-2.5 py-1 rounded-lg">
-              {selectedConference.attendanceType}
-            </span>
-          )}
+                  {selectedConference.attendanceType && (
+                    <span className="text-xs font-extrabold bg-purple-600 text-white px-2.5 py-1 rounded-lg">
+                      {selectedConference.attendanceType}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Contact */}
+              {selectedConference.contactEmail && (
+                <div>
+                  <p className="text-[11px] text-purple-700 font-bold uppercase mb-1 flex items-center gap-1">
+                    <Mail className="h-3.5 w-3.5" />
+                    Official Contact
+                  </p>
+
+                  <a
+                    href={`mailto:${selectedConference.contactEmail}`}
+                    className="font-semibold text-sm text-slate-800 hover:text-purple-700 hover:underline break-all"
+                  >
+                    {selectedConference.contactEmail}
+                  </a>
+                </div>
+              )}
+
+              {/* Buttons */}
+              <div className="space-y-2.5 pt-2">
+
+                <button
+                  onClick={() => {
+                    setSelectedOrganizerId(selectedConference.organizerId);
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
+                  className="w-full py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 border border-blue-600 text-white text-xs font-extrabold rounded-xl transition-all shadow-md shadow-blue-600/20 flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  Organizer Profile
+                  <Users className="h-4 w-4 shrink-0" />
+                </button>
+
+                <a
+                  href={selectedConference.conferenceWebsite || "#"}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-2.5 bg-white hover:bg-slate-50 text-slate-800 text-xs font-bold rounded-xl transition-all border border-slate-300 hover:border-blue-400 text-center block cursor-pointer"
+                >
+                  Official Conference Website
+                </a>
+
+                <button
+                  onClick={handleShareClick}
+                  className={`w-full py-2.5 text-xs font-bold rounded-xl transition-all border flex items-center justify-center gap-2 cursor-pointer ${copied
+                    ? "bg-emerald-50 border-emerald-300 text-emerald-800"
+                    : "bg-white hover:bg-slate-50 text-slate-800 border-slate-300 hover:border-blue-400"
+                    }`}
+                >
+                  {copied ? (
+                    <>
+                      <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                      Copied Link!
+                    </>
+                  ) : (
+                    <>
+                      <Share2 className="h-4 w-4 text-slate-500 shrink-0" />
+                      Share Event
+                    </>
+                  )}
+                </button>
+
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-
-      {/* Contact */}
-      {selectedConference.contactEmail && (
-        <div>
-          <p className="text-[11px] text-purple-700 font-bold uppercase mb-1 flex items-center gap-1">
-            <Mail className="h-3.5 w-3.5" />
-            Official Contact
-          </p>
-
-          <a
-            href={`mailto:${selectedConference.contactEmail}`}
-            className="font-semibold text-sm text-slate-800 hover:text-purple-700 hover:underline break-all"
-          >
-            {selectedConference.contactEmail}
-          </a>
-        </div>
-      )}
-
-      {/* Buttons */}
-      <div className="space-y-2.5 pt-2">
-
-        <button
-          onClick={() => {
-            setSelectedOrganizerId(selectedConference.organizerId);
-            window.scrollTo({ top: 0, behavior: "smooth" });
-          }}
-          className="w-full py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 border border-blue-600 text-white text-xs font-extrabold rounded-xl transition-all shadow-md shadow-blue-600/20 flex items-center justify-center gap-2 cursor-pointer"
-        >
-          Organizer Profile
-          <Users className="h-4 w-4 shrink-0" />
-        </button>
-
-        <a
-          href={selectedConference.conferenceWebsite || "#"}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="w-full py-2.5 bg-white hover:bg-slate-50 text-slate-800 text-xs font-bold rounded-xl transition-all border border-slate-300 hover:border-blue-400 text-center block cursor-pointer"
-        >
-          Official Conference Website
-        </a>
-
-        <button
-          onClick={handleShareClick}
-          className={`w-full py-2.5 text-xs font-bold rounded-xl transition-all border flex items-center justify-center gap-2 cursor-pointer ${
-            copied
-              ? "bg-emerald-50 border-emerald-300 text-emerald-800"
-              : "bg-white hover:bg-slate-50 text-slate-800 border-slate-300 hover:border-blue-400"
-          }`}
-        >
-          {copied ? (
-            <>
-              <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
-              Copied Link!
-            </>
-          ) : (
-            <>
-              <Share2 className="h-4 w-4 text-slate-500 shrink-0" />
-              Share Event
-            </>
-          )}
-        </button>
-
-      </div>
-    </div>
-  </div>
-</div>
 
         {/* Similar Conferences - Full Width Container below details card */}
         {similarConferences.length > 0 && (
@@ -5606,7 +5699,7 @@ return org.isProfileComplete === true;
           >
             <ArrowLeft className="h-4 w-4" /> Back {selectedConference ? "to Conference" : "to Directory"}
           </button>
-          
+
           <div className="text-xs text-slate-400 font-mono flex items-center gap-1.5 flex-wrap">
             <button
               onClick={() => {
@@ -5854,7 +5947,7 @@ return org.isProfileComplete === true;
             {/* Organizer details Card */}
             <div className="bg-slate-50 border border-slate-100 p-6 rounded-2xl space-y-4 sticky top-24">
               <h3 className="font-bold text-slate-900 text-sm border-b border-slate-200 pb-2">Organizer Details</h3>
-              
+
               <div className="space-y-2.5 text-xs text-slate-600">
                 <div className="flex justify-between items-center">
                   <span className="font-medium text-slate-400">Location:</span>
@@ -5929,13 +6022,12 @@ return org.isProfileComplete === true;
                           <span className="text-[9px] sm:text-[10px] font-extrabold bg-indigo-50 text-indigo-700 border border-indigo-200/80 px-2.5 py-0.5 rounded-lg tracking-wider uppercase">
                             {sc.category}
                           </span>
-                          <span className={`text-[8px] sm:text-[9px] font-bold px-2 sm:px-2.5 py-0.5 rounded-full shadow-2xs ${
-                            sc.liveStatus === LiveStatus.Ongoing
-                              ? "bg-emerald-500 text-white"
-                              : sc.liveStatus === LiveStatus.Upcoming
+                          <span className={`text-[8px] sm:text-[9px] font-bold px-2 sm:px-2.5 py-0.5 rounded-full shadow-2xs ${sc.liveStatus === LiveStatus.Ongoing
+                            ? "bg-emerald-500 text-white"
+                            : sc.liveStatus === LiveStatus.Upcoming
                               ? "bg-blue-500 text-white"
                               : "bg-slate-500 text-white"
-                          }`}>
+                            }`}>
                             {sc.liveStatus}
                           </span>
                           {sc.attendanceType && (
@@ -5992,52 +6084,52 @@ return org.isProfileComplete === true;
       return renderOrganizerDetailPage();
     }
 
-if (selectedConference && (activePortal === "VISITOR" || !authUser)) {
-  return (
-    <>
-      {renderConferenceDetailPage()}
+    if (selectedConference && (activePortal === "VISITOR" || !authUser)) {
+      return (
+        <>
+          {renderConferenceDetailPage()}
 
-      <div className="mt-10 sm:mt-12 md:mt-16 -mb-6 sm:-mb-8 lg:-mb-10">
-        <PublicPortal
-          footerOnly
-          conferences={processedConferences}
-          categories={categories}
-          organizers={organizers}
-          banners={banners}
-          bannerContents={bannerContents}
-          userFeedbacks={userFeedbacks}
-          subscriberEmails={subscriberEmails}
-          onUpdateUserFeedbacks={setUserFeedbacks}
-          onUpdateSubscriberEmails={setSubscriberEmails}
-          onAddNotification={addNotification}
-          onRegisterClick={handleRegisterClick}
-          onSelectOrganizer={setSelectedOrganizerId}
-          onSelectConference={handleSelectConference}
-          onLoginClick={() => {
-            setAuthError("");
-            setAuthMode("LOGIN");
-          }}
-          onSignUpClick={() => {
-            setAuthError("");
-            setAuthMode("SIGNUP");
-          }}
-          currentTab={publicTab}
-          onTabChange={handleNavClick}
-          selectedCategory={selectedCategory}
-          onCategoryChange={setSelectedCategory}
-          selectedCountry={selectedCountry}
-          onCountryChange={setSelectedCountry}
-          selectedCity={selectedCity}
-          onCityChange={setSelectedCity}
-          countriesList={countriesList}
-          citiesList={citiesList}
-          inactiveCountries={inactiveCountries}
-          inactiveCities={inactiveCities}
-        />
-      </div>
-    </>
-  );
-}
+          <div className="mt-10 sm:mt-12 md:mt-16 -mb-6 sm:-mb-8 lg:-mb-10">
+            <PublicPortal
+              footerOnly
+              conferences={processedConferences}
+              categories={categories}
+              organizers={organizers}
+              banners={banners}
+              bannerContents={bannerContents}
+              userFeedbacks={userFeedbacks}
+              subscriberEmails={subscriberEmails}
+              onUpdateUserFeedbacks={setUserFeedbacks}
+              onUpdateSubscriberEmails={setSubscriberEmails}
+              onAddNotification={addNotification}
+              onRegisterClick={handleRegisterClick}
+              onSelectOrganizer={setSelectedOrganizerId}
+              onSelectConference={handleSelectConference}
+              onLoginClick={() => {
+                setAuthError("");
+                setAuthMode("LOGIN");
+              }}
+              onSignUpClick={() => {
+                setAuthError("");
+                setAuthMode("SIGNUP");
+              }}
+              currentTab={publicTab}
+              onTabChange={handleNavClick}
+              selectedCategory={selectedCategory}
+              onCategoryChange={setSelectedCategory}
+              selectedCountry={selectedCountry}
+              onCountryChange={setSelectedCountry}
+              selectedCity={selectedCity}
+              onCityChange={setSelectedCity}
+              countriesList={countriesList}
+              citiesList={citiesList}
+              inactiveCountries={inactiveCountries}
+              inactiveCities={inactiveCities}
+            />
+          </div>
+        </>
+      );
+    }
 
     if (activePortal === "VISITOR" || !authUser) {
       return (
@@ -6112,54 +6204,54 @@ if (selectedConference && (activePortal === "VISITOR" || !authUser)) {
   };
 
   // Wait until the authenticated Organizer's profile has been loaded.
-// This prevents the "Complete Your Organizer Profile" screen from
-// flashing briefly during a browser refresh.
-if (
-  authUser?.role === "ORGANIZER" &&
-  activePortal === "ORGANIZER" &&
-  !activeOrganizerProfile
-) {
-  return (
-    <div className="h-screen w-screen overflow-hidden bg-slate-100 font-sans">
-      <PortalLoading />
-    </div>
-  );
-}
+  // This prevents the "Complete Your Organizer Profile" screen from
+  // flashing briefly during a browser refresh.
+  if (
+    authUser?.role === "ORGANIZER" &&
+    activePortal === "ORGANIZER" &&
+    !activeOrganizerProfile
+  ) {
+    return (
+      <div className="h-screen w-screen overflow-hidden bg-slate-100 font-sans">
+        <PortalLoading />
+      </div>
+    );
+  }
 
   // If Organizer user is logged in and activePortal is ORGANIZER, render dedicated full-screen OrganizerPortal layout without public navbar wrapper
   if (authUser?.role === "ORGANIZER" && activePortal === "ORGANIZER") {
     return (
       <Suspense fallback={<PortalLoading />}>
-      <div className="h-screen w-screen overflow-hidden bg-slate-100 font-sans selection:bg-blue-600 selection:text-white">
-        <OrganizerPortal
-          conferences={organizerConferences}
-          categories={categories}
-          organizers={currentOrganizerProfiles}
-          notifications={notifications.filter((n) => n.organizerId === authUser.organizerId)}
-          activeOrgId={authUser.organizerId || null}
-          onRegisterOrganizer={handleRegisterOrganizer}
-          onUpdateOrganizer={handleRegisterOrganizer}
-          onSubmitConference={handleSubmitConference}
-          onResubmitConference={handleResubmitConference}
-          onDeleteDraft={handleDeleteDraft}
-          onAddNotification={addNotification}
-          onClearNotifications={handleClearNotifications}
-          authUser={authUser}
-          isProfileComplete={isOrganizerProfileComplete}
-          onNavigatePublic={(tab) => {
-            setActivePortal("VISITOR");
-            setPublicTab(tab || "HOME");
-          }}
-          onLogout={handleLogout}
-          onDeleteConference={handleDeleteConference}
-          onToggleConferenceActive={handleToggleConferenceActive}
-          countriesList={countriesList}
-          citiesList={citiesList}
-          inactiveCountries={inactiveCountries}
-          inactiveCities={inactiveCities}
-        />
-        {renderAuthModal()}
-      </div>
+        <div className="h-screen w-screen overflow-hidden bg-slate-100 font-sans selection:bg-blue-600 selection:text-white">
+          <OrganizerPortal
+            conferences={organizerConferences}
+            categories={categories}
+            organizers={currentOrganizerProfiles}
+            notifications={notifications.filter((n) => n.organizerId === authUser.organizerId)}
+            activeOrgId={authUser.organizerId || null}
+            onRegisterOrganizer={handleRegisterOrganizer}
+            onUpdateOrganizer={handleRegisterOrganizer}
+            onSubmitConference={handleSubmitConference}
+            onResubmitConference={handleResubmitConference}
+            onDeleteDraft={handleDeleteDraft}
+            onAddNotification={addNotification}
+            onClearNotifications={handleClearNotifications}
+            authUser={authUser}
+            isProfileComplete={isOrganizerProfileComplete}
+            onNavigatePublic={(tab) => {
+              setActivePortal("VISITOR");
+              setPublicTab(tab || "HOME");
+            }}
+            onLogout={handleLogout}
+            onDeleteConference={handleDeleteConference}
+            onToggleConferenceActive={handleToggleConferenceActive}
+            countriesList={countriesList}
+            citiesList={citiesList}
+            inactiveCountries={inactiveCountries}
+            inactiveCities={inactiveCities}
+          />
+          {renderAuthModal()}
+        </div>
       </Suspense>
     );
   }
@@ -6168,71 +6260,70 @@ if (
   if (authUser?.role === "ADMIN" && activePortal === "ADMIN") {
     return (
       <Suspense fallback={<PortalLoading />}>
-      <div className="h-screen w-screen overflow-hidden bg-slate-100 font-sans selection:bg-blue-600 selection:text-white">
-        <AdminPortal
-          conferences={processedConferences}
-          categories={categories}
-          organizers={organizers}
-          auditLogs={auditLogs}
-          banners={banners}
-          onUpdateBanners={setBanners}
-          bannerContents={bannerContents}
-          onUpdateBannerContents={setBannerContents}
-          userFeedbacks={userFeedbacks}
-          onUpdateUserFeedbacks={setUserFeedbacks}
-          subscriberEmails={subscriberEmails}
-          onUpdateSubscriberEmails={setSubscriberEmails}
-          onApproveConference={handleApproveConference}
-          onRejectConference={handleRejectConference}
-          onToggleConferenceActive={handleToggleConferenceActive}
-          onDeleteConference={handleDeleteConference}
-          onToggleFeatureConference={handleToggleFeatureConference}
-          onToggleVerifyConference={handleToggleVerifyConference}
-          onVerifyOrganizer={handleVerifyOrganizer}
-          onToggleSuspendOrganizer={handleToggleSuspendOrganizer}
-          onDeleteOrganizer={handleDeleteOrganizer}
-          onAddCategory={handleAddCategory}
-          onAddBulkCategories={handleAddBulkCategories}
-          onEditCategory={handleEditCategory}
-          onDeleteCategory={handleDeleteCategory}
-          onDeleteAllCategories={handleDeleteAllCategories}
-          authUser={authUser}
-          onNavigatePublic={(tab) => {
-            setActivePortal("VISITOR");
-            setPublicTab(tab || "HOME");
-          }}
-          onLogout={handleLogout}
-          onSubmitConference={(conf, isDraft = false) => handleSubmitConference(conf, isDraft)}
-          countriesList={countriesList}
-          onUpdateCountries={setCountriesList}
-          citiesList={citiesList}
-          onUpdateCities={setCitiesList}
-          inactiveCountries={inactiveCountries}
-          onUpdateInactiveCountries={setInactiveCountries}
-          inactiveCities={inactiveCities}
-          onUpdateInactiveCities={setInactiveCities}
-          
-          notifications={notifications.filter((n) => n.organizerId === "ADMIN" || !n.organizerId)}
-          onMarkNotificationRead={handleMarkNotificationRead}
-          onMarkAllNotificationsRead={() => handleMarkAllNotificationsRead("ADMIN")}
-          onClearNotifications={handleClearNotifications}
-        />
-        {renderAuthModal()}
-      </div>
+        <div className="h-screen w-screen overflow-hidden bg-slate-100 font-sans selection:bg-blue-600 selection:text-white">
+          <AdminPortal
+            conferences={processedConferences}
+            categories={categories}
+            organizers={organizers}
+            auditLogs={auditLogs}
+            banners={banners}
+            onUpdateBanners={setBanners}
+            bannerContents={bannerContents}
+            onUpdateBannerContents={setBannerContents}
+            userFeedbacks={userFeedbacks}
+            onUpdateUserFeedbacks={setUserFeedbacks}
+            subscriberEmails={subscriberEmails}
+            onUpdateSubscriberEmails={setSubscriberEmails}
+            onApproveConference={handleApproveConference}
+            onRejectConference={handleRejectConference}
+            onToggleConferenceActive={handleToggleConferenceActive}
+            onDeleteConference={handleDeleteConference}
+            onToggleFeatureConference={handleToggleFeatureConference}
+            onToggleVerifyConference={handleToggleVerifyConference}
+            onVerifyOrganizer={handleVerifyOrganizer}
+            onToggleSuspendOrganizer={handleToggleSuspendOrganizer}
+            onDeleteOrganizer={handleDeleteOrganizer}
+            onAddCategory={handleAddCategory}
+            onAddBulkCategories={handleAddBulkCategories}
+            onEditCategory={handleEditCategory}
+            onDeleteCategory={handleDeleteCategory}
+            onDeleteAllCategories={handleDeleteAllCategories}
+            authUser={authUser}
+            onNavigatePublic={(tab) => {
+              setActivePortal("VISITOR");
+              setPublicTab(tab || "HOME");
+            }}
+            onLogout={handleLogout}
+            onSubmitConference={(conf, isDraft = false) => handleSubmitConference(conf, isDraft)}
+            countriesList={countriesList}
+            onUpdateCountries={setCountriesList}
+            citiesList={citiesList}
+            onUpdateCities={setCitiesList}
+            inactiveCountries={inactiveCountries}
+            onUpdateInactiveCountries={setInactiveCountries}
+            inactiveCities={inactiveCities}
+            onUpdateInactiveCities={setInactiveCities}
+
+            notifications={notifications.filter((n) => n.organizerId === "ADMIN" || !n.organizerId)}
+            onMarkNotificationRead={handleMarkNotificationRead}
+            onMarkAllNotificationsRead={() => handleMarkAllNotificationsRead("ADMIN")}
+            onClearNotifications={handleClearNotifications}
+          />
+          {renderAuthModal()}
+        </div>
       </Suspense>
     );
   }
 
   return (
     <div
-  className={`min-h-screen bg-[#F8FAFC] text-[#0F172A] font-sans selection:bg-blue-600 selection:text-white flex flex-col ${
-    publicTab === "NOT_FOUND"
-      ? ""
-      : "pt-[68px] sm:pt-[76px]"
-  }`}
->
+      className={`min-h-screen bg-[#F8FAFC] text-[#0F172A] font-sans selection:bg-blue-600 selection:text-white flex flex-col ${publicTab === "NOT_FOUND"
+        ? ""
+        : "pt-[68px] sm:pt-[76px]"
+        }`}
+    >
       {publicTab !== "NOT_FOUND" && renderNavbar()}
-      
+
       <main className="flex-1 w-full min-w-0 px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8">
         <AnimatePresence mode="wait">
           <motion.div
