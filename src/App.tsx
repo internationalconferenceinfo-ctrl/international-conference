@@ -3079,10 +3079,60 @@ export default function App() {
     const contactEmail = updatedConf.contactEmail || authUser?.email || matchedOrg?.email || "";
 
     const existingConf = conferences.find((c) => c.id === confId);
-    const titleForSlug = updatedConf.title || existingConf?.title || "conference";
-    const uniqueSlug = generateUniqueConferenceSlug(titleForSlug, conferences, confId, existingConf?.slug);
 
-    if (!existingConf) return { error: "Conference not found." };
+    if (!existingConf) {
+      return { error: "Conference not found." };
+    }
+
+    const effectiveOrganizerId =
+      orgId || existingConf.organizerId;
+
+    let duplicateSource = conferences;
+
+    try {
+      const latestConferences =
+        await fetchFromSupabase<Conference[]>(
+          "conferences",
+          true
+        );
+
+      if (Array.isArray(latestConferences)) {
+        duplicateSource = latestConferences;
+      }
+    } catch { }
+
+    const exactDuplicate = findExactConferenceDuplicate(
+      duplicateSource,
+      {
+        title: updatedConf.title ?? existingConf.title,
+        category: updatedConf.category ?? existingConf.category,
+        country: updatedConf.country ?? existingConf.country,
+        city: updatedConf.city ?? existingConf.city,
+        startDate: updatedConf.startDate ?? existingConf.startDate,
+        endDate: updatedConf.endDate ?? existingConf.endDate,
+      },
+      effectiveOrganizerId,
+      confId
+    );
+
+    if (exactDuplicate) {
+      return {
+        error:
+          "This exact conference already exists in your Pending or Approved conferences. Change the Topic, Country, City, Start Date, or End Date before resubmitting.",
+      };
+    }
+
+    const titleForSlug =
+      updatedConf.title ||
+      existingConf.title ||
+      "conference";
+
+    const uniqueSlug = generateUniqueConferenceSlug(
+      titleForSlug,
+      duplicateSource,
+      confId,
+      existingConf.slug
+    );
 
     const conferenceItem: Conference = {
       ...existingConf,
