@@ -985,6 +985,62 @@ app.use((_req, res, next) => {
   next();
 });
 
+type FallbackRateLimitBucket = {
+  count: number;
+  resetAt: number;
+};
+
+const fallbackRateLimitBuckets =
+  new Map<string, FallbackRateLimitBucket>();
+
+const consumeFallbackRateLimit = (
+  key: string,
+  max: number,
+  windowMs: number
+): {
+  allowed: boolean;
+  retryAfterSeconds: number;
+} => {
+  const now = Date.now();
+
+  // Opportunistically remove expired fallback buckets.
+  if (fallbackRateLimitBuckets.size > 1000) {
+    for (const [
+      bucketKey,
+      bucket
+    ] of fallbackRateLimitBuckets) {
+      if (bucket.resetAt <= now) {
+        fallbackRateLimitBuckets.delete(bucketKey);
+      }
+    }
+  }
+
+  const existing =
+    fallbackRateLimitBuckets.get(key);
+
+  let bucket: FallbackRateLimitBucket;
+
+  if (!existing || existing.resetAt <= now) {
+    bucket = {
+      count: 1,
+      resetAt: now + windowMs,
+    };
+
+    fallbackRateLimitBuckets.set(key, bucket);
+  } else {
+    existing.count += 1;
+    bucket = existing;
+  }
+
+  return {
+    allowed: bucket.count <= max,
+    retryAfterSeconds: Math.max(
+      1,
+      Math.ceil((bucket.resetAt - now) / 1000)
+    ),
+  };
+};
+
 const rateLimit =
   (name: string, max: number, windowMs: number) =>
   async (
@@ -994,6 +1050,29 @@ const rateLimit =
   ) => {
     const key =
       `${name}:${req.ip || req.socket.remoteAddress || "unknown"}`;
+
+    const applyFallbackRateLimit = () => {
+      const fallback = consumeFallbackRateLimit(
+        key,
+        max,
+        windowMs
+      );
+
+      if (!fallback.allowed) {
+        res.setHeader(
+          "Retry-After",
+          String(fallback.retryAfterSeconds)
+        );
+
+        return res.status(429).json({
+          success: false,
+          error:
+            "Too many requests. Please wait and try again.",
+        });
+      }
+
+      return next();
+    };
 
     try {
       const { data, error } =
@@ -1012,9 +1091,7 @@ const rateLimit =
           error.message
         );
 
-        // Do not take the entire site offline if
-        // the rate-limit store is temporarily unavailable.
-        return next();
+        return applyFallbackRateLimit();
       }
 
       const result = Array.isArray(data)
@@ -1046,7 +1123,7 @@ const rateLimit =
         error
       );
 
-      return next();
+      return applyFallbackRateLimit();
     }
   };
 
