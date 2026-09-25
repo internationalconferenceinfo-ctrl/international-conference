@@ -1058,10 +1058,22 @@ if (process.env.NODE_ENV === "production" && !process.env.SESSION_SECRET) {
 }
 const base64url = (value: string) => Buffer.from(value).toString("base64url");
 const signSession = (expiresAt: number) => {
-  const payload = base64url(JSON.stringify({ role: "ADMIN", exp: expiresAt }));
-  const signature = crypto.createHmac("sha256", SESSION_SECRET).update(payload).digest("base64url");
+  const payload = base64url(
+    JSON.stringify({
+      role: "ADMIN",
+      exp: expiresAt,
+      cv: getAdminSessionCredentialVersion()
+    })
+  );
+
+  const signature = crypto
+    .createHmac("sha256", SESSION_SECRET)
+    .update(payload)
+    .digest("base64url");
+
   return `${payload}.${signature}`;
 };
+
 const adminSessionFingerprint = (sessionToken: string) =>
   crypto.createHash("sha256").update(sessionToken).digest("base64url");
 const signAdminTabToken = (sessionToken: string, expiresAt: number) => {
@@ -1081,7 +1093,13 @@ const verifySession = (token?: string) => {
   if (signature.length !== expected.length || !crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) return false;
   try {
     const parsed = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
-    return parsed.role === "ADMIN" && Number(parsed.exp) > Date.now();
+
+    return (
+      parsed.role === "ADMIN" &&
+      Number(parsed.exp) > Date.now() &&
+      typeof parsed.cv === "string" &&
+      parsed.cv === getAdminSessionCredentialVersion()
+    );
   } catch {
     return false;
   }
@@ -1926,6 +1944,12 @@ app.get("/api/health", (req, res) => {
 
 // Admin profile and credentials storage
 let currentAdminPasswordHash = process.env.ADMIN_PASSWORD_HASH || "";
+function getAdminSessionCredentialVersion(): string {
+  return crypto
+    .createHmac("sha256", SESSION_SECRET)
+    .update(String(currentAdminPasswordHash || ""))
+    .digest("base64url");
+}
 let currentAdminProfile = {
   name: "Super Admin",
   email: process.env.ADMIN_EMAIL || "",
@@ -3966,10 +3990,42 @@ app.post(
 
       
 
+      let adminTabToken: string | undefined;
+
+      if (newPassword) {
+        const sessionExpiresAt =
+          Date.now() + SESSION_TTL_MS;
+
+        const sessionToken =
+          signSession(sessionExpiresAt);
+
+        adminTabToken =
+          signAdminTabToken(
+            sessionToken,
+            sessionExpiresAt
+          );
+
+        res.cookie(
+          SESSION_COOKIE,
+          sessionToken,
+          {
+            httpOnly: true,
+            sameSite: "lax",
+            secure: shouldUseSecureCookies(req),
+            maxAge: SESSION_TTL_MS,
+            path: "/"
+          }
+        );
+      }
+
       return res.json({
         success: true,
         email: currentAdminProfile.email,
-        message: "Admin credentials updated successfully."
+        message:
+          "Admin credentials updated successfully.",
+        ...(adminTabToken
+          ? { adminTabToken }
+          : {})
       });
 
     } catch (error) {

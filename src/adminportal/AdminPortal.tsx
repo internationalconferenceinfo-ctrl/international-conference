@@ -1,5 +1,8 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
-import { adminFetch } from "../shared/utils/adminSession";
+import {
+  adminFetch,
+  setAdminTabToken
+} from "../shared/utils/adminSession";
 import {
   saveToSupabase,
   fetchFromSupabase,
@@ -2806,6 +2809,10 @@ export default function AdminPortal({
         return;
       }
 
+        if (data.adminTabToken) {
+        setAdminTabToken(data.adminTabToken);
+      }
+
       setPasswordFeedback({
         type: "success",
         msg:
@@ -2880,6 +2887,10 @@ export default function AdminPortal({
           data.error || "Unable to update Admin credentials."
         );
         return;
+      }
+
+      if (data.adminTabToken) {
+        setAdminTabToken(data.adminTabToken);
       }
 
       setAdminProfile((prev) => ({
