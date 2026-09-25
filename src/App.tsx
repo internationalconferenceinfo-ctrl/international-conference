@@ -3143,9 +3143,10 @@ export default function App() {
     const updatedConf = {
       ...conf,
       isDeactivated: nextDeactivated,
-      isFeatured: nextDeactivated
-        ? false
-        : conf.isFeatured
+      isFeatured:
+        authUser?.role === "ADMIN" && nextDeactivated
+          ? false
+          : conf.isFeatured
     };
 
     // Update the button/status immediately, then persist and roll back on failure.
