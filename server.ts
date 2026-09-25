@@ -3922,28 +3922,46 @@ app.post(
         });
       }
 
-      const { data: organizer, error: organizerError } =
-        await supabaseServerClient
-          .from("organizers")
-          .select("id, auth_user_id, email")
-          .or(
-            `auth_user_id.eq.${user.id},email.eq.${user.email || ""}`
-          )
-          .limit(1)
-          .maybeSingle();
+const {
+  data: organizer,
+  error: organizerError,
+} = await supabaseServerClient
+  .from("organizers")
+  .select("id,auth_user_id,is_suspended")
+  .eq("auth_user_id", user.id)
+  .maybeSingle();
 
-      if (organizerError) {
-        return res.status(500).json({
-          success: false,
-          error: organizerError.message
-        });
-      }
+if (organizerError) {
+  console.error(
+    "[organizer-image-upload] Organizer lookup failed:",
+    organizerError.message
+  );
 
-      const organizerId =
-        String(
-          organizer?.id ||
-          user.id
-        ).trim();
+  return res.status(500).json({
+    success: false,
+    error:
+      "Unable to verify organizer account."
+  });
+}
+
+if (!organizer) {
+  return res.status(403).json({
+    success: false,
+    error:
+      "Organizer account is not linked to this login."
+  });
+}
+
+if (organizer.is_suspended === true) {
+  return res.status(403).json({
+    success: false,
+    error:
+      "This organizer account is suspended."
+  });
+}
+
+const organizerId =
+  String(organizer.id).trim();
 
       const result =
         await uploadOrganizerImageToStorage(
@@ -4046,28 +4064,46 @@ app.delete(
         });
       }
 
-      const { data: organizer, error: organizerError } =
-        await supabaseServerClient
-          .from("organizers")
-          .select("id, auth_user_id, email")
-          .or(
-            `auth_user_id.eq.${user.id},email.eq.${user.email || ""}`
-          )
-          .limit(1)
-          .maybeSingle();
+const {
+  data: organizer,
+  error: organizerError,
+} = await supabaseServerClient
+  .from("organizers")
+  .select("id,auth_user_id,is_suspended")
+  .eq("auth_user_id", user.id)
+  .maybeSingle();
 
-      if (organizerError) {
-        return res.status(500).json({
-          success: false,
-          error: organizerError.message
-        });
-      }
+if (organizerError) {
+  console.error(
+    "[organizer-image-delete] Organizer lookup failed:",
+    organizerError.message
+  );
 
-      const organizerId =
-        String(
-          organizer?.id ||
-          user.id
-        ).trim();
+  return res.status(500).json({
+    success: false,
+    error:
+      "Unable to verify organizer account."
+  });
+}
+
+if (!organizer) {
+  return res.status(403).json({
+    success: false,
+    error:
+      "Organizer account is not linked to this login."
+  });
+}
+
+if (organizer.is_suspended === true) {
+  return res.status(403).json({
+    success: false,
+    error:
+      "This organizer account is suspended."
+  });
+}
+
+const organizerId =
+  String(organizer.id).trim();
 
       // Safety: Organizer can delete only files
       // that belong to their own organizer ID.
