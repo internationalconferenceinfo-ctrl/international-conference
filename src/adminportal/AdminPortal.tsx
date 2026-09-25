@@ -56,7 +56,13 @@ const getCleanImageSrc = (src?: string, fallback = ""): string => {
 };
 
 const DEFAULT_CONFERENCE_IMAGE = "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1200&q=80";
+const getLocalDateInputValue = (date = new Date()): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
 
+  return `${year}-${month}-${day}`;
+};
 interface AdminPortalProps {
   conferences: Conference[];
   categories: Category[];
@@ -5402,7 +5408,7 @@ export default function AdminPortal({
                 <form
                   onSubmit={(e) => {
                     e.preventDefault();
-                    const todayStr = new Date().toISOString().split("T")[0];
+                    const todayStr = getLocalDateInputValue();
                     if (eventFormState.startDate && eventFormState.startDate < todayStr) {
                       showToast("Start date cannot be in the past.");
                       return;
@@ -5479,10 +5485,10 @@ export default function AdminPortal({
                       <input
                         type="date"
                         required
-                        min={new Date().toISOString().split("T")[0]}
+                        min={getLocalDateInputValue()}
                         value={eventFormState.startDate || ""}
                         onChange={(e) => {
-                          const todayStr = new Date().toISOString().split("T")[0];
+                          const todayStr = getLocalDateInputValue();
                           if (e.target.value && e.target.value < todayStr) {
                             showToast("Past dates cannot be selected.");
                             setEventFormState({ ...eventFormState, startDate: todayStr });
@@ -5499,10 +5505,10 @@ export default function AdminPortal({
                       <input
                         type="date"
                         required
-                        min={eventFormState.startDate || new Date().toISOString().split("T")[0]}
+                        min={eventFormState.startDate || getLocalDateInputValue()}
                         value={eventFormState.endDate || ""}
                         onChange={(e) => {
-                          const todayStr = new Date().toISOString().split("T")[0];
+                          const todayStr = getLocalDateInputValue();
                           const minVal = eventFormState.startDate || todayStr;
                           if (e.target.value && e.target.value < minVal) {
                             showToast("End date cannot be in the past or prior to start date.");

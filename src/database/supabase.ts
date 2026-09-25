@@ -1824,13 +1824,31 @@ export async function fetchPaginatedConferencesFromSupabase(params: {
 
     if (searchTerm && searchTerm.trim()) {
       const term = searchTerm.trim();
+
+      const escapePostgrestSearchValue = (value: string) =>
+        value
+          .replace(/\\/g, "\\\\")
+          .replace(/"/g, '\\"');
+
       if (term.startsWith("/")) {
         const slashCtry = term.slice(1).trim();
         if (slashCtry) {
           query = query.ilike("country", `%${slashCtry}%`);
         }
       } else {
-        query = query.or(`title.ilike.%${term}%,short_title.ilike.%${term}%,description.ilike.%${term}%,city.ilike.%${term}%,country.ilike.%${term}%`);
+        const safeTerm =
+          escapePostgrestSearchValue(term);
+
+        const searchPattern =
+          `"%${safeTerm}%"`;
+
+        query = query.or(
+          `title.ilike.${searchPattern},` +
+          `short_title.ilike.${searchPattern},` +
+          `description.ilike.${searchPattern},` +
+          `city.ilike.${searchPattern},` +
+          `country.ilike.${searchPattern}`
+        );
       }
     }
 

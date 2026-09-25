@@ -678,7 +678,7 @@ export default function App() {
   useEffect(() => {
     syncAllDataFromSupabase();
 
-    // Relaxed background fallback sync (every 5 minutes instead of 2.5 seconds)
+// Relaxed background fallback sync (every 10 minutes instead of 2.5 seconds)
     const interval = setInterval(() => {
       if (document.visibilityState === "visible") syncAllDataFromSupabase();
     }, 600000);
