@@ -4583,11 +4583,72 @@ app.post("/api/collaboration/submit", rateLimit("collaboration", 10, 60 * 60 * 1
       });
     }
 
+    const normalizedCategory = String(category || "").trim();
+
+    const isAssociateCategory =
+      normalizedCategory === "Associates" ||
+      normalizedCategory === "Our Associates";
+
+    const isMediaPartnerCategory =
+      normalizedCategory === "Event Partner" ||
+      normalizedCategory === "Media Partner";
+
+    if (!isAssociateCategory && !isMediaPartnerCategory) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid collaboration category."
+      });
+    }
+
     const targetTable =
-  category === "Associates" ||
-  category === "Our Associates"
-    ? "associates"
-    : "media_partners";
+      isAssociateCategory
+        ? "associates"
+        : "media_partners";
+
+    const normalizeCollabValue = (value: unknown) =>
+      String(value || "").trim().toLowerCase();
+
+    const normalizeCollabWebsite = (value: unknown) =>
+      normalizeCollabValue(value)
+        .replace(/^https?:\/\//, "")
+        .replace(/^www\./, "")
+        .replace(/\/+$/, "");
+
+    const submittedName = normalizeCollabValue(name);
+    const submittedWebsite = normalizeCollabWebsite(website);
+
+    const { data: pendingApplications, error: duplicateCheckError } =
+      await supabaseServerClient
+        .from(targetTable)
+        .select("id,name,website,status")
+        .eq("status", "Pending")
+        .limit(1000);
+
+    if (duplicateCheckError) {
+      console.error(
+        "[Collaboration Duplicate Check Error]:",
+        duplicateCheckError
+      );
+
+      return res.status(500).json({
+        success: false,
+        error: "Unable to validate collaboration application."
+      });
+    }
+
+    const duplicateApplication = (pendingApplications || []).some(
+      (item: any) =>
+        normalizeCollabValue(item.name) === submittedName &&
+        normalizeCollabWebsite(item.website) === submittedWebsite
+    );
+
+    if (duplicateApplication) {
+      return res.status(409).json({
+        success: false,
+        error:
+          "An application from this company and website is already pending review."
+      });
+    }
 
 const prefix =
   targetTable === "associates"
