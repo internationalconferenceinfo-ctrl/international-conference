@@ -2438,23 +2438,114 @@ app.post("/api/organizer/reset-password", rateLimit("organizer-reset-password", 
     .maybeSingle();
   if (organizerError || !organizer) return res.status(401).json({ success: false, error: "Organizer account was not found." });
 
-  const { data: currentSecret } = await supabaseServerClient
+  const {
+    data: currentSecret,
+    error: currentSecretError
+  } = await supabaseServerClient
     .from("organizer_auth_secrets")
     .select("reset_token_nonce")
     .eq("organizer_id", organizer.id)
     .maybeSingle();
+
+  if (currentSecretError) {
+    return res.status(500).json({
+      success: false,
+      error: "Password recovery is temporarily unavailable."
+    });
+  }
+
   if (currentSecret) {
-    if (!currentSecret.reset_token_nonce || currentSecret.reset_token_nonce !== verifiedToken.nonce) {
-      return res.status(401).json({ success: false, error: "Your Reset PIN verification has expired. Please verify it again." });
+    if (
+      !currentSecret.reset_token_nonce ||
+      currentSecret.reset_token_nonce !== verifiedToken.nonce
+    ) {
+      return res.status(401).json({
+        success: false,
+        error:
+          "Your Reset PIN verification has expired. Please verify it again."
+      });
+    }
+
+    const {
+      data: consumedSecret,
+      error: consumeSecretError
+    } = await supabaseServerClient
+      .from("organizer_auth_secrets")
+      .update({
+        reset_token_nonce: null,
+        updated_at: new Date().toISOString()
+      })
+      .eq("organizer_id", organizer.id)
+      .eq("reset_token_nonce", verifiedToken.nonce)
+      .select("organizer_id");
+
+    if (consumeSecretError) {
+      return res.status(500).json({
+        success: false,
+        error: "Password recovery is temporarily unavailable."
+      });
+    }
+
+    if (!consumedSecret?.length) {
+      return res.status(401).json({
+        success: false,
+        error:
+          "Your Reset PIN verification has expired. Please verify it again."
+      });
     }
   } else {
-    const { data: currentLegacy } = await supabaseServerClient
+    const {
+      data: currentLegacy,
+      error: currentLegacyError
+    } = await supabaseServerClient
       .from("organizer_legacy_auth")
       .select("reset_token_nonce")
       .eq("organizer_id", organizer.id)
       .maybeSingle();
-    if (!currentLegacy?.reset_token_nonce || currentLegacy.reset_token_nonce !== verifiedToken.nonce) {
-      return res.status(401).json({ success: false, error: "Your Reset PIN verification has expired. Please verify it again." });
+
+    if (currentLegacyError) {
+      return res.status(500).json({
+        success: false,
+        error: "Password recovery is temporarily unavailable."
+      });
+    }
+
+    if (
+      !currentLegacy?.reset_token_nonce ||
+      currentLegacy.reset_token_nonce !== verifiedToken.nonce
+    ) {
+      return res.status(401).json({
+        success: false,
+        error:
+          "Your Reset PIN verification has expired. Please verify it again."
+      });
+    }
+
+    const {
+      data: consumedLegacy,
+      error: consumeLegacyError
+    } = await supabaseServerClient
+      .from("organizer_legacy_auth")
+      .update({
+        reset_token_nonce: null
+      })
+      .eq("organizer_id", organizer.id)
+      .eq("reset_token_nonce", verifiedToken.nonce)
+      .select("organizer_id");
+
+    if (consumeLegacyError) {
+      return res.status(500).json({
+        success: false,
+        error: "Password recovery is temporarily unavailable."
+      });
+    }
+
+    if (!consumedLegacy?.length) {
+      return res.status(401).json({
+        success: false,
+        error:
+          "Your Reset PIN verification has expired. Please verify it again."
+      });
     }
   }
 
@@ -2464,7 +2555,6 @@ app.post("/api/organizer/reset-password", rateLimit("organizer-reset-password", 
     if (authUserId) {
       const { error } = await supabaseServerClient.auth.admin.updateUserById(authUserId, { password: newPassword });
       if (error) throw error;
-      await supabaseServerClient.from("organizer_auth_secrets").update({ reset_token_nonce: null, updated_at: new Date().toISOString() }).eq("organizer_id", organizer.id);
     } else {
       const { data: authData, error: authError } = await supabaseServerClient.auth.admin.createUser({
         email: organizer.email,
