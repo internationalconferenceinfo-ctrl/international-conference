@@ -688,6 +688,7 @@ export default function PublicPortal({
   const [collabUrl, setCollabUrl] = useState("");
   const [collabCategory, setCollabCategory] = useState<"Event Partner" | "Associates">("Event Partner");
   const [collabSubmitted, setCollabSubmitted] = useState(false);
+  const [isSubmittingCollab, setIsSubmittingCollab] = useState(false);
 
   // Dynamic media partners and associates state sourced from Supabase
   const [dynamicMediaPartners, setDynamicMediaPartners] = useState<any[]>([]);
@@ -724,6 +725,7 @@ export default function PublicPortal({
   // Handle Collaboration Submission (saves to Supabase and awaits Admin verification)
   const handleCollabSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmittingCollab) return;
 
     if (
       !collabName.trim() ||
@@ -750,6 +752,7 @@ export default function PublicPortal({
     }
 
     try {
+      setIsSubmittingCollab(true);
       const response = await fetch("/api/collaboration/submit", {
         method: "POST",
         headers: {
@@ -803,6 +806,8 @@ export default function PublicPortal({
         err?.message ||
         "Unable to submit your application. Please try again."
       );
+    } finally {
+      setIsSubmittingCollab(false);
     }
   };
   // Real-time sync for dynamic partners and associates
@@ -3788,9 +3793,17 @@ export default function PublicPortal({
                   <div className="pt-2">
                     <button
                       type="submit"
-                      className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-sm transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-blue-600/10"
+                      disabled={isSubmittingCollab}
+                      className={`w-full py-3 bg-blue-600 text-white font-bold rounded-xl text-sm transition-all flex items-center justify-center gap-2 shadow-md shadow-blue-600/10 ${
+                        isSubmittingCollab
+                          ? "opacity-60 cursor-not-allowed"
+                          : "hover:bg-blue-700 cursor-pointer"
+                      }`}
                     >
-                      <Send className="h-4 w-4" /> Submit Application
+                      <Send className="h-4 w-4" />
+                      {isSubmittingCollab
+                        ? "Submitting..."
+                        : "Submit Application"}
                     </button>
                   </div>
                 </form>
