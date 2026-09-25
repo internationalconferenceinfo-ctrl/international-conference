@@ -2482,22 +2482,71 @@ app.post("/api/organizer/verify-reset-pin", rateLimit("organizer-reset-pin", 10,
     if (!verifyRecoveryPin(resetPin, secret.reset_pin_hash)) {
       const failed = Number(secret.failed_pin_attempts || 0) + 1;
       const lockedUntil = failed >= 5 ? new Date(Date.now() + 15 * 60 * 1000).toISOString() : null;
-      await supabaseServerClient.from("organizer_auth_secrets").update({
-        failed_pin_attempts: failed >= 5 ? 0 : failed,
-        pin_lockout_until: lockedUntil,
-        updated_at: new Date().toISOString(),
-      }).eq("organizer_id", organizer.id);
+const {
+  data: updatedSecret,
+  error: failedUpdateError,
+} = await supabaseServerClient
+  .from("organizer_auth_secrets")
+  .update({
+    failed_pin_attempts:
+      failed >= 5 ? 0 : failed,
+    pin_lockout_until: lockedUntil,
+    updated_at: new Date().toISOString(),
+  })
+  .eq("organizer_id", organizer.id)
+  .select("organizer_id");
+
+if (
+  failedUpdateError ||
+  !updatedSecret?.length
+) {
+  console.error(
+    "[organizer-reset-pin] Failed to persist PIN attempt:",
+    failedUpdateError ||
+      "No organizer secret row updated"
+  );
+
+  return res.status(500).json({
+    success: false,
+    error:
+      "Password recovery is temporarily unavailable.",
+  });
+}
       return res.status(401).json({ success: false, error: failed >= 5 ? "Incorrect Reset PIN. Password reset locked for 15 minutes." : `Incorrect Reset PIN. Attempt ${failed} of 5.` });
     }
     const resetNonce = crypto.randomBytes(24).toString("hex");
     const upgradedPinHash = String(secret.reset_pin_hash || "").startsWith("legacy$") ? hashRecoveryPin(resetPin) : secret.reset_pin_hash;
-    await supabaseServerClient.from("organizer_auth_secrets").update({
-      reset_pin_hash: upgradedPinHash,
-      failed_pin_attempts: 0,
-      pin_lockout_until: null,
-      reset_token_nonce: resetNonce,
-      updated_at: new Date().toISOString(),
-    }).eq("organizer_id", organizer.id);
+const {
+  data: updatedSecret,
+  error: nonceUpdateError,
+} = await supabaseServerClient
+  .from("organizer_auth_secrets")
+  .update({
+    reset_pin_hash: upgradedPinHash,
+    failed_pin_attempts: 0,
+    pin_lockout_until: null,
+    reset_token_nonce: resetNonce,
+    updated_at: new Date().toISOString(),
+  })
+  .eq("organizer_id", organizer.id)
+  .select("organizer_id");
+
+if (
+  nonceUpdateError ||
+  !updatedSecret?.length
+) {
+  console.error(
+    "[organizer-reset-pin] Failed to persist reset nonce:",
+    nonceUpdateError ||
+      "No organizer secret row updated"
+  );
+
+  return res.status(500).json({
+    success: false,
+    error:
+      "Password recovery is temporarily unavailable.",
+  });
+}
     return res.json({ success: true, resetToken: signOrganizerResetToken(String(organizer.id), resetNonce) });
   }
 
@@ -2519,18 +2568,67 @@ app.post("/api/organizer/verify-reset-pin", rateLimit("organizer-reset-pin", 10,
   if (!verifyLegacyHash(resetPin, legacyPinHash)) {
     const failed = Number(legacy.failed_pin_attempts || 0) + 1;
     const lockoutUntil = failed >= 5 ? Date.now() + 15 * 60 * 1000 : 0;
-    await supabaseServerClient.from("organizer_legacy_auth").update({
-      failed_pin_attempts: failed >= 5 ? 0 : failed,
-      pin_lockout_until: lockoutUntil,
-    }).eq("organizer_id", organizer.id);
+const {
+  data: updatedLegacy,
+  error: failedUpdateError,
+} = await supabaseServerClient
+  .from("organizer_legacy_auth")
+  .update({
+    failed_pin_attempts:
+      failed >= 5 ? 0 : failed,
+    pin_lockout_until: lockoutUntil,
+  })
+  .eq("organizer_id", organizer.id)
+  .select("organizer_id");
+
+if (
+  failedUpdateError ||
+  !updatedLegacy?.length
+) {
+  console.error(
+    "[organizer-reset-pin] Failed to persist legacy PIN attempt:",
+    failedUpdateError ||
+      "No legacy organizer row updated"
+  );
+
+  return res.status(500).json({
+    success: false,
+    error:
+      "Password recovery is temporarily unavailable.",
+  });
+}
     return res.status(401).json({ success: false, error: failed >= 5 ? "Incorrect Reset PIN. Password reset locked for 15 minutes." : `Incorrect Reset PIN. Attempt ${failed} of 5.` });
   }
   const resetNonce = crypto.randomBytes(24).toString("hex");
-  await supabaseServerClient.from("organizer_legacy_auth").update({
+const {
+  data: updatedLegacy,
+  error: nonceUpdateError,
+} = await supabaseServerClient
+  .from("organizer_legacy_auth")
+  .update({
     failed_pin_attempts: 0,
     pin_lockout_until: 0,
     reset_token_nonce: resetNonce,
-  }).eq("organizer_id", organizer.id);
+  })
+  .eq("organizer_id", organizer.id)
+  .select("organizer_id");
+
+if (
+  nonceUpdateError ||
+  !updatedLegacy?.length
+) {
+  console.error(
+    "[organizer-reset-pin] Failed to persist legacy reset nonce:",
+    nonceUpdateError ||
+      "No legacy organizer row updated"
+  );
+
+  return res.status(500).json({
+    success: false,
+    error:
+      "Password recovery is temporarily unavailable.",
+  });
+}
   return res.json({ success: true, resetToken: signOrganizerResetToken(String(organizer.id), resetNonce) });
 });
 
