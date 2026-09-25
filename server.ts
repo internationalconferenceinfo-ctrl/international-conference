@@ -2032,43 +2032,78 @@ async function loadLocalAdminStore() {
   }
 }
 
-async function persistAdminStore(): Promise<{ success: boolean; error?: string }> {
-  let databaseError = "";
-
+async function persistAdminStore(): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  // When a service-role key is configured, Supabase is the
+  // authoritative persistent Admin credential store.
   if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
     try {
-      const { error } = await supabaseServerClient.from("app_store").upsert([
-        {
-          key: "admin_password_hash",
-          payload: currentAdminPasswordHash,
-          updated_at: new Date().toISOString(),
-        },
-        {
-          key: "admin_profile",
-          payload: currentAdminProfile,
-          updated_at: new Date().toISOString(),
-        },
-      ]);
-      if (!error) return { success: true };
-      databaseError = error.message;
+      const { error } = await supabaseServerClient
+        .from("app_store")
+        .upsert([
+          {
+            key: "admin_password_hash",
+            payload: currentAdminPasswordHash,
+            updated_at: new Date().toISOString(),
+          },
+          {
+            key: "admin_profile",
+            payload: currentAdminProfile,
+            updated_at: new Date().toISOString(),
+          },
+        ]);
+
+      if (error) {
+        return {
+          success: false,
+          error: error.message,
+        };
+      }
+
+      return { success: true };
     } catch (err: any) {
-      databaseError = err?.message || "Supabase persistence failed";
+      return {
+        success: false,
+        error:
+          err?.message ||
+          "Supabase Admin persistence failed",
+      };
     }
   }
 
+  // Local file persistence is only the fallback when
+  // no service-role-backed database store is configured.
   try {
-    await fs.mkdir(path.dirname(ADMIN_STORE_FILE), { recursive: true });
+    await fs.mkdir(
+      path.dirname(ADMIN_STORE_FILE),
+      { recursive: true }
+    );
+
     await fs.writeFile(
       ADMIN_STORE_FILE,
-      JSON.stringify({ passwordHash: currentAdminPasswordHash, profile: currentAdminProfile }, null, 2),
-      { encoding: "utf8", mode: 0o600 }
+      JSON.stringify(
+        {
+          passwordHash: currentAdminPasswordHash,
+          profile: currentAdminProfile,
+        },
+        null,
+        2
+      ),
+      {
+        encoding: "utf8",
+        mode: 0o600,
+      }
     );
+
     return { success: true };
   } catch (err: any) {
-    const localError = err?.message || "Local admin store persistence failed";
     return {
       success: false,
-      error: databaseError ? `${databaseError}; ${localError}` : localError,
+      error:
+        err?.message ||
+        "Local Admin store persistence failed",
     };
   }
 }
