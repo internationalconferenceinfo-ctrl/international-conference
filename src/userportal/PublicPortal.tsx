@@ -3387,7 +3387,7 @@ export default function PublicPortal({
                                 "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&h=120&q=80"
                               )}
                               alt={currentHomeFeedback.name}
-                              className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl object-cover border border-slate-200 shadow-sm shrink-0"
+                              className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl object-cover border border-slate-200 shadow-sm shrink-0"
                               referrerPolicy="no-referrer"
                             />
 
@@ -4938,18 +4938,18 @@ export default function PublicPortal({
                     <label className="text-xs font-bold text-slate-200 flex items-center gap-1">
                       Feedback / Description <span className="text-rose-400">*</span>
                     </label>
-                    <span className={`text-[11px] font-semibold ${userFeedbackText.length >= 50 ? "text-amber-400" : "text-slate-400"}`}>
-                      {userFeedbackText.length}/50
+                    <span className={`text-[11px] font-semibold ${userFeedbackText.length >= 150 ? "text-amber-400" : "text-slate-400"}`}>
+                      {userFeedbackText.length}/150
                     </span>
                   </div>
 
                   <textarea
                     required
                     rows={3}
-                    maxLength={50}
-                    placeholder="Share your brief feedback (max 50 characters)..."
+                    maxLength={150}
+                    placeholder="Share your feedback (max 150 characters)..."
                     value={userFeedbackText || ""}
-                    onChange={(e) => setUserFeedbackText(e.target.value.slice(0, 50))}
+                    onChange={(e) => setUserFeedbackText(e.target.value.slice(0, 150))}
                     className="w-full bg-slate-900/50 border border-white/15 rounded-xl p-3.5 text-xs text-white placeholder:text-slate-400 focus:outline-none focus:border-white/40 focus:ring-1 focus:ring-white/40 transition-all resize-none"
                   />
                 </div>
