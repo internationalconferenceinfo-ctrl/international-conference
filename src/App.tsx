@@ -678,7 +678,7 @@ export default function App() {
   useEffect(() => {
     syncAllDataFromSupabase();
 
-// Relaxed background fallback sync (every 10 minutes instead of 2.5 seconds)
+    // Relaxed background fallback sync (every 30 minutes instead of 2.5 seconds)
     const interval = setInterval(() => {
       if (document.visibilityState === "visible") syncAllDataFromSupabase();
     }, 1800000);
@@ -705,10 +705,10 @@ export default function App() {
     window.addEventListener("storage", handleStorageChange);
 
     // Real-time subscriptions for remote database updates across devices
-const unsubConfs = subscribeToSupabaseSignal("conferences", requestFullSync);
-const unsubOrgs = subscribeToSupabaseSignal("organizers", requestFullSync);
-const unsubBanners = subscribeToSupabaseSignal("banners", requestFullSync);
-const unsubFeedbacks = subscribeToSupabaseSignal("user_feedbacks", requestFullSync);
+    const unsubConfs = subscribeToSupabaseSignal("conferences", requestFullSync);
+    const unsubOrgs = subscribeToSupabaseSignal("organizers", requestFullSync);
+    const unsubBanners = subscribeToSupabaseSignal("banners", requestFullSync);
+    const unsubFeedbacks = subscribeToSupabaseSignal("user_feedbacks", requestFullSync);
 
     // Throttle window focus syncs so switching tabs doesn't spam Supabase
     let lastFocusSync = Date.now();
