@@ -1793,9 +1793,46 @@ export async function fetchPaginatedConferencesFromSupabase(params: {
     const from = (Math.max(1, page) - 1) * limit;
     const to = from + limit - 1;
 
-    let query = client
-      .from("conferences_public")
-      .select("*", { count: "exact" });
+const publicConferenceColumns = [
+  "id",
+  "title",
+  "short_title",
+  "category",
+  "slug",
+  "country",
+  "state",
+  "city",
+  "location",
+  "start_date",
+  "end_date",
+  "deadline",
+  "time_zone",
+  "description",
+  "status",
+  "live_status",
+  "is_deactivated",
+  "is_featured",
+  "is_verified",
+  "organizer_id",
+  "organizer_name",
+  "contact_email",
+  "organizer_website",
+  "conference_website",
+  "registration_link",
+  "banner_image",
+  "views_count",
+  "registration_clicks",
+  "attendance_type",
+  "is_online",
+  "created_at",
+  "updated_at"
+].join(",");
+
+let query = client
+  .from("conferences_public")
+  .select(publicConferenceColumns, {
+    count: "exact"
+  });
 
     if (onlyApproved) {
       query = query.or("status.eq.Approved,status.eq.Verified");
@@ -2043,6 +2080,72 @@ export function subscribeToSupabase(key: string, callback: (newData: any) => voi
   return () => {
     const timer = realtimeTimers.get(key);
     if (timer) clearTimeout(timer);
+    client.removeChannel(channel);
+  };
+}
+
+/**
+ * Subscribe only to the realtime change signal.
+ *
+ * Unlike subscribeToSupabase(), this does NOT download the full table
+ * after every database change. The caller decides what data actually
+ * needs to be refreshed.
+ */
+export function subscribeToSupabaseSignal(
+  key: string,
+  callback: () => void
+): () => void {
+  const client = getSupabaseClient();
+
+  if (!client) {
+    return () => {};
+  }
+
+  const snakeTable = getSnakeTableName(key);
+
+  const channelName =
+    `rt-signal:${snakeTable}:${Math.random()
+      .toString(36)
+      .substring(7)}`;
+
+  let timer: ReturnType<typeof setTimeout> | null =
+    null;
+
+  const handleRealtimeChange = () => {
+    if (timer) {
+      clearTimeout(timer);
+    }
+
+    timer = setTimeout(() => {
+      // Any cached data for this table is now stale.
+      queryCache.delete(key);
+      inflightRequests.delete(key);
+
+      // Important:
+      // Do NOT fetch the full table here.
+      callback();
+    }, 1500);
+  };
+
+  const channel = client
+    .channel(channelName)
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: snakeTable,
+      },
+      handleRealtimeChange
+    )
+    .subscribe();
+
+  return () => {
+    if (timer) {
+      clearTimeout(timer);
+      timer = null;
+    }
+
     client.removeChannel(channel);
   };
 }

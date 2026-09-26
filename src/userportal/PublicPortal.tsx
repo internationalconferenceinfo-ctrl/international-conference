@@ -6,6 +6,7 @@ import {
   fetchPaginatedConferencesFromSupabase,
   fetchCitiesByCountryFromSupabase,
   subscribeToSupabase,
+subscribeToSupabaseSignal,
   saveRecordToSupabase
 } from "../database/supabase";
 import { safeSetLocalStorage } from "../shared/utils/storageUtils";
@@ -328,8 +329,15 @@ export default function PublicPortal({
     };
 
     refreshPublicContact();
-    const unsubscribeContact = subscribeToSupabase("contact_info", refreshPublicContact);
-    const unsubscribeSocial = subscribeToSupabase("social_links", refreshPublicContact);
+    const unsubscribeContact = subscribeToSupabaseSignal(
+      "contact_info",
+      refreshPublicContact
+    );
+
+    const unsubscribeSocial = subscribeToSupabaseSignal(
+      "social_links",
+      refreshPublicContact
+    );
     let channel: BroadcastChannel | null = null;
     if (typeof BroadcastChannel !== "undefined") {
       channel = new BroadcastChannel("gch_realtime_sync");
@@ -2500,8 +2508,8 @@ export default function PublicPortal({
                       handleCountryClick(country);
                     }}
                     className={`p-3 sm:p-3.5 min-h-[72px] rounded-xl sm:rounded-2xl border text-left flex items-center gap-2.5 transition-all cursor-pointer shadow-xs ${selectedCity === "All" && selectedCountry === country
-                        ? "bg-blue-600 border-blue-600 text-white"
-                        : "bg-white border-slate-150 text-slate-800 hover:border-blue-300"
+                      ? "bg-blue-600 border-blue-600 text-white"
+                      : "bg-white border-slate-150 text-slate-800 hover:border-blue-300"
                       }`}
                   >
                     <span className="text-2xl shrink-0">{getCountryEmoji(country)}</span>
@@ -2568,8 +2576,8 @@ export default function PublicPortal({
                         handleCityClick(item.cityName, item.countryName);
                       }}
                       className={`p-3 sm:p-3.5 min-h-[86px] rounded-xl sm:rounded-2xl border text-left flex items-start gap-2.5 transition-all cursor-pointer shadow-xs ${isSelected
-                          ? "bg-emerald-600 border-emerald-600 text-white"
-                          : "bg-white border-slate-150 text-slate-800 hover:border-emerald-300"
+                        ? "bg-emerald-600 border-emerald-600 text-white"
+                        : "bg-white border-slate-150 text-slate-800 hover:border-emerald-300"
                         }`}
                     >
                       <div className={`p-2 rounded-xl shrink-0 ${isSelected ? "bg-white/20 text-white" : "bg-emerald-50 text-emerald-600"
@@ -2649,8 +2657,8 @@ export default function PublicPortal({
                         handleTopicClick(topic);
                       }}
                       className={`p-3 sm:p-3.5 min-h-[82px] rounded-xl sm:rounded-2xl border text-left flex items-start gap-2 sm:gap-2.5 transition-all cursor-pointer shadow-xs ${isSelected
-                          ? "bg-indigo-600 border-indigo-600 text-white"
-                          : "bg-white border-slate-150 text-slate-800 hover:border-indigo-300"
+                        ? "bg-indigo-600 border-indigo-600 text-white"
+                        : "bg-white border-slate-150 text-slate-800 hover:border-indigo-300"
                         }`}
                     >
                       <div className={`p-1.5 sm:p-2 rounded-xl shrink-0 ${isSelected ? "bg-white/20 text-white" : "bg-indigo-50 text-indigo-600"}`}>
@@ -2986,8 +2994,8 @@ export default function PublicPortal({
                         setSelectedCity(ct);
                       }}
                       className={`w-full text-xs border rounded-xl px-2.5 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-colors ${selectedCountry === "All" || !selectedCountry
-                          ? "bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed"
-                          : "bg-slate-50 border-slate-200 text-slate-700 cursor-pointer"
+                        ? "bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed"
+                        : "bg-slate-50 border-slate-200 text-slate-700 cursor-pointer"
                         }`}
                     >
                       {citiesDropdown.map((c, idx) => (
@@ -3126,10 +3134,10 @@ export default function PublicPortal({
                                       </span>
 
                                       <span className={`text-[9px] sm:text-[10px] font-extrabold px-2 py-0.5 rounded-full shadow-2xs shrink-0 ${conf.liveStatus === LiveStatus.Ongoing
-                                          ? "bg-emerald-500 text-white"
-                                          : conf.liveStatus === LiveStatus.Upcoming
-                                            ? "bg-blue-600 text-white"
-                                            : "bg-slate-600 text-white"
+                                        ? "bg-emerald-500 text-white"
+                                        : conf.liveStatus === LiveStatus.Upcoming
+                                          ? "bg-blue-600 text-white"
+                                          : "bg-slate-600 text-white"
                                         }`}>
                                         {conf.liveStatus}
                                       </span>
@@ -3256,8 +3264,8 @@ export default function PublicPortal({
                                 if (target) target.scrollIntoView({ behavior: "smooth" });
                               }}
                               className={`h-9 min-w-9 px-2.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${currentPage === pageNum
-                                  ? "bg-blue-600 text-white shadow-xs"
-                                  : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
+                                ? "bg-blue-600 text-white shadow-xs"
+                                : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
                                 }`}
                             >
                               {pageNum}
@@ -3466,8 +3474,8 @@ export default function PublicPortal({
                             onClick={() => setHomeFeedbackScrollIndex(dotIdx)}
                             aria-label={`Go to feedback ${dotIdx + 1}`}
                             className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${isActive
-                                ? "w-7 bg-blue-600"
-                                : "w-2 bg-slate-300 hover:bg-slate-400"
+                              ? "w-7 bg-blue-600"
+                              : "w-2 bg-slate-300 hover:bg-slate-400"
                               }`}
                           />
                         );
@@ -3710,8 +3718,8 @@ export default function PublicPortal({
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                         <label
                           className={`flex items-center gap-2.5 p-2.5 rounded-xl border cursor-pointer transition-all ${collabCategory === "Event Partner"
-                              ? "border-blue-600 bg-blue-50/60 text-blue-900 shadow-2xs"
-                              : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100"
+                            ? "border-blue-600 bg-blue-50/60 text-blue-900 shadow-2xs"
+                            : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100"
                             }`}
                         >
                           <input
@@ -3730,8 +3738,8 @@ export default function PublicPortal({
 
                         <label
                           className={`flex items-center gap-2.5 p-2.5 rounded-xl border cursor-pointer transition-all ${collabCategory === "Associates"
-                              ? "border-indigo-600 bg-indigo-50/60 text-indigo-900 shadow-2xs"
-                              : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100"
+                            ? "border-indigo-600 bg-indigo-50/60 text-indigo-900 shadow-2xs"
+                            : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100"
                             }`}
                         >
                           <input
@@ -3758,8 +3766,8 @@ export default function PublicPortal({
                         </label>
                         <span
                           className={`text-[10px] font-bold px-2 py-0.5 rounded-md transition-colors ${collabDescription.length >= 150
-                              ? "bg-amber-100 text-amber-800 font-extrabold border border-amber-300"
-                              : "text-slate-400 bg-slate-100"
+                            ? "bg-amber-100 text-amber-800 font-extrabold border border-amber-300"
+                            : "text-slate-400 bg-slate-100"
                             }`}
                         >
                           {collabDescription.length} / 150 chars
@@ -3776,8 +3784,8 @@ export default function PublicPortal({
                           setCollabDescription(val.slice(0, 150));
                         }}
                         className={`w-full text-xs sm:text-sm bg-slate-50 border rounded-xl p-2.5 text-slate-800 focus:ring-2 focus:bg-white focus:outline-none resize-none transition-all ${collabDescription.length >= 150
-                            ? "border-amber-400 focus:ring-amber-500 bg-amber-50/30"
-                            : "border-slate-200 focus:ring-blue-500"
+                          ? "border-amber-400 focus:ring-amber-500 bg-amber-50/30"
+                          : "border-slate-200 focus:ring-blue-500"
                           }`}
                       />
                       {collabDescription.length >= 150 && (
@@ -3794,11 +3802,10 @@ export default function PublicPortal({
                     <button
                       type="submit"
                       disabled={isSubmittingCollab}
-                      className={`w-full py-3 bg-blue-600 text-white font-bold rounded-xl text-sm transition-all flex items-center justify-center gap-2 shadow-md shadow-blue-600/10 ${
-                        isSubmittingCollab
+                      className={`w-full py-3 bg-blue-600 text-white font-bold rounded-xl text-sm transition-all flex items-center justify-center gap-2 shadow-md shadow-blue-600/10 ${isSubmittingCollab
                           ? "opacity-60 cursor-not-allowed"
                           : "hover:bg-blue-700 cursor-pointer"
-                      }`}
+                        }`}
                     >
                       <Send className="h-4 w-4" />
                       {isSubmittingCollab
@@ -3912,8 +3919,8 @@ export default function PublicPortal({
                         window.scrollTo({ top: 300, behavior: "smooth" });
                       }}
                       className={`h-9 min-w-9 px-2.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${mediaPartnerPage === pageNum
-                          ? "bg-blue-600 text-white shadow-xs"
-                          : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
+                        ? "bg-blue-600 text-white shadow-xs"
+                        : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
                         }`}
                     >
                       {pageNum}
@@ -4054,8 +4061,8 @@ export default function PublicPortal({
                         window.scrollTo({ top: 300, behavior: "smooth" });
                       }}
                       className={`h-9 min-w-9 px-2.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${associatesPage === pageNum
-                          ? "bg-indigo-600 text-white shadow-xs"
-                          : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
+                        ? "bg-indigo-600 text-white shadow-xs"
+                        : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
                         }`}
                     >
                       {pageNum}
@@ -4417,8 +4424,8 @@ export default function PublicPortal({
                     key={rf.value}
                     onClick={() => setFeedbackRatingFilter(rf.value)}
                     className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${isActive
-                        ? "bg-[#37494E] text-white shadow-xs"
-                        : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                      ? "bg-[#37494E] text-white shadow-xs"
+                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                       }`}
                   >
                     {rf.label}
@@ -4514,8 +4521,8 @@ export default function PublicPortal({
                       key={pageNumber}
                       onClick={() => setFeedbackPage(pageNumber)}
                       className={`h-9 min-w-9 px-2 rounded-xl text-xs font-bold cursor-pointer ${feedbackPage === pageNumber
-                          ? "bg-[#37494E] text-white"
-                          : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                        ? "bg-[#37494E] text-white"
+                        : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
                         }`}
                     >
                       {pageNumber}

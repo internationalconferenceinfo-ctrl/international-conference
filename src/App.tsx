@@ -17,7 +17,7 @@ import {
   deleteFromSupabase,
   saveRecordToSupabase,
   deleteRecordFromSupabase,
-  subscribeToSupabase,
+  subscribeToSupabaseSignal,
   isSupabaseConfigured,
   signInWithSupabase,
   signOutWithSupabase,
@@ -543,7 +543,7 @@ export default function App() {
         needsAdminData
           ? fetchFromSupabase<SubscriberItem[]>("subscriber_emails")
           : Promise.resolve([]),
-        fetchAllCountriesFromSupabase(),
+        Promise.resolve(routeCountries),
 
         // Never load the complete cities table here.
         Promise.resolve([] as Array<{ name: string; country: string }>),
@@ -681,7 +681,7 @@ export default function App() {
 // Relaxed background fallback sync (every 10 minutes instead of 2.5 seconds)
     const interval = setInterval(() => {
       if (document.visibilityState === "visible") syncAllDataFromSupabase();
-    }, 600000);
+    }, 1800000);
 
     // BroadcastChannel for instant local cross-tab updates (0ms delay, 0 egress)
     let bc: BroadcastChannel | null = null;
@@ -705,10 +705,10 @@ export default function App() {
     window.addEventListener("storage", handleStorageChange);
 
     // Real-time subscriptions for remote database updates across devices
-    const unsubConfs = subscribeToSupabase("conferences", requestFullSync);
-    const unsubOrgs = subscribeToSupabase("organizers", requestFullSync);
-    const unsubBanners = subscribeToSupabase("banners", requestFullSync);
-    const unsubFeedbacks = subscribeToSupabase("user_feedbacks", requestFullSync);
+const unsubConfs = subscribeToSupabaseSignal("conferences", requestFullSync);
+const unsubOrgs = subscribeToSupabaseSignal("organizers", requestFullSync);
+const unsubBanners = subscribeToSupabaseSignal("banners", requestFullSync);
+const unsubFeedbacks = subscribeToSupabaseSignal("user_feedbacks", requestFullSync);
 
     // Throttle window focus syncs so switching tabs doesn't spam Supabase
     let lastFocusSync = Date.now();

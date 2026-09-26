@@ -5532,7 +5532,14 @@ if (seoMetadata) {
       html = injectCanonicalUrl(html, req.path);
 
 res.setHeader("Content-Type", "text/html");
-res.setHeader("Cache-Control", "no-cache");
+
+// Public frontend HTML is not user-specific.
+// Let Vercel/CDN reuse the generated SEO response instead of
+// hitting Supabase again for every visitor or search-engine crawler.
+res.setHeader(
+  "Cache-Control",
+  "public, s-maxage=300, stale-while-revalidate=600, max-age=0"
+);
 
 if (!isValidFrontendPath) {
   res.status(404);
