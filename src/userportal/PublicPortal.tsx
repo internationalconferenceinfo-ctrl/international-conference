@@ -3387,7 +3387,7 @@ export default function PublicPortal({
                                 "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&h=120&q=80"
                               )}
                               alt={currentHomeFeedback.name}
-                              className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl object-cover border border-slate-200 shadow-sm shrink-0"
+                              className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover border border-slate-200 shadow-sm shrink-0"
                               referrerPolicy="no-referrer"
                             />
 
