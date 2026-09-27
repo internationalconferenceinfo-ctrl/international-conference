@@ -6,7 +6,7 @@ import {
   fetchPaginatedConferencesFromSupabase,
   fetchCitiesByCountryFromSupabase,
   subscribeToSupabase,
-subscribeToSupabaseSignal,
+  subscribeToSupabaseSignal,
   saveRecordToSupabase
 } from "../database/supabase";
 import { safeSetLocalStorage } from "../shared/utils/storageUtils";
@@ -695,6 +695,7 @@ export default function PublicPortal({
   const [collabDescription, setCollabDescription] = useState("");
   const [collabUrl, setCollabUrl] = useState("");
   const [collabCategory, setCollabCategory] = useState<"Event Partner" | "Associates">("Event Partner");
+  const [isSubmittingCollab, setIsSubmittingCollab] = useState(false);
   const [collabSubmitted, setCollabSubmitted] = useState(false);
 
   // Dynamic media partners and associates state sourced from Supabase
@@ -733,6 +734,8 @@ export default function PublicPortal({
   const handleCollabSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (isSubmittingCollab) return;
+
     if (
       !collabName.trim() ||
       !collabUrl.trim() ||
@@ -756,6 +759,8 @@ export default function PublicPortal({
     if (formattedUrl && !/^https?:\/\//i.test(formattedUrl)) {
       formattedUrl = `https://${formattedUrl}`;
     }
+
+    setIsSubmittingCollab(true);
 
     try {
       const response = await fetch("/api/collaboration/submit", {
@@ -801,17 +806,19 @@ export default function PublicPortal({
         } catch (e) { }
       }
 
-    } catch (err: any) {
-      console.error(
-        "Error submitting collaboration application:",
-        err
-      );
+} catch (err: any) {
+  console.error(
+    "Error submitting collaboration application:",
+    err
+  );
 
-      alert(
-        err?.message ||
-        "Unable to submit your application. Please try again."
-      );
-    }
+  alert(
+    err?.message ||
+    "Unable to submit your application. Please try again."
+  );
+} finally {
+  setIsSubmittingCollab(false);
+}
   };
   // Real-time sync for dynamic partners and associates
   useEffect(() => {
@@ -3794,19 +3801,18 @@ export default function PublicPortal({
 
                   {/* Submit Application Button */}
                   <div className="pt-2">
-                  <button
-                    type="submit"
-                    disabled={isSubmittingCollab}
-                    className={`w-full py-3 bg-blue-600 text-white font-bold rounded-xl text-sm transition-all flex items-center justify-center gap-2 shadow-md shadow-blue-600/10 ${
-                      isSubmittingCollab
-                        ? "opacity-60 cursor-not-allowed"
-                        : "hover:bg-blue-700 cursor-pointer"
-                    }`}
-                  >
-                    <Send className="h-4 w-4" />
-                    {isSubmittingCollab ? "Submitting..." : "Submit Application"}
-                  </button>
-                </div>
+                    <button
+                      type="submit"
+                      disabled={isSubmittingCollab}
+                      className={`w-full py-3 bg-blue-600 text-white font-bold rounded-xl text-sm transition-all flex items-center justify-center gap-2 shadow-md shadow-blue-600/10 ${isSubmittingCollab
+                          ? "opacity-60 cursor-not-allowed"
+                          : "hover:bg-blue-700 cursor-pointer"
+                        }`}
+                    >
+                      <Send className="h-4 w-4" />
+                      {isSubmittingCollab ? "Submitting..." : "Submit Application"}
+                    </button>
+                  </div>
                 </form>
               )}
             </div>
@@ -4994,3 +5000,4 @@ export default function PublicPortal({
     </div>
   );
 }
+
