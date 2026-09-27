@@ -806,19 +806,19 @@ export default function PublicPortal({
         } catch (e) { }
       }
 
-} catch (err: any) {
-  console.error(
-    "Error submitting collaboration application:",
-    err
-  );
+    } catch (err: any) {
+      console.error(
+        "Error submitting collaboration application:",
+        err
+      );
 
-  alert(
-    err?.message ||
-    "Unable to submit your application. Please try again."
-  );
-} finally {
-  setIsSubmittingCollab(false);
-}
+      alert(
+        err?.message ||
+        "Unable to submit your application. Please try again."
+      );
+    } finally {
+      setIsSubmittingCollab(false);
+    }
   };
   // Real-time sync for dynamic partners and associates
   useEffect(() => {
@@ -3805,8 +3805,8 @@ export default function PublicPortal({
                       type="submit"
                       disabled={isSubmittingCollab}
                       className={`w-full py-3 bg-blue-600 text-white font-bold rounded-xl text-sm transition-all flex items-center justify-center gap-2 shadow-md shadow-blue-600/10 ${isSubmittingCollab
-                          ? "opacity-60 cursor-not-allowed"
-                          : "hover:bg-blue-700 cursor-pointer"
+                        ? "opacity-60 cursor-not-allowed"
+                        : "hover:bg-blue-700 cursor-pointer"
                         }`}
                     >
                       <Send className="h-4 w-4" />
