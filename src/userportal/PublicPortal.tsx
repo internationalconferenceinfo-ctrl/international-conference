@@ -1740,6 +1740,70 @@ export default function PublicPortal({
     conferenceDescriptions
   ]);
 
+  const relatedConferencePages = useMemo(() => {
+    const pages: { label: string; href: string }[] = [];
+
+    const hasCategory = selectedCategory !== "All";
+    const hasCountry = selectedCountry !== "All";
+    const hasCity = selectedCity !== "All";
+
+    const topicSlug = hasCategory
+      ? getSeoCategorySlug(selectedCategory)
+      : "";
+
+    const countrySlug = hasCountry
+      ? getSeoCountrySlug(selectedCountry)
+      : "";
+
+    const citySlug = hasCity
+      ? seoSlugify(selectedCity)
+      : "";
+
+    if (hasCategory) {
+      pages.push({
+        label: `${formatDisplayText(selectedCategory)} Conferences`,
+        href: `/${topicSlug}`,
+      });
+    }
+
+    if (hasCountry) {
+      pages.push({
+        label: `Conferences in ${formatDisplayText(selectedCountry)}`,
+        href: `/${countrySlug}`,
+      });
+    }
+
+    if (hasCountry && hasCity) {
+      pages.push({
+        label: `Conferences in ${formatDisplayText(selectedCity)}, ${formatDisplayText(selectedCountry)}`,
+        href: `/${countrySlug}/${citySlug}`,
+      });
+    }
+
+    if (hasCategory && hasCountry) {
+      pages.push({
+        label: `${formatDisplayText(selectedCategory)} Conferences in ${formatDisplayText(selectedCountry)}`,
+        href: `/${countrySlug}/${topicSlug}`,
+      });
+    }
+
+    if (hasCategory && hasCity) {
+      pages.push({
+        label: `${formatDisplayText(selectedCategory)} Conferences in ${formatDisplayText(selectedCity)}`,
+        href: `/${topicSlug}/${citySlug}`,
+      });
+    }
+
+    return pages.filter(
+      (page, index, all) =>
+        all.findIndex((item) => item.href === page.href) === index
+    );
+  }, [
+    selectedCategory,
+    selectedCountry,
+    selectedCity,
+  ]);
+
   // Check if events have mens or not
   const hasMensEvents = useMemo(() => {
     return filteredConferences.some((c) => {
@@ -2892,6 +2956,20 @@ export default function PublicPortal({
             <p className="text-slate-600 text-xs md:text-sm leading-relaxed max-w-5xl">
               {filterDescription}
             </p>
+
+            {relatedConferencePages.length > 0 && (
+              <div className="flex flex-wrap gap-2 pt-1">
+                {relatedConferencePages.map((page) => (
+                  <a
+                    key={page.href}
+                    href={page.href}
+                    className="inline-flex items-center px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:text-blue-700 hover:border-blue-300 hover:bg-blue-50 transition-colors"
+                  >
+                    {page.label}
+                  </a>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="flex flex-col gap-8 w-full">
