@@ -1852,7 +1852,7 @@ const unsubFeedbacks = subscribeToSupabaseSignal("user_feedbacks", requestFullSy
             title = `${selectedCategory} Conferences in ${selectedCountry} | International Conference`;
             description = `Browse upcoming ${selectedCategory} academic and research conferences in ${selectedCountry}.`;
           } else if (hasCountry && hasCity) {
-            title = `Conferences in ${selectedCity}, ${selectedCountry} | International Conference`;
+            title = `International Conferences in ${selectedCity}, ${selectedCountry} | Verified List`;
             description = `Browse upcoming academic and professional conferences taking place in ${selectedCity}, ${selectedCountry}.`;
           } else if (hasCat) {
             title = `Upcoming ${selectedCategory} International Conferences | Verified ${selectedCategory} Conference List`;
