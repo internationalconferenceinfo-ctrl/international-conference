@@ -1982,6 +1982,174 @@ const unsubFeedbacks = subscribeToSupabaseSignal("user_feedbacks", requestFullSy
       document.head.appendChild(metaKeywords);
     }
     metaKeywords.setAttribute("content", keywords);
+
+    // Dynamic Schema.org JSON-LD for conference listing pages
+const dynamicSchemaId = "dynamic-conference-list-schema";
+
+const existingSchema = document.getElementById(dynamicSchemaId);
+if (existingSchema) {
+  existingSchema.remove();
+}
+
+if (publicTab === "EVENTS" && !selectedConference) {
+  const canonicalOrigin = "https://www.internationalconference.info";
+
+  const cleanPath =
+    window.location.pathname === "/"
+      ? "/"
+      : window.location.pathname.replace(/\/+$/, "");
+
+  const pageUrl = `${canonicalOrigin}${cleanPath}`;
+
+  const normalize = (value?: string) =>
+    String(value || "").trim().toLowerCase();
+
+  const hasCategory =
+    selectedCategory && selectedCategory !== "All";
+
+  const hasCountry =
+    selectedCountry && selectedCountry !== "All";
+
+  const hasCity =
+    selectedCity && selectedCity !== "All";
+
+  const matchingConferences = conferences.filter((conference) => {
+    if (
+      conference.status !== ConferenceStatus.Approved ||
+      conference.isDeactivated ||
+      isConferenceCompleted(conference)
+    ) {
+      return false;
+    }
+
+    if (
+      hasCategory &&
+      normalize(conference.category) !== normalize(selectedCategory)
+    ) {
+      return false;
+    }
+
+    if (
+      hasCountry &&
+      normalize(conference.country) !== normalize(selectedCountry)
+    ) {
+      return false;
+    }
+
+    if (
+      hasCity &&
+      normalize(conference.city) !== normalize(selectedCity)
+    ) {
+      return false;
+    }
+
+    return true;
+  });
+
+  const breadcrumbItems: any[] = [
+    {
+      "@type": "ListItem",
+      position: 1,
+      name: "Home",
+      item: `${canonicalOrigin}/`
+    },
+    {
+      "@type": "ListItem",
+      position: 2,
+      name: "Conferences",
+      item: `${canonicalOrigin}/conferences`
+    }
+  ];
+
+  let breadcrumbPosition = 3;
+
+  if (hasCountry) {
+    breadcrumbItems.push({
+      "@type": "ListItem",
+      position: breadcrumbPosition++,
+      name: selectedCountry,
+      item: `${canonicalOrigin}/${getSeoCountrySlug(selectedCountry)}`
+    });
+  }
+
+  if (hasCity) {
+    breadcrumbItems.push({
+      "@type": "ListItem",
+      position: breadcrumbPosition++,
+      name: selectedCity,
+      item: hasCountry
+        ? `${canonicalOrigin}/${getSeoCountrySlug(
+            selectedCountry
+          )}/${slugify(selectedCity)}`
+        : pageUrl
+    });
+  }
+
+  if (hasCategory) {
+    breadcrumbItems.push({
+      "@type": "ListItem",
+      position: breadcrumbPosition++,
+      name: selectedCategory,
+      item: pageUrl
+    });
+  }
+
+  const schema = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "CollectionPage",
+        "@id": `${pageUrl}#webpage`,
+        url: pageUrl,
+        name: title,
+        description,
+        isPartOf: {
+          "@id":
+            "https://www.internationalconference.info/#website"
+        },
+        about: {
+          "@id":
+            "https://www.internationalconference.info/#organization"
+        }
+      },
+      {
+        "@type": "BreadcrumbList",
+        "@id": `${pageUrl}#breadcrumb`,
+        itemListElement: breadcrumbItems
+      },
+      {
+        "@type": "ItemList",
+        "@id": `${pageUrl}#conference-list`,
+        name: title,
+        numberOfItems: matchingConferences.length,
+        itemListElement: matchingConferences
+          .slice(0, 50)
+          .map((conference, index) => {
+            const conferenceSlug = getConferenceSlug(
+              conference,
+              conferences
+            );
+
+            return {
+              "@type": "ListItem",
+              position: index + 1,
+              name: conference.title,
+              url: `${canonicalOrigin}/conference/${conferenceSlug}`
+            };
+          })
+      }
+    ]
+  };
+
+  const schemaScript = document.createElement("script");
+
+  schemaScript.id = dynamicSchemaId;
+  schemaScript.type = "application/ld+json";
+  schemaScript.textContent = JSON.stringify(schema);
+
+  document.head.appendChild(schemaScript);
+}
+
   }, [
     selectedCategory,
     selectedCountry,
@@ -1992,7 +2160,8 @@ const unsubFeedbacks = subscribeToSupabaseSignal("user_feedbacks", requestFullSy
     activePortal,
     authMode,
     organizers,
-    notFoundPath
+    notFoundPath,
+    conferences
   ]);
 
   const handleShareClick = () => {
