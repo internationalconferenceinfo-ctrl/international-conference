@@ -1855,7 +1855,7 @@ const unsubFeedbacks = subscribeToSupabaseSignal("user_feedbacks", requestFullSy
             title = `Conferences in ${selectedCity}, ${selectedCountry} | International Conference`;
             description = `Browse upcoming academic and professional conferences taking place in ${selectedCity}, ${selectedCountry}.`;
           } else if (hasCat) {
-            title = `Upcoming ${selectedCategory} International Conferences | Upcoming International Conferences`;
+            title = `Upcoming ${selectedCategory} International Conferences | Verified ${selectedCategory} Conference List`;
 
             description =
               `Browse upcoming international conferences on ${selectedCategory}, discover global opportunities, and find Conferences that match your academic, research, or professional interests.`;
@@ -1863,7 +1863,7 @@ const unsubFeedbacks = subscribeToSupabaseSignal("user_feedbacks", requestFullSy
             keywords =
               `upcoming international conferences on ${selectedCategory}, list of ${selectedCategory} international conferences, ${selectedCategory} international conferences, upcoming international conferences on ${selectedCategory}, international conference on ${selectedCategory}, conferences in ${selectedCategory}, ${selectedCategory} international conferences`;
           } else if (hasCity) {
-            title = `International Conferences ${selectedCity} ${currentYear} | International ${selectedCity} Conferences`;
+            title = `International Conferences ${selectedCity} ${currentYear} | Verified List`;
 
             description =
               `Find international conferences in ${selectedCity} across various fields, including technology, medicine, business, education, science, and research. Explore upcoming events and expand your professional network.`;
@@ -1871,10 +1871,10 @@ const unsubFeedbacks = subscribeToSupabaseSignal("user_feedbacks", requestFullSy
             keywords =
               `upcoming international conferences in ${selectedCity} ${currentYear}, best international conferences in ${selectedCity}, international conferences in ${selectedCity} ${currentYear}, upcoming academic conferences in ${selectedCity}, international research conferences in ${selectedCity} ${currentYear}, free international conferences in ${selectedCity}, international conferences for students in ${selectedCity}, international conferences for researchers in ${selectedCity}, international conferences for professionals in ${selectedCity}, upcoming academic and international conferences in ${selectedCity}`;
           } else if (hasCountry) {
-            title = `International Conferences in ${selectedCountry} ${currentYear} | ${selectedCountry} Conferences`;
+            title = `International Conferences in ${selectedCountry} ${currentYear} | Verified List`;
 
             description =
-              `Browse international conferences in ${selectedCountry} and find Upcoming International Conferences across diverse subjects, including science, technology, medicine, business, education, and research. Connect, learn, share ideas, and build global professional relationships.`;
+              `Find upcoming international conferences in ${selectedCountry} for ${currentYear}. Explore verified events in engineering, business, medicine, and AI on internationalconference.info.`;
 
             keywords =
               `upcoming international conferences in ${selectedCountry} ${currentYear}, best international conferences in ${selectedCountry}, international conferences in ${selectedCountry} ${currentYear}, academic international conferences in ${selectedCountry}, international research conferences in ${selectedCountry} ${currentYear}, upcoming academic conferences in ${selectedCountry}, international conferences by city in ${selectedCountry}, international conferences by topic in ${selectedCountry}, free international conferences in ${selectedCountry}, international conferences for students in ${selectedCountry}, international conferences for researchers in ${selectedCountry}, international conferences for professionals in ${selectedCountry}`;
