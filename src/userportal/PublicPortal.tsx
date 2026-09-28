@@ -2504,7 +2504,11 @@ export default function PublicPortal({
                     key={`${country}-${cIdx}`}
                     whileHover={{ scale: 1.03, y: -2 }}
                     whileTap={{ scale: 0.98 }}
-                    href={`/${getSeoCountrySlug(country)}`}
+                    href={
+                      selectedCategory !== "All"
+                        ? `/${getSeoCountrySlug(country)}/${getSeoCategorySlug(selectedCategory)}`
+                        : `/${getSeoCountrySlug(country)}`
+                    }
                     onClick={(event) => {
                       event.preventDefault();
                       handleCountryClick(country);
@@ -2572,7 +2576,11 @@ export default function PublicPortal({
                       key={`${item.cityName}-${item.countryName}-${cIdx}`}
                       whileHover={{ scale: 1.03, y: -2 }}
                       whileTap={{ scale: 0.98 }}
-                      href={`/${getSeoCountrySlug(item.countryName)}/${seoSlugify(item.cityName)}`}
+                      href={
+                        selectedCategory !== "All"
+                          ? `/${getSeoCountrySlug(item.countryName)}/${seoSlugify(item.cityName)}/${getSeoCategorySlug(selectedCategory)}`
+                          : `/${getSeoCountrySlug(item.countryName)}/${seoSlugify(item.cityName)}`
+                      }
                       onClick={(event) => {
                         event.preventDefault();
                         handleCityClick(item.cityName, item.countryName);
@@ -2653,7 +2661,14 @@ export default function PublicPortal({
                       key={`${topic}-${tIdx}`}
                       whileHover={{ scale: 1.02, y: -2 }}
                       whileTap={{ scale: 0.98 }}
-                      href={`/${getSeoCategorySlug(mappedCat)}`}
+                      href={
+                        selectedCountry !== "All" && selectedCity !== "All"
+                          ? `/${getSeoCountrySlug(selectedCountry)}/${seoSlugify(selectedCity)}/${getSeoCategorySlug(mappedCat)}`
+                          : selectedCountry !== "All"
+                            ? `/${getSeoCountrySlug(selectedCountry)}/${getSeoCategorySlug(mappedCat)}`
+                            : selectedCity !== "All"
+                              ? `/${getSeoCategorySlug(mappedCat)}/${seoSlugify(selectedCity)}`
+                              : `/${getSeoCategorySlug(mappedCat)}`}
                       onClick={(event) => {
                         event.preventDefault();
                         handleTopicClick(topic);
