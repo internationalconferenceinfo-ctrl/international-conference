@@ -244,6 +244,40 @@ ${safeJson}
   }
 }
 
+function injectServerSeoBody(
+  html: string,
+  metadata: SeoMetadata,
+  pathname: string
+): string {
+  const cleanPath =
+    "/" +
+    String(pathname || "/")
+      .split("?")[0]
+      .replace(/^\/+|\/+$/g, "");
+
+  // Keep homepage unchanged
+  if (cleanPath === "/") {
+    return html;
+  }
+
+  const safeTitle = escapeHtmlText(metadata.title);
+  const safeDescription = escapeHtmlText(
+    metadata.description
+  );
+
+  const seoBody = `
+    <main id="server-seo-content">
+      <h1>${safeTitle}</h1>
+      <p>${safeDescription}</p>
+    </main>
+  `;
+
+  return html.replace(
+    /<div\s+id=["']root["']\s*>\s*<\/div>/i,
+    `<div id="root">${seoBody}</div>`
+  );
+}
+
 async function getSeoMetadataForPath(
   pathname: string
 ): Promise<SeoMetadata | null> {
@@ -5055,6 +5089,13 @@ if (seoMetadata) {
     seoMetadata,
     req.path
   );
+
+    html = injectServerSeoBody(
+    html,
+    seoMetadata,
+    req.path
+  );
+  
 } else {
         const currentYear = new Date().getFullYear();
 
