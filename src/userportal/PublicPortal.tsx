@@ -1597,6 +1597,67 @@ export default function PublicPortal({
       .join(" ");
   };
 
+  const dynamicSeoSummary = useMemo(() => {
+    if (filteredConferences.length === 0) {
+      return "";
+    }
+
+    const uniqueTopics = Array.from(
+      new Set(
+        filteredConferences
+          .map((conference) => conference.category)
+          .filter(Boolean)
+      )
+    ).slice(0, 4);
+
+    const uniqueCities = Array.from(
+      new Set(
+        filteredConferences
+          .map((conference) => conference.city)
+          .filter(Boolean)
+      )
+    ).slice(0, 4);
+
+    const topicText =
+      uniqueTopics.length > 0
+        ? uniqueTopics.map(formatDisplayText).join(", ")
+        : "";
+
+    const cityText =
+      uniqueCities.length > 0
+        ? uniqueCities.map(formatDisplayText).join(", ")
+        : "";
+
+    const parts: string[] = [];
+
+    parts.push(
+      `Current listings include ${filteredConferences.length} upcoming ${filteredConferences.length === 1 ? "conference" : "conferences"
+      }.`
+    );
+
+    if (topicText) {
+      parts.push(
+        `Available conference topics currently include ${topicText}.`
+      );
+    }
+
+    if (
+      selectedCountry !== "All" &&
+      selectedCity === "All" &&
+      cityText
+    ) {
+      parts.push(
+        `Current conference locations in ${formatDisplayText(selectedCountry)} include ${cityText}.`
+      );
+    }
+
+    return parts.join(" ");
+  }, [
+    filteredConferences,
+    selectedCountry,
+    selectedCity,
+  ]);
+
   // Selected keyword for dynamic display
   const selectedKeyword = useMemo(() => {
     if (selectedCity !== "All") return selectedCity;
@@ -2956,6 +3017,12 @@ export default function PublicPortal({
             <p className="text-slate-600 text-xs md:text-sm leading-relaxed max-w-5xl whitespace-pre-line">
               {filterDescription}
             </p>
+
+            {dynamicSeoSummary && (
+              <p className="text-slate-600 text-xs md:text-sm leading-relaxed max-w-5xl">
+                {dynamicSeoSummary}
+              </p>
+            )}
 
             {relatedConferencePages.length > 0 && (
               <div className="flex flex-wrap gap-2 pt-1">
