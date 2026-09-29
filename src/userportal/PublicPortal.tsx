@@ -1687,7 +1687,7 @@ export default function PublicPortal({
         .replace(/\{COUNTRY\}/g, hasCountry ? formatDisplayText(selectedCountry) : "")
         .replace(/\s+,/g, ",")
         .replace(/,\s*,/g, ",")
-        .replace(/\s{2,}/g, " ")
+        .replace(/[ \t]{2,}/g, " ")
         .trim();
     };
 
