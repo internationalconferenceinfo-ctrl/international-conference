@@ -2349,7 +2349,7 @@ export default function PublicPortal({
               </h2>
 
               <div className="bg-white border border-slate-200 rounded-2xl px-5 py-5 sm:px-7 sm:py-6 shadow-sm">
-                <p className="text-sm sm:text-base text-slate-600 leading-7 text-justify">
+                <p className="text-sm sm:text-base text-slate-600 leading-7 text-justify whitespace-pre-line">
                   {homeMainDescription}
                 </p>
               </div>
@@ -2953,7 +2953,7 @@ export default function PublicPortal({
               </div>
             </div>
 
-            <p className="text-slate-600 text-xs md:text-sm leading-relaxed max-w-5xl">
+            <p className="text-slate-600 text-xs md:text-sm leading-relaxed max-w-5xl whitespace-pre-line">
               {filterDescription}
             </p>
 
@@ -3620,10 +3620,10 @@ export default function PublicPortal({
                 {dynamicAboutUs.title}
               </h1>
             </div>
-            <p className="text-slate-600 leading-relaxed font-medium">
+            <p className="text-slate-600 leading-relaxed font-medium whitespace-pre-line">
               {dynamicAboutUs.paragraph1}
             </p>
-            <p className="text-slate-600 leading-relaxed font-medium">
+            <p className="text-slate-600 leading-relaxed font-medium whitespace-pre-line">
               {dynamicAboutUs.paragraph2}
             </p>
 
