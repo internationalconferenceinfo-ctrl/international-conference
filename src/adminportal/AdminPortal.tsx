@@ -6345,9 +6345,9 @@ export default function AdminPortal({
                         onChange={setNewBannerImage}
                         placeholder="Paste image URL (https://...)"
                         aspectHint="Landscape banner (1200x500px recommended)"
-                        maxWidth={1000}
-                        maxHeight={500}
-                        quality={0.75}
+                          maxWidth={900}
+                          maxHeight={450}
+                          quality={0.65}
                         maxFileSizeKB={5120}
                         className="md:col-span-2"
                       />
