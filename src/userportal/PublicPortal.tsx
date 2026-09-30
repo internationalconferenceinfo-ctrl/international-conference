@@ -1855,15 +1855,59 @@ export default function PublicPortal({
       });
     }
 
+    if (hasCountry && !hasCity) {
+  const countryCities = Array.from(
+    new Set(
+      filteredConferences
+        .map((conference) => conference.city)
+        .filter(Boolean)
+    )
+  ).slice(0, 6);
+
+  const countryTopics = Array.from(
+    new Set(
+      filteredConferences
+        .map((conference) => conference.category)
+        .filter(Boolean)
+    )
+  ).slice(0, 6);
+
+  countryCities.forEach((city) => {
+    pages.push({
+      label: `Conferences in ${formatDisplayText(city)}, ${formatDisplayText(selectedCountry)}`,
+      href: `/${countrySlug}/${seoSlugify(city)}`,
+    });
+  });
+
+  countryTopics.forEach((topic) => {
+    pages.push({
+      label: `${formatDisplayText(topic)} Conferences in ${formatDisplayText(selectedCountry)}`,
+      href: `/${countrySlug}/${getSeoCategorySlug(topic)}`,
+    });
+  });
+
+  filteredConferences.slice(0, 6).forEach((conference) => {
+    if (!conference.city || !conference.category) {
+      return;
+    }
+
+    pages.push({
+      label: `${formatDisplayText(conference.category)} Conferences in ${formatDisplayText(conference.city)}`,
+      href: `/${countrySlug}/${seoSlugify(conference.city)}/${getSeoCategorySlug(conference.category)}`,
+    });
+  });
+}
+
     return pages.filter(
       (page, index, all) =>
         all.findIndex((item) => item.href === page.href) === index
     );
-  }, [
-    selectedCategory,
-    selectedCountry,
-    selectedCity,
-  ]);
+}, [
+  selectedCategory,
+  selectedCountry,
+  selectedCity,
+  filteredConferences,
+]);
 
   // Check if events have mens or not
   const hasMensEvents = useMemo(() => {
