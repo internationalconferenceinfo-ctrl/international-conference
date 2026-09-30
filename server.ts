@@ -141,6 +141,25 @@ function injectCanonicalUrl(
   );
 }
 
+function injectRobotsMeta(
+  html: string,
+  content: string
+): string {
+  const safeContent = escapeHtmlAttribute(content);
+
+  if (/<meta\s+name=["']robots["'][^>]*>/i.test(html)) {
+    return html.replace(
+      /<meta\s+name=["']robots["'][^>]*>/i,
+      `<meta name="robots" content="${safeContent}" />`
+    );
+  }
+
+  return html.replace(
+    "</head>",
+    `<meta name="robots" content="${safeContent}" />\n</head>`
+  );
+}
+
 function injectSocialSeoMetadata(
   html: string,
   metadata: SeoMetadata,
@@ -5116,6 +5135,19 @@ if (seoMetadata) {
       }
 
       html = injectCanonicalUrl(html, req.path);
+
+      const normalizedSeoPath =
+  "/" +
+  String(req.path || "/")
+    .replace(/^\/+|\/+$/g, "")
+    .toLowerCase();
+
+if (normalizedSeoPath === "/login") {
+  html = injectRobotsMeta(
+    html,
+    "noindex, nofollow"
+  );
+}
 
 res.setHeader("Content-Type", "text/html");
 
