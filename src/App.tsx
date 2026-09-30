@@ -441,12 +441,13 @@ export default function App() {
 
       // Resolve route-critical data first. Conference detail URLs should not
       // wait for banners, feedback, locations, subscribers, or audit tables.
-      const [
-        routeConferences,
-        routeOrganizers,
-        routeCategories,
-        routeCountries,
-      ] = await Promise.all([
+const [
+  routeConferences,
+  routeOrganizers,
+  routeCategories,
+  routeCountries,
+  routeBanners,
+] = await Promise.all([
         sessionRole === "VISITOR"
           ? fetchAllActivePublicConferencesFromSupabase().then(
             (result) =>
@@ -465,6 +466,7 @@ export default function App() {
           needsAdminData
         ),
         fetchAllCountriesFromSupabase(),
+        fetchFromSupabase<Banner[]>("banners"),
       ]);
 
       if (Array.isArray(routeConferences)) {
@@ -505,6 +507,14 @@ export default function App() {
         );
       }
 
+      if (Array.isArray(routeBanners)) {
+  const uniqueBanners = Array.from(
+    new Map(routeBanners.map((b: Banner) => [b.id, b])).values()
+  );
+
+  setBanners(uniqueBanners);
+}
+
 
       setInitialDataLoaded(true);
 
@@ -537,7 +547,7 @@ export default function App() {
           sessionRole,
           needsAdminData
         ),
-        fetchFromSupabase<Banner[]>("banners"),
+        Promise.resolve(routeBanners),
         fetchFromSupabase<BannerContentItem[]>("banner_contents"),
         fetchFromSupabase<UserFeedback[]>("user_feedbacks"),
         needsAdminData
