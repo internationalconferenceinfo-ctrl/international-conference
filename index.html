@@ -34,29 +34,34 @@
       content="ABr3LOAB9QQ51f06mBvWmylN1TdikZynUxJpnyKD4ew"
     />
 
-    <!-- Google Tag -->
-    <script
-      async
-      src="https://www.googletagmanager.com/gtag/js?id=GT-MKTJ95TH"
-    ></script>
-
-    <script>
+<!-- Delayed Google Tag + AdSense -->
+<script>
+  window.addEventListener("load", function () {
+    setTimeout(function () {
       window.dataLayer = window.dataLayer || [];
 
-      function gtag() {
-        dataLayer.push(arguments);
-      }
+      window.gtag = function () {
+        window.dataLayer.push(arguments);
+      };
 
-      gtag("js", new Date());
-      gtag("config", "GT-MKTJ95TH");
-    </script>
+      var gtagScript = document.createElement("script");
+      gtagScript.async = true;
+      gtagScript.src =
+        "https://www.googletagmanager.com/gtag/js?id=GT-MKTJ95TH";
+      document.head.appendChild(gtagScript);
 
-    <!-- Google AdSense -->
-    <script
-      async
-      src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4829200885543201"
-      crossorigin="anonymous"
-    ></script>
+      window.gtag("js", new Date());
+      window.gtag("config", "GT-MKTJ95TH");
+
+      var adsScript = document.createElement("script");
+      adsScript.async = true;
+      adsScript.crossOrigin = "anonymous";
+      adsScript.src =
+        "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4829200885543201";
+      document.head.appendChild(adsScript);
+    }, 3000);
+  });
+</script>
 
     <meta
       name="google-adsense-account"

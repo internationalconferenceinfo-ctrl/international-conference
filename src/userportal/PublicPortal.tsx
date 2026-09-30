@@ -2590,16 +2590,20 @@ if (hasCategory && !hasCountry && !hasCity) {
 
                         {/* Conference Image */}
                         <div className="w-full aspect-[16/9] bg-slate-100 overflow-hidden">
-                          <img
-                            src={getCleanImageSrc(
-                              conf.bannerImage,
-                              "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=800&q=80"
-                            )}
-                            alt={conf.title}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                            loading="lazy"
-                            referrerPolicy="no-referrer"
-                          />
+                        <img
+                          src={getCleanImageSrc(
+                            conf.bannerImage,
+                            "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=400&q=70"
+                          )}
+                          alt={conf.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          loading="lazy"
+                          decoding="async"
+                          fetchPriority="low"
+                          width={400}
+                          height={225}
+                          referrerPolicy="no-referrer"
+                        />
                         </div>
 
                         {/* Card Content */}
