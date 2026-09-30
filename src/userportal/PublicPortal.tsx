@@ -1898,6 +1898,49 @@ export default function PublicPortal({
   });
 }
 
+if (hasCategory && !hasCountry && !hasCity) {
+  const topicCountries = Array.from(
+    new Set(
+      filteredConferences
+        .map((conference) => conference.country)
+        .filter(Boolean)
+    )
+  ).slice(0, 6);
+
+  const topicCities = Array.from(
+    new Set(
+      filteredConferences
+        .map((conference) => conference.city)
+        .filter(Boolean)
+    )
+  ).slice(0, 6);
+
+  topicCountries.forEach((country) => {
+    pages.push({
+      label: `${formatDisplayText(selectedCategory)} Conferences in ${formatDisplayText(country)}`,
+      href: `/${getSeoCountrySlug(country)}/${topicSlug}`,
+    });
+  });
+
+  topicCities.forEach((city) => {
+    pages.push({
+      label: `${formatDisplayText(selectedCategory)} Conferences in ${formatDisplayText(city)}`,
+      href: `/${topicSlug}/${seoSlugify(city)}`,
+    });
+  });
+
+  filteredConferences.slice(0, 6).forEach((conference) => {
+    if (!conference.country || !conference.city) {
+      return;
+    }
+
+    pages.push({
+      label: `${formatDisplayText(selectedCategory)} Conferences in ${formatDisplayText(conference.city)}, ${formatDisplayText(conference.country)}`,
+      href: `/${getSeoCountrySlug(conference.country)}/${seoSlugify(conference.city)}/${topicSlug}`,
+    });
+  });
+}
+
     return pages.filter(
       (page, index, all) =>
         all.findIndex((item) => item.href === page.href) === index
