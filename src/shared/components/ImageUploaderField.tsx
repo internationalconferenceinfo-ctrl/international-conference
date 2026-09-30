@@ -48,9 +48,11 @@ export const ImageUploaderField: React.FC<ImageUploaderFieldProps> = ({
       let compressedDataUrl: string;
 
       // Strict hard limit of 20 KB for all images
-      compressedDataUrl = await compressImageToTargetSize(
+compressedDataUrl = await compressImageFile(
   file,
-  maxFileSizeKB
+  maxWidth,
+  maxHeight,
+  quality
 );
 
 const base64Str =
