@@ -34,10 +34,15 @@
       content="ABr3LOAB9QQ51f06mBvWmylN1TdikZynUxJpnyKD4ew"
     />
 
-<!-- Delayed Google Tag + AdSense -->
+<!-- Load Google services after first user interaction -->
 <script>
-  window.addEventListener("load", function () {
-    setTimeout(function () {
+  (function () {
+    var loaded = false;
+
+    function loadGoogleServices() {
+      if (loaded) return;
+      loaded = true;
+
       window.dataLayer = window.dataLayer || [];
 
       window.gtag = function () {
@@ -59,8 +64,21 @@
       adsScript.src =
         "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4829200885543201";
       document.head.appendChild(adsScript);
-    }, 3000);
-  });
+
+      events.forEach(function (eventName) {
+        window.removeEventListener(eventName, loadGoogleServices);
+      });
+    }
+
+    var events = ["scroll", "pointerdown", "touchstart", "keydown"];
+
+    events.forEach(function (eventName) {
+      window.addEventListener(eventName, loadGoogleServices, {
+        once: true,
+        passive: true
+      });
+    });
+  })();
 </script>
 
     <meta
