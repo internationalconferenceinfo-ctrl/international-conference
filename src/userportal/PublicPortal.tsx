@@ -2326,12 +2326,18 @@ if (hasCategory && !hasCountry && !hasCity) {
                     transition={{ duration: 1 }}
                     className="absolute inset-0 w-full h-full"
                   >
-                    <img
-                      src={activeBannersList[currentSlide % activeBannersList.length]?.image || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=800&q=80"}
-                      alt={activeBannersList[currentSlide % activeBannersList.length]?.title || "Conference Banner"}
-                      className="w-full h-full object-cover object-center"
-                      referrerPolicy="no-referrer"
-                    />
+                <img
+                  src={activeBannersList[currentSlide % activeBannersList.length]?.image ||
+                    "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1600&q=80"}
+                  alt={activeBannersList[currentSlide % activeBannersList.length]?.title || "Conference Banner"}
+                  className="w-full h-full object-cover object-center"
+                  width={1600}
+                  height={900}
+                  loading="eager"
+                  fetchPriority="high"
+                  decoding="async"
+                  referrerPolicy="no-referrer"
+                />
                   </motion.div>
                 ) : (
                   <div className="absolute inset-0 bg-gradient-to-br from-blue-700 to-indigo-900" />
