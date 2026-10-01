@@ -1198,6 +1198,10 @@ const supabaseServerClient = createClient(supabaseUrl, supabaseServerKey, {
   global: { fetch: fetchWithTimeout },
 });
 
+app.get("/sitemap.xml", (_req, res) => {
+  res.redirect(301, "/sitemaps.xml");
+});
+
 app.get("/sitemaps.xml", async (_req, res) => {
   try {
     const urls =
