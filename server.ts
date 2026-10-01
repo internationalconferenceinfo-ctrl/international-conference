@@ -5045,10 +5045,13 @@ const setupProductionFrontend = () => {
     })
   );
 
-  app.get("*", async (req, res) => {
-    try {
+app.get("*", async (req, res) => {
+  try {
+    if (req.path.toLowerCase() === "/home") {
+      return res.redirect(301, "/");
+    }
 
-            const routeSegments = String(req.path || "/")
+    const routeSegments = String(req.path || "/")
         .toLowerCase()
         .replace(/^\/+|\/+$/g, "")
         .split("/")
