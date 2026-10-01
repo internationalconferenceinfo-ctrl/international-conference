@@ -1866,10 +1866,10 @@ const unsubFeedbacks = subscribeToSupabaseSignal("user_feedbacks", requestFullSy
             title = `International Conferences in ${selectedCity}, ${selectedCountry} | Verified List`;
             description = `Find international conferences in ${selectedCity}, ${selectedCountry} ${currentYear} across diverse topics and industries. Explore upcoming events, conference dates, locations, organizers, and details. `;
           } else if (hasCat) {
-            title = `Upcoming ${selectedCategory} International Conferences | Verified ${selectedCategory} Conference List`;
+            title = `Upcoming International ${selectedCategory} Conferences ${currentYear}| Verified Conference List`;
 
             description =
-              `Browse upcoming international conferences on ${selectedCategory}, discover global opportunities, and find Conferences that match your academic, research, or professional interests.`;
+              `Discover upcoming international ${selectedCategory} conferences in ${currentYear}. Explore global academic, research, scientific, business, and professional events across countries and cities.`;
 
             keywords =
               `upcoming international conferences on ${selectedCategory}, list of ${selectedCategory} international conferences, ${selectedCategory} international conferences, upcoming international conferences on ${selectedCategory}, international conference on ${selectedCategory}, conferences in ${selectedCategory}, ${selectedCategory} international conferences`;
