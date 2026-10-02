@@ -132,19 +132,42 @@ async function buildUrls(
     }
   }
 
-  for (const organizer of organizers) {
-    const organizerSlug =
-      String(
-        organizer.slug || ""
-      ).trim();
+const seenOrganizerBaseSlugs = new Set<string>();
 
-    if (organizerSlug) {
-      add(
-        "organizers",
-        organizerSlug
-      );
-    }
+for (const organizer of organizers) {
+  const organizerSlug = String(
+    organizer.slug || ""
+  )
+    .trim()
+    .toLowerCase();
+
+  if (!organizerSlug) {
+    continue;
   }
+
+  // Skip obviously poor or invalid-looking organizer slugs.
+  if (
+    organizerSlug === "pages" ||
+    organizerSlug === "page" ||
+    organizerSlug === "organizer" ||
+    organizerSlug === "organizers" ||
+    organizerSlug.startsWith("http") ||
+    organizerSlug.includes("https")
+  ) {
+    continue;
+  }
+
+  // Treat "-1", "-2", "-3", etc. as duplicate variants.
+  const baseSlug = organizerSlug.replace(/-\d+$/, "");
+
+  if (seenOrganizerBaseSlugs.has(baseSlug)) {
+    continue;
+  }
+
+  seenOrganizerBaseSlugs.add(baseSlug);
+
+  add("organizers", organizerSlug);
+}
 
   const activeConferences = conferences.filter(
     (conference) =>
@@ -166,13 +189,21 @@ async function buildUrls(
       if (path) conferencePaths.add(path);
     };
 
-    if (country) countPath(country);
-    if (city) countPath(city);
-    if (topic) countPath(topic);
-    if (country && city) countPath(country, city);
-    if (country && topic) countPath(country, topic);
-    if (city && topic) countPath(topic, city);
-    if (country && city && topic) countPath(country, city, topic);
+if (country) countPath(country);
+
+if (topic) countPath(topic);
+
+if (country && city) {
+  countPath(country, city);
+}
+
+if (country && topic) {
+  countPath(country, topic);
+}
+
+if (country && city && topic) {
+  countPath(country, city, topic);
+}
 
     for (const path of conferencePaths) {
       seoPathCounts.set(path, (seoPathCounts.get(path) || 0) + 1);
@@ -180,7 +211,7 @@ async function buildUrls(
   }
 
   for (const [path, conferenceCount] of seoPathCounts) {
-    if (conferenceCount >= 1) {
+    if (conferenceCount >= 2) {
       add(...path.split("/"));
     }
   }

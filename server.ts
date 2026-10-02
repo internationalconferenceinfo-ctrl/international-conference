@@ -1198,11 +1198,9 @@ const supabaseServerClient = createClient(supabaseUrl, supabaseServerKey, {
   global: { fetch: fetchWithTimeout },
 });
 
-app.get("/sitemap.xml", (_req, res) => {
-  res.redirect(301, "/sitemaps.xml");
-});
-
-app.get("/sitemaps.xml", async (_req, res) => {
+app.get(
+  ["/sitemap.xml", "/sitemaps.xml"],
+  async (_req, res) => {
   try {
     const urls =
       await getDynamicSitemapUrls(
@@ -1233,7 +1231,8 @@ app.get("/sitemaps.xml", async (_req, res) => {
       .type("text/plain")
       .send("Unable to generate sitemap.");
   }
-});
+}
+);
 
 app.get(
   "/sitemaps/sitemap-:number.xml",

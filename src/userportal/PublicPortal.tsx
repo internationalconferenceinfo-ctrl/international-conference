@@ -1856,21 +1856,29 @@ export default function PublicPortal({
     }
 
     if (hasCountry && !hasCity) {
-  const countryCities = Array.from(
-    new Set(
-      filteredConferences
-        .map((conference) => conference.city)
-        .filter(Boolean)
-    )
-  ).slice(0, 6);
+const countryCities: string[] = Array.from(
+  new Set<string>(
+    filteredConferences
+      .map((conference) =>
+        typeof conference.city === "string"
+          ? conference.city.trim()
+          : ""
+      )
+      .filter((city) => city.length > 0)
+  )
+).slice(0, 6);
 
-  const countryTopics = Array.from(
-    new Set(
-      filteredConferences
-        .map((conference) => conference.category)
-        .filter(Boolean)
-    )
-  ).slice(0, 6);
+const countryTopics: string[] = Array.from(
+  new Set<string>(
+    filteredConferences
+      .map((conference) =>
+        typeof conference.category === "string"
+          ? conference.category.trim()
+          : ""
+      )
+      .filter((topic) => topic.length > 0)
+  )
+).slice(0, 6);
 
   countryCities.forEach((city) => {
     pages.push({
@@ -1899,22 +1907,29 @@ export default function PublicPortal({
 }
 
 if (hasCategory && !hasCountry && !hasCity) {
-  const topicCountries = Array.from(
-    new Set(
-      filteredConferences
-        .map((conference) => conference.country)
-        .filter(Boolean)
-    )
-  ).slice(0, 6);
+const topicCountries: string[] = Array.from(
+  new Set<string>(
+    filteredConferences
+      .map((conference) =>
+        typeof conference.country === "string"
+          ? conference.country.trim()
+          : ""
+      )
+      .filter((country) => country.length > 0)
+  )
+).slice(0, 6);
 
-  const topicCities = Array.from(
-    new Set(
-      filteredConferences
-        .map((conference) => conference.city)
-        .filter(Boolean)
-    )
-  ).slice(0, 6);
-
+const topicCities: string[] = Array.from(
+  new Set<string>(
+    filteredConferences
+      .map((conference) =>
+        typeof conference.city === "string"
+          ? conference.city.trim()
+          : ""
+      )
+      .filter((city) => city.length > 0)
+  )
+).slice(0, 6);
   topicCountries.forEach((country) => {
     pages.push({
       label: `${formatDisplayText(selectedCategory)} Conferences in ${formatDisplayText(country)}`,
