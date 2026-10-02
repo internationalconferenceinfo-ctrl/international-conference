@@ -298,10 +298,42 @@ export function renderSitemapPage(
   return [
     '<?xml version="1.0" encoding="UTF-8"?>',
     '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
-    ...chunk.map(
-      (url) =>
-        `  <url><loc>${xmlEscape(url)}</loc></url>`
-    ),
+...chunk.map((url) => {
+  const today = new Date().toISOString().split("T")[0];
+
+  const path = new URL(url).pathname;
+
+  let priority = "0.7";
+
+  if (path === "/") {
+    priority = "1.0";
+  } else if (
+    [
+      "/conferences",
+      "/organizers",
+      "/about-us",
+      "/media-partner",
+      "/associates",
+      "/contact-us",
+      "/testimonials",
+      "/privacy-policy",
+      "/terms-of-service",
+    ].includes(path)
+  ) {
+    priority = "0.9";
+  } else if (
+    path.startsWith("/conference/") ||
+    path.startsWith("/organizers/")
+  ) {
+    priority = "0.8";
+  }
+
+  return `  <url>
+    <loc>${xmlEscape(url)}</loc>
+    <lastmod>${today}</lastmod>
+    <priority>${priority}</priority>
+  </url>`;
+}),
     "</urlset>",
     "",
   ].join("\n");

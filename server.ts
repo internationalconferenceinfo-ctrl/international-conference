@@ -1217,9 +1217,9 @@ app.get(
       "public, s-maxage=300, max-age=0"
     );
 
-    return res.send(
-      renderSitemapIndex(urls.length)
-    );
+return res.send(
+  renderSitemapPage(urls, 1)
+);
   } catch (error) {
     console.error(
       "Dynamic sitemap index error:",
